@@ -68,7 +68,7 @@ select
 from (
   values
     ('33333333-3333-3333-3333-333333333333'::uuid, 'profesional@psi.test',
-     '{"nombre":"Elena","apellidos":"Herrera"}'::jsonb),
+     '{"nombre":"Jesús","apellidos":"Banquez Ramírez"}'::jsonb),
     ('11111111-1111-1111-1111-111111111111'::uuid, 'ana@psi.test',
      '{"nombre":"Ana","apellidos":"Restrepo"}'::jsonb),
     ('22222222-2222-2222-2222-222222222222'::uuid, 'beto@psi.test',
