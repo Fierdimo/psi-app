@@ -1,0 +1,48 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+
+import { ArmazonAuth } from "@/components/auth/armazon-auth";
+import { FormularioIngreso } from "@/components/auth/formularios";
+import { Alert } from "@/components/ui/alert";
+
+export const metadata: Metadata = { title: "Entrar" };
+
+export default async function IngresarPage({
+  searchParams,
+}: PageProps<"/ingresar">) {
+  const params = await searchParams;
+  const siguiente =
+    typeof params.siguiente === "string" ? params.siguiente : undefined;
+  const enlaceInvalido = params.error === "enlace";
+
+  return (
+    <ArmazonAuth
+      titulo="Entrar"
+      descripcion="Accede a tu espacio para consultar tus citas."
+      pie={
+        <>
+          <p>
+            ¿Aún no tienes cuenta?{" "}
+            <Link href="/registro" className="text-accent font-medium">
+              Crear una cuenta
+            </Link>
+          </p>
+          <p>
+            <Link href="/recuperar" className="text-accent">
+              Olvidé mi contraseña
+            </Link>
+          </p>
+        </>
+      }
+    >
+      {enlaceInvalido && (
+        <Alert tone="warning" title="Ese enlace ya no sirve">
+          Los enlaces por correo caducan y solo pueden usarse una vez. Solicita
+          uno nuevo desde «Olvidé mi contraseña».
+        </Alert>
+      )}
+
+      <FormularioIngreso siguiente={siguiente} />
+    </ArmazonAuth>
+  );
+}

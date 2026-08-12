@@ -1,0 +1,834 @@
+<title>Sistema Visual Psi</title>
+<style>
+  /* ============ TOKENS — light (bare :root = complete palette) ============ */
+  :root {
+    --brand-50:  #EEF3FF;
+    --brand-100: #DCE5FF;
+    --brand-200: #BCCBFF;
+    --brand-300: #93A9FB;
+    --brand-400: #6B86F4;
+    --brand-500: #4B66E8;
+    --brand-600: #2F49D4;
+    --brand-700: #2438AC;
+    --brand-800: #1C2C84;
+    --brand-900: #16225F;
+    --brand-950: #101740;
+
+    --ink-900: #16233A;
+    --ink-700: #33415C;
+    --ink-500: #64748B;
+    --ink-400: #8494AC;
+    --ink-300: #C6D0DE;
+    --ink-200: #DDE3ED;
+    --ink-100: #EDF1F7;
+
+    --success-600: #146B4B;  --success-50: #E9F6F0;
+    --warning-700: #7A4A02;  --warning-50: #FDF5E6;
+    --danger-600:  #B3261E;  --danger-50:  #FDECEA;
+
+    --bg:        #F7F9FC;
+    --panel:     #FFFFFF;
+    --sunken:    #EDF1F7;
+    --text:      var(--ink-900);
+    --text-2:    var(--ink-700);
+    --text-3:    var(--ink-500);
+    --line:      var(--ink-200);
+    --line-2:    var(--ink-300);
+    --line-ui:   var(--ink-400);
+    --accent:    var(--brand-600);
+    --accent-2:  var(--brand-700);
+    --accent-bg: var(--brand-50);
+    --accent-bd: var(--brand-100);
+    --shadow-xs: 0 1px 2px rgba(16,23,64,.05);
+    --shadow-sm: 0 1px 3px rgba(16,23,64,.07), 0 1px 2px rgba(16,23,64,.04);
+    --shadow-md: 0 4px 12px rgba(16,23,64,.08), 0 2px 4px rgba(16,23,64,.04);
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* ============ TOKENS — dark (system default, unstamped) ============ */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #0C1233;
+      --panel:     #141C4E;
+      --sunken:    #1A2360;
+      --text:      #EDF1F7;
+      --text-2:    #C3CDE6;
+      --text-3:    #96A3C6;
+      --line:      #2A3670;
+      --line-2:    #35438A;
+      --line-ui:   #5566B4;
+      --accent:    #93A9FB;
+      --accent-2:  #BCCBFF;
+      --accent-bg: #1A2360;
+      --accent-bd: #35438A;
+      --success-600: #6FD3AC;  --success-50: #14352C;
+      --warning-700: #F2C063;  --warning-50: #3A2E12;
+      --danger-600:  #F79992;  --danger-50:  #40191A;
+      --shadow-xs: 0 1px 2px rgba(4,7,26,.5);
+      --shadow-sm: 0 1px 3px rgba(4,7,26,.55), 0 1px 2px rgba(4,7,26,.4);
+      --shadow-md: 0 4px 14px rgba(4,7,26,.55), 0 2px 4px rgba(4,7,26,.4);
+    }
+  }
+  /* ============ TOKENS — dark (explicit stamp) ============ */
+  :root[data-theme="dark"] {
+    --bg:        #0C1233;
+    --panel:     #141C4E;
+    --sunken:    #1A2360;
+    --text:      #EDF1F7;
+    --text-2:    #C3CDE6;
+    --text-3:    #96A3C6;
+    --line:      #2A3670;
+    --line-2:    #35438A;
+    --line-ui:   #5566B4;
+    --accent:    #93A9FB;
+    --accent-2:  #BCCBFF;
+    --accent-bg: #1A2360;
+    --accent-bd: #35438A;
+    --success-600: #6FD3AC;  --success-50: #14352C;
+    --warning-700: #F2C063;  --warning-50: #3A2E12;
+    --danger-600:  #F79992;  --danger-50:  #40191A;
+    --shadow-xs: 0 1px 2px rgba(4,7,26,.5);
+    --shadow-sm: 0 1px 3px rgba(4,7,26,.55), 0 1px 2px rgba(4,7,26,.4);
+    --shadow-md: 0 4px 14px rgba(4,7,26,.55), 0 2px 4px rgba(4,7,26,.4);
+  }
+
+  /* ============ BASE ============ */
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text-2);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+  }
+  h1, h2, h3, h4 { color: var(--text); text-wrap: balance; margin: 0; font-weight: 600; }
+  p { margin: 0; }
+  a { color: var(--accent); }
+  code, .mono { font-family: var(--mono); font-variant-ligatures: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px 120px;
+  }
+
+  /* ============ RAIL / NAV ============ */
+  nav {
+    position: sticky; top: 0; align-self: start;
+    padding-top: 56px; max-height: 100vh; overflow-y: auto;
+  }
+  .navtitle {
+    font-size: 12px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--text-3);
+    padding-bottom: 12px; margin-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  nav ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; counter-reset: s; }
+  nav a {
+    display: flex; gap: 10px; align-items: baseline;
+    text-decoration: none; color: var(--text-3);
+    font-size: 14px; padding: 5px 8px; border-radius: 6px;
+    transition: color .15s cubic-bezier(.2,0,0,1), background .15s cubic-bezier(.2,0,0,1);
+  }
+  nav a:hover { color: var(--accent); background: var(--accent-bg); }
+  nav a::before {
+    counter-increment: s; content: counter(s, decimal-leading-zero);
+    font-family: var(--mono); font-size: 11px; color: var(--line-ui);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ HEADER ============ */
+  header { padding: 88px 0 0; }
+  .brandline { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; }
+  .glyph {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: var(--brand-600); color: #fff;
+    display: grid; place-items: center;
+    font-size: 20px; font-weight: 600; line-height: 1;
+  }
+  .brandname { font-size: 19px; font-weight: 600; letter-spacing: -.02em; color: var(--text); }
+  .brandmeta { font-size: 13px; color: var(--text-3); margin-left: auto; font-variant-numeric: tabular-nums; }
+  header h1 {
+    font-size: clamp(34px, 5.2vw, 46px); line-height: 1.1;
+    letter-spacing: -.03em; margin-bottom: 20px;
+  }
+  .lede { font-size: 19px; line-height: 1.6; color: var(--text-2); max-width: 62ch; }
+  .lede strong { color: var(--text); font-weight: 600; }
+
+  /* ============ SECTIONS ============ */
+  section { padding-top: 76px; scroll-margin-top: 24px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 12px;
+  }
+  section > h2 { font-size: 28px; letter-spacing: -.022em; line-height: 1.25; margin-bottom: 14px; }
+  section > p { max-width: 66ch; }
+  h3 { font-size: 15px; letter-spacing: .01em; margin: 36px 0 14px; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ============ THE BLACK DEMO ============ */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 28px; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .compare > div { background: var(--panel); padding: 26px 24px; }
+  .compare .tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    text-transform: uppercase; margin-bottom: 10px; display: block;
+  }
+  .compare .no .tag { color: var(--danger-600); }
+  .compare .yes .tag { color: var(--success-600); }
+  .compare p { font-size: 16px; line-height: 1.55; }
+  .compare .no p  { color: #000; }
+  :root[data-theme="dark"] .compare .no p { color: #FFF; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .compare .no p { color: #FFF; } }
+  .compare .yes p { color: var(--text); }
+
+  /* ============ SWATCHES ============ */
+  .ramp { display: grid; grid-template-columns: repeat(11, 1fr); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-xs); margin-bottom: 8px; }
+  .ramp > div { aspect-ratio: 1 / 1.5; display: flex; align-items: flex-end; padding: 8px 6px; }
+  .ramp span { font-family: var(--mono); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .rampkey { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 30px; }
+
+  .chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 12px; }
+  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .chip .sw { height: 44px; border-radius: 6px; margin-bottom: 10px; }
+  .chip .nm { font-size: 13px; font-weight: 600; color: var(--text); }
+  .chip .hx { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); text-transform: uppercase; }
+  .chip .us { font-size: 12px; color: var(--text-3); margin-top: 6px; line-height: 1.45; }
+
+  /* ============ TABLES ============ */
+  .tablewrap { overflow-x: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 460px; }
+  th {
+    text-align: left; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-3);
+    font-weight: 600; padding: 11px 16px; border-bottom: 1px solid var(--line);
+  }
+  td { padding: 11px 16px; border-bottom: 1px solid var(--line); color: var(--text-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--text); }
+  td.tok { font-family: var(--mono); font-size: 12.5px; color: var(--text); white-space: nowrap; }
+  .pass { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--success-600); }
+
+  /* ============ TYPE SPECIMEN ============ */
+  .spec { border-top: 1px solid var(--line); padding: 16px 0; display: grid; grid-template-columns: 96px 1fr; gap: 20px; align-items: baseline; }
+  .spec .meta { font-family: var(--mono); font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; line-height: 1.5; }
+  .spec .samp { color: var(--text); letter-spacing: -.02em; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ============ COMPONENT DEMOS ============ */
+  .demo { background: var(--sunken); border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    font-family: inherit; font-size: 15px; font-weight: 500;
+    height: 44px; padding: 0 20px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer; border: 1px solid transparent;
+    transition: background .15s cubic-bezier(.2,0,0,1), border-color .15s cubic-bezier(.2,0,0,1);
+  }
+  .btn.pri { background: var(--brand-600); color: #fff; }
+  .btn.pri:hover { background: var(--brand-700); }
+  :root[data-theme="dark"] .btn.pri { background: var(--brand-500); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.pri { background: var(--brand-500); } }
+  .btn.sec { background: var(--panel); color: var(--accent); border-color: var(--line-ui); }
+  .btn.sec:hover { border-color: var(--accent); }
+  .btn.gho { background: transparent; color: var(--text-2); }
+  .btn.gho:hover { background: var(--panel); }
+  .btn.dis { background: var(--sunken); color: var(--text-3); border-color: var(--line-2); cursor: default; }
+  .btn.dan { background: transparent; color: var(--danger-600); border-color: var(--danger-600); }
+
+  .field { max-width: 340px; }
+  .field label { display: block; font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .field input {
+    font-family: inherit; font-size: 16px; width: 100%; height: 44px;
+    padding: 0 12px; border-radius: 8px; background: var(--panel);
+    border: 1px solid var(--line-ui); color: var(--text);
+  }
+  .field input::placeholder { color: var(--text-3); }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+  .field .help { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; letter-spacing: .01em; }
+  .b-conf { background: var(--success-50); color: var(--success-600); }
+  .b-sol { background: var(--warning-50); color: var(--warning-700); }
+  .b-real { background: var(--accent-bg); color: var(--accent-2); }
+  .b-canc { background: var(--sunken); color: var(--text-3); }
+
+  /* ============ APPOINTMENT CARD ============ */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 16px; }
+  .pcard {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 22px; box-shadow: var(--shadow-xs);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .pcard.hero { border-left: 3px solid var(--accent); }
+  .pcard.past { background: var(--sunken); box-shadow: none; }
+  .pcard.past .ptitle, .pcard.past .pmeta { opacity: .68; }
+  .phead { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .plabel { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--text-3); }
+  .ptitle { font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.3; letter-spacing: -.01em; }
+  .ptime { font-size: 17px; color: var(--text-2); font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .psub { font-size: 13.5px; color: var(--text-3); margin-top: 4px; }
+  .pmeta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .pin { display: inline-block; font-size: 12.5px; font-weight: 500; padding: 3px 10px; border-radius: 6px; background: var(--accent-bg); color: var(--accent-2); }
+  .pfoot { border-top: 1px solid var(--line); padding-top: 14px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+
+  /* ============ CALENDAR ============ */
+  .cal { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); box-shadow: var(--shadow-xs); }
+  .calbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .calmonth { font-size: 16px; font-weight: 600; color: var(--text); }
+  .caltz { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .caldays { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--sunken); }
+  .caldays span { padding: 8px 6px; text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; color: var(--text-3); }
+  .calgrid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .calcell {
+    min-height: 96px; padding: 6px;
+    border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  }
+  .calcell:nth-child(7n) { border-right: 0; }
+  .calgrid .calcell:nth-last-child(-n+7) { border-bottom: 0; }
+  .calcell.out { background: var(--bg); }
+  .calnum { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; padding: 2px 4px; align-self: flex-start; }
+  .calcell.out .calnum { color: var(--text-3); opacity: .65; }
+  .calnum.today {
+    background: var(--accent); color: var(--panel); font-weight: 600;
+    border-radius: 999px; width: 22px; height: 22px;
+    display: grid; place-items: center; padding: 0;
+  }
+  .evt {
+    font-size: 11.5px; font-weight: 500; padding: 3px 6px; border-radius: 6px;
+    line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; cursor: pointer; border: 1px solid transparent;
+  }
+  .evt.conf { background: var(--accent-bg); border-left: 3px solid var(--accent); color: var(--accent-2); }
+  .evt.sol  { background: transparent; border: 1.5px dashed var(--warning-700); color: var(--warning-700); }
+  .evt.real { background: var(--sunken); color: var(--text-3); }
+  .evt.canc { background: transparent; color: var(--text-3); text-decoration: line-through; }
+  .calmore { font-size: 11px; color: var(--text-3); padding-left: 6px; }
+  .callegend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px; color: var(--text-3); align-items: center; }
+  .callegend span { display: flex; align-items: center; gap: 7px; }
+  .lg { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+
+  /* ============ TWO DOORS ============ */
+  .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .door { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--panel); }
+  .door .top { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .door.pro .top { background: var(--brand-800); border-bottom: 0; }
+  .door.pro .top .dt, .door.pro .top .dp { color: #fff; }
+  .door.pro .top .dp { opacity: .72; }
+  .dt { font-size: 15.5px; font-weight: 600; color: var(--text); }
+  .dp { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-top: 3px; }
+  .door .bod { padding: 18px 20px; display: flex; flex-direction: column; gap: 9px; }
+  .door .bod div { font-size: 14px; color: var(--text-2); display: grid; grid-template-columns: 16px 1fr; gap: 9px; }
+  .door .bod div::before { content: "—"; color: var(--line-ui); }
+
+  /* ============ ALERTS ============ */
+  .alert { border-radius: 10px; padding: 14px 16px; border-left: 3px solid; font-size: 14.5px; line-height: 1.5; }
+  .alert b { display: block; font-weight: 600; margin-bottom: 2px; }
+  .a-warn { background: var(--warning-50); border-color: var(--warning-700); color: var(--warning-700); }
+  .a-ok   { background: var(--success-50); border-color: var(--success-600); color: var(--success-600); }
+  .a-err  { background: var(--danger-50);  border-color: var(--danger-600);  color: var(--danger-600); }
+  .a-info { background: var(--accent-bg);  border-color: var(--accent);      color: var(--accent-2); }
+
+  /* ============ FLOW ============ */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 18px; }
+  .step .bullet { display: flex; flex-direction: column; align-items: center; }
+  .step .ring {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--accent); background: var(--panel); margin-top: 8px;
+  }
+  .step .line { width: 1.5px; flex: 1; background: var(--line-2); margin: 4px 0; }
+  .step:last-child .line { display: none; }
+  .step .body { padding-bottom: 26px; }
+  .step .body h4 { font-size: 15.5px; margin-bottom: 3px; }
+  .step .body p { font-size: 14.5px; color: var(--text-3); max-width: 58ch; }
+  .who { font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; margin-left: 8px; vertical-align: 2px; }
+  .who.pac { background: var(--accent-bg); color: var(--accent-2); }
+  .who.pro { background: var(--sunken); color: var(--text-3); }
+
+  /* ============ CHECKLIST ============ */
+  .open { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; }
+  .open li {
+    list-style: none; display: grid; grid-template-columns: 20px 1fr;
+    gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line);
+    font-size: 15px; color: var(--text-2);
+  }
+  .open li::before {
+    content: ""; width: 14px; height: 14px; margin-top: 5px;
+    border: 1.5px solid var(--line-ui); border-radius: 3px;
+  }
+
+  .note {
+    background: var(--accent-bg); border: 1px solid var(--accent-bd);
+    border-radius: 10px; padding: 16px 18px; font-size: 14.5px;
+    color: var(--text-2); line-height: 1.55;
+  }
+  .note b { color: var(--text); }
+
+  footer {
+    margin-top: 88px; padding-top: 24px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--text-3); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; padding: 0 20px 80px; }
+    nav { display: none; }
+    header { padding-top: 48px; }
+    .compare, .doors { grid-template-columns: 1fr; }
+    .ramp { grid-template-columns: repeat(6, 1fr); }
+    .spec { grid-template-columns: 1fr; gap: 6px; }
+    .calcell { min-height: 68px; }
+    .evt { font-size: 10px; padding: 2px 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <nav aria-label="Secciones">
+    <div class="navtitle">Sistema</div>
+    <ol>
+      <li><a href="#negro">Nunca negro</a></li>
+      <li><a href="#paleta">Paleta</a></li>
+      <li><a href="#contraste">Contraste</a></li>
+      <li><a href="#tipografia">Tipografía</a></li>
+      <li><a href="#componentes">Componentes</a></li>
+      <li><a href="#citas">Citas</a></li>
+      <li><a href="#roles">Dos puertas</a></li>
+      <li><a href="#flujo">Flujo</a></li>
+      <li><a href="#pendiente">Pendiente</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header>
+      <div class="brandline">
+        <div class="glyph" aria-hidden="true">Ψ</div>
+        <div class="brandname">Psi</div>
+        <div class="brandmeta">Borrador v0.2 · 11 ago 2026</div>
+      </div>
+      <h1>Sistema visual para el portal de una consulta de psicología</h1>
+      <p class="lede">La tensión de este proyecto es <strong>confianza contra modernidad</strong>. Se resuelve dividiendo el trabajo: la estructura es conservadora — jerarquía clara, densidad baja, ninguna sorpresa — y el acabado es contemporáneo — tipografía nítida, espacio generoso, cero ornamento. Alguien que entra a ver cuándo es su próxima sesión ya se siente expuesto; la interfaz no debe añadir nada a eso.</p>
+    </header>
+
+    <section id="negro">
+      <span class="eyebrow">Principio fundacional</span>
+      <h2>Nunca negro, en ninguna parte</h2>
+      <p>No se usa <code>#000000</code> ni ningún neutro puro: ni en texto, ni en bordes, ni en sombras, ni en iconos, ni en overlays. Todo neutro oscuro se desplaza hacia el azul institucional. La diferencia es sutil en un swatch y evidente en un párrafo — el negro puro produce un contraste duro que se lee como interfaz de sistema, no como entorno de cuidado.</p>
+
+      <div class="compare">
+        <div class="no">
+          <span class="tag">Prohibido · #000000</span>
+          <p>Tu próxima cita es el martes 18 de agosto a las 10:00, en modalidad presencial. Puedes solicitar un cambio hasta 24 horas antes.</p>
+        </div>
+        <div class="yes">
+          <span class="tag">Correcto · ink-900 #16233A</span>
+          <p>Tu próxima cita es el martes 18 de agosto a las 10:00, en modalidad presencial. Puedes solicitar un cambio hasta 24 horas antes.</p>
+        </div>
+      </div>
+
+      <h3>Cómo se sostiene en el código</h3>
+      <div class="note">
+        Las sombras se derivan de <code>--brand-950</code>, nunca de negro:<br>
+        <code>box-shadow: 0 1px 2px rgba(16, 23, 64, .06)</code> — no <code>rgba(0,0,0,.06)</code>.
+        <br><br>
+        <b>Acción para implementación:</b> una regla de lint que falle el build ante <code>#000</code>, <code>black</code>, <code>rgba(0,0,0</code>, <code>#111</code> o <code>#222</code> en los estilos. Un principio que depende de la disciplina de quien escribe el CSS se pierde en tres semanas.
+      </div>
+    </section>
+
+    <section id="paleta">
+      <span class="eyebrow">Color</span>
+      <h2>Azul rey, expandido a escala operable</h2>
+      <p>Los colores institucionales son azul rey, azul rey oscuro, blanco y grises. Tres valores no alcanzan para cubrir hover, activo, deshabilitado, foco y superficie sutil, así que se expanden a escalas completas — pero el azul rey <code>#2F49D4</code> y el azul rey oscuro <code>#1C2C84</code> siguen siendo los dos únicos que cargan la identidad.</p>
+
+      <h3>Marca</h3>
+      <div class="ramp" role="img" aria-label="Escala de azul de 50 a 950">
+        <div style="background:#EEF3FF"><span style="color:#2438AC">50</span></div>
+        <div style="background:#DCE5FF"><span style="color:#2438AC">100</span></div>
+        <div style="background:#BCCBFF"><span style="color:#2438AC">200</span></div>
+        <div style="background:#93A9FB"><span style="color:#16225F">300</span></div>
+        <div style="background:#6B86F4"><span style="color:#16225F">400</span></div>
+        <div style="background:#4B66E8"><span style="color:#fff">500</span></div>
+        <div style="background:#2F49D4"><span style="color:#fff">600</span></div>
+        <div style="background:#2438AC"><span style="color:#fff">700</span></div>
+        <div style="background:#1C2C84"><span style="color:#fff">800</span></div>
+        <div style="background:#16225F"><span style="color:#fff">900</span></div>
+        <div style="background:#101740"><span style="color:#fff">950</span></div>
+      </div>
+      <div class="rampkey"><span>#EEF3FF</span><span>#2F49D4 · azul rey</span><span>#101740</span></div>
+
+      <h3>Los que cargan la identidad</h3>
+      <div class="chips">
+        <div class="chip">
+          <div class="sw" style="background:#2F49D4"></div>
+          <div class="nm">Azul rey</div>
+          <div class="hx">#2F49D4 · brand-600</div>
+          <div class="us">Botones primarios, enlaces, anillo de foco. Todo lo accionable.</div>
+        </div>
+        <div class="chip">
+          <div class="sw" style="background:#1C2C84"></div>
+          <div class="nm">Azul rey oscuro</div>
+          <div class="hx">#1C2C84 · brand-800</div>
+          <div class="us">Wordmark, panel de ingreso y cabecera del área del profesional.</div>
+        </div>
+        <div class="chip">
+          <div class="sw" style="background:#101740"></div>
+          <div class="nm">Tinta profunda</div>
+          <div class="hx">#101740 · brand-950</div>
+          <div class="us">El fondo más oscuro de la app. Sustituye al negro y origina toda sombra.</div>
+        </div>
+        <div class="chip">
+          <div class="sw" style="background:#16233A"></div>
+          <div class="nm">Texto principal</div>
+          <div class="hx">#16233A · ink-900</div>
+          <div class="us">El color más oscuro que verá un texto. 15.72:1 sobre blanco.</div>
+        </div>
+      </div>
+
+      <h3>Neutros — grises azulados, nunca puros</h3>
+      <div class="chips">
+        <div class="chip"><div class="sw" style="background:#33415C"></div><div class="nm">ink-700</div><div class="hx">#33415C</div><div class="us">Cuerpo de texto</div></div>
+        <div class="chip"><div class="sw" style="background:#64748B"></div><div class="nm">ink-500</div><div class="hx">#64748B</div><div class="us">Texto atenuado, etiquetas</div></div>
+        <div class="chip"><div class="sw" style="background:#8494AC"></div><div class="nm">ink-400</div><div class="hx">#8494AC</div><div class="us">Bordes de campos interactivos</div></div>
+        <div class="chip"><div class="sw" style="background:#DDE3ED"></div><div class="nm">ink-200</div><div class="hx">#DDE3ED</div><div class="us">Retícula del calendario</div></div>
+        <div class="chip"><div class="sw" style="background:#EDF1F7"></div><div class="nm">ink-100</div><div class="hx">#EDF1F7</div><div class="us">Superficie hundida, deshabilitado</div></div>
+        <div class="chip"><div class="sw" style="background:#F7F9FC;border:1px solid #DDE3ED"></div><div class="nm">surface-50</div><div class="hx">#F7F9FC</div><div class="us">Fondo de página, días fuera del mes</div></div>
+      </div>
+
+      <h3>Semánticos</h3>
+      <p style="font-size:15px">Desaturados a propósito: en contexto clínico no conviene que un aviso active alarma innecesaria, ni que compita con el azul de marca.</p>
+      <div class="stack" style="margin-top:16px">
+        <div class="alert a-ok"><b>Cita confirmada</b>#146B4B sobre #E9F6F0 — el profesional autorizó</div>
+        <div class="alert a-warn"><b>Solicitud pendiente de confirmar</b>#7A4A02 sobre #FDF5E6 — todavía no es un compromiso</div>
+        <div class="alert a-err"><b>Revisa los campos marcados</b>#B3261E sobre #FDECEA — error de validación</div>
+        <div class="alert a-info"><b>Estás viendo la hora de Bogotá</b>brand-700 sobre brand-50 — informativo</div>
+      </div>
+
+      <h3>Proporción 60 / 30 / 10, y la excepción del calendario</h3>
+      <p style="font-size:15px">60 % blanco y <code>surface-50</code>, 30 % neutros, 10 % azul rey. Si el azul ocupa más del 10 % de la superficie, deja de significar «esto es interactivo».</p>
+      <div class="note" style="margin-top:16px">
+        <b>Una vista de mes llena de bloques azules sólidos rompe esa proporción.</b> Por eso las citas no se pintan como bloques de color: se pintan como <em>tinte</em> — fondo <code>brand-50</code>, texto <code>brand-700</code>, borde izquierdo 3 px <code>brand-600</code>. Mantiene la legibilidad, respeta la proporción, y deja que el azul saturado siga significando «accionable».
+      </div>
+    </section>
+
+    <section id="contraste">
+      <span class="eyebrow">Accesibilidad</span>
+      <h2>Cada par validado antes de escribirlo</h2>
+      <p>Objetivo WCAG 2.2 AA. No es un extra: parte de los pacientes tendrá alguna discapacidad, y una plataforma inaccesible excluye a quien más necesita el acceso. Estos son los ratios calculados de la paleta.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Par</th><th>Ratio</th><th>Nivel</th><th>Uso</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="tok">ink-900 / blanco</td><td class="num">15.72</td><td><span class="pass">AAA</span></td><td>Títulos y texto principal</td></tr>
+            <tr><td class="tok">ink-700 / blanco</td><td class="num">10.24</td><td><span class="pass">AAA</span></td><td>Cuerpo de texto</td></tr>
+            <tr><td class="tok">ink-500 / blanco</td><td class="num">4.76</td><td><span class="pass">AA</span></td><td>Texto atenuado, ayuda</td></tr>
+            <tr><td class="tok">ink-400 / blanco</td><td class="num">3.08</td><td><span class="pass">AA · UI</span></td><td>Borde de componentes interactivos</td></tr>
+            <tr><td class="tok">brand-600 / blanco</td><td class="num">6.94</td><td><span class="pass">AA</span></td><td>Enlaces y botón primario</td></tr>
+            <tr><td class="tok">blanco / brand-800</td><td class="num">12.05</td><td><span class="pass">AAA</span></td><td>Cabecera del profesional</td></tr>
+            <tr><td class="tok">danger-600 / blanco</td><td class="num">6.54</td><td><span class="pass">AA</span></td><td>Errores y cancelaciones</td></tr>
+            <tr><td class="tok">success-600 / blanco</td><td class="num">6.49</td><td><span class="pass">AA</span></td><td>Cita confirmada</td></tr>
+            <tr><td class="tok">warning-700 / blanco</td><td class="num">7.48</td><td><span class="pass">AAA</span></td><td>Solicitud pendiente</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top:20px">
+        <b>La regla que rompe los grises bonitos.</b> WCAG 2.2 §1.4.11 exige 3:1 para el límite visual de un componente interactivo. El gris suave que uno querría para el borde de un input — <code>ink-300 #C6D0DE</code> — da 1.56:1 y <b>no puede</b> usarse ahí; solo <code>ink-400 #8494AC</code> o más oscuro. Es la desviación más común respecto al gris «que se ve mejor», y hay que sostenerla: un campo cuyo borde no se distingue del fondo no existe para quien tiene baja visión.
+      </div>
+
+      <h3>El resto del compromiso</h3>
+      <ul class="open">
+        <li>Toda funcionalidad operable solo con teclado, con orden de tabulación lógico y enlace «Saltar al contenido»</li>
+        <li>Anillo de foco visible en todo elemento interactivo — nunca se elimina el <code>outline</code> sin sustituto de contraste equivalente</li>
+        <li>Objetivos de toque ≥ 44 px. En el calendario esto obliga a celdas generosas, y es la razón principal de que móvil use vista de agenda</li>
+        <li>La retícula se anuncia como tabla con encabezados de día; cada cita es un botón con etiqueta completa: «Cita confirmada, martes 18 de agosto, 10:00 a 11:00, presencial»</li>
+        <li>Cambios de mes y de estado anunciados en región <code>aria-live="polite"</code></li>
+        <li>Zoom al 200 % sin pérdida de contenido ni desplazamiento horizontal</li>
+        <li><code>prefers-reduced-motion</code> respetado: se desactiva todo desplazamiento y quedan solo fundidos</li>
+      </ul>
+    </section>
+
+    <section id="tipografia">
+      <span class="eyebrow">Tipografía</span>
+      <h2>Una sola familia, bien usada</h2>
+      <p>Inter, autohospedada con <code>next/font/local</code> — nunca desde un CDN externo. Ese detalle es de privacidad, no de rendimiento: una petición a fuentes de terceros filtra la IP del usuario en el momento exacto en que consulta información clínica. Un tipo de letra bien usado se lee como más profesional que un emparejamiento decorativo.</p>
+
+      <div style="margin-top:28px">
+        <div class="spec"><div class="meta">H1<br>36 / 42 · 600</div><div class="samp" style="font-size:36px;line-height:1.16;font-weight:600">Tu calendario</div></div>
+        <div class="spec"><div class="meta">H2<br>30 / 38 · 600</div><div class="samp" style="font-size:30px;line-height:1.26;font-weight:600">Solicitar una cita</div></div>
+        <div class="spec"><div class="meta">Cita<br>20 / 28 · 600</div><div class="samp" style="font-size:20px;line-height:1.4;font-weight:600">Martes 18 de agosto</div></div>
+        <div class="spec"><div class="meta">Hora<br>17 · tabular</div><div class="samp" style="font-size:17px;font-weight:400;letter-spacing:0;font-variant-numeric:tabular-nums;color:var(--text-2)">10:00 – 11:00 · Presencial</div></div>
+        <div class="spec"><div class="meta">Cuerpo<br>16 / 26 · 400</div><div class="samp" style="font-size:16px;line-height:1.62;font-weight:400;letter-spacing:0;color:var(--text-2)">Puedes solicitar un cambio de horario hasta 24 horas antes de tu cita.</div></div>
+        <div class="spec"><div class="meta">Etiqueta<br>14 / 20 · 500</div><div class="samp" style="font-size:14px;font-weight:500;letter-spacing:0">Correo electrónico</div></div>
+        <div class="spec"><div class="meta">Chip de cita<br>12.5 · 500</div><div class="samp" style="font-size:12.5px;font-weight:500;letter-spacing:0;font-variant-numeric:tabular-nums;color:var(--accent-2)">10:00 · Presencial</div></div>
+        <div class="spec" style="border-bottom:1px solid var(--line)"><div class="meta">Overline<br>12 · 600 · .08em</div><div class="samp" style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)">Próxima cita</div></div>
+      </div>
+
+      <h3>Reglas duras</h3>
+      <ul class="open">
+        <li>El cuerpo base nunca baja de 16 px — y en inputs es obligatorio, porque por debajo iOS hace zoom al enfocar</li>
+        <li><b style="color:var(--text)"><code>tabular-nums</code> en toda hora, fecha y contador.</b> En un calendario no es cosmético: sin él, las columnas de hora bailan al cambiar de dígito</li>
+        <li>Medida máxima de 68 caracteres en texto corrido</li>
+        <li>Sin mayúsculas sostenidas salvo en overline; sin cursivas para énfasis — se usa peso 600</li>
+      </ul>
+    </section>
+
+    <section id="componentes">
+      <span class="eyebrow">Componentes</span>
+      <h2>shadcn/ui, repintado</h2>
+      <p>Base shadcn sobre Next.js y Tailwind, personalizada con los tokens. Se personaliza, no se usa por defecto — un shadcn sin repintar se reconoce a un metro de distancia y ese reconocimiento trabaja en contra de la sensación de plataforma propia.</p>
+
+      <h3>Botones · alto 44 px, radio 8 px</h3>
+      <div class="demo">
+        <div class="row">
+          <button class="btn pri">Solicitar cita</button>
+          <button class="btn sec">Ver detalle</button>
+          <button class="btn gho">Cancelar</button>
+          <button class="btn dan">Cancelar cita</button>
+        </div>
+        <p style="font-size:13.5px;color:var(--text-3);margin-top:16px">Una sola acción primaria por pantalla. Todo botón que dispara red tiene estado de carga con texto propio («Enviando…») y queda bloqueado contra doble envío.</p>
+      </div>
+
+      <h3>Campo de formulario</h3>
+      <div class="demo">
+        <div class="field">
+          <label for="d-mail">Correo electrónico</label>
+          <input id="d-mail" type="email" placeholder="nombre@correo.com">
+          <div class="help">Te enviaremos un enlace de verificación</div>
+        </div>
+        <p style="font-size:13.5px;color:var(--text-3);margin-top:16px">Etiqueta siempre visible arriba — nunca el <em>placeholder</em> como etiqueta. Los campos opcionales se marcan «(opcional)»; los obligatorios no llevan asterisco.</p>
+      </div>
+
+      <h3>Estados de una cita</h3>
+      <div class="demo">
+        <div class="badges">
+          <span class="badge b-sol">SOLICITADA</span>
+          <span class="badge b-conf">CONFIRMADA</span>
+          <span class="badge b-real">REALIZADA</span>
+          <span class="badge b-canc">CANCELADA</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--text-3);margin-top:16px">El estado nunca se comunica solo por color: cada cita lleva su estado escrito además del tratamiento visual.</p>
+      </div>
+    </section>
+
+    <section id="citas">
+      <span class="eyebrow">Pantalla central</span>
+      <h2>La próxima cita y el calendario</h2>
+      <p>El paciente entra sobre todo a una cosa: saber cuándo es su próxima sesión. La tarjeta responde esa pregunta antes de que la formule; el calendario es para cuando quiere ver el conjunto. Es también la partida más grande de la construcción — vistas múltiples, zonas horarias, estados y accesibilidad, todo en un componente.</p>
+
+      <h3>Tarjeta de próxima cita</h3>
+      <div class="cards">
+        <div class="pcard hero">
+          <div class="phead">
+            <span class="plabel">Próxima cita</span>
+            <span class="badge b-conf">CONFIRMADA</span>
+          </div>
+          <div>
+            <div class="ptitle">Martes 18 de agosto</div>
+            <div class="ptime">10:00 – 11:00 · Presencial</div>
+            <div class="psub">Consultorio 402, Av. Principal 1234</div>
+          </div>
+          <div><span class="pin">En 6 días</span></div>
+          <div class="pfoot">
+            <button class="btn sec" style="height:38px;font-size:14px">Reprogramar</button>
+            <button class="btn pri" style="height:38px;font-size:14px">Ver detalle</button>
+          </div>
+        </div>
+
+        <div class="pcard">
+          <div class="phead">
+            <span class="plabel">Solicitud enviada</span>
+            <span class="badge b-sol">POR CONFIRMAR</span>
+          </div>
+          <div>
+            <div class="ptitle">Jueves 27 de agosto</div>
+            <div class="ptime">16:00 – 17:00 · Virtual</div>
+            <div class="psub">Esperando que el profesional la confirme</div>
+          </div>
+          <div class="pmeta"><span>Solicitada el 11 de agosto</span></div>
+          <div class="pfoot">
+            <button class="btn gho" style="height:38px;font-size:14px">Retirar solicitud</button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:14px;color:var(--text-3);margin-top:14px">Si no hay próxima cita, la tarjeta se convierte en la invitación a solicitar una — nunca en un vacío.</p>
+
+      <h3>Vista de mes</h3>
+      <div class="cal">
+        <div class="calbar">
+          <div class="calmonth">Agosto 2026</div>
+          <div class="caltz">Hora de Bogotá · GMT−5</div>
+        </div>
+        <div class="caldays" aria-hidden="true">
+          <span>LUN</span><span>MAR</span><span>MIÉ</span><span>JUE</span><span>VIE</span><span>SÁB</span><span>DOM</span>
+        </div>
+        <div class="calgrid">
+          <div class="calcell out"><span class="calnum">27</span></div>
+          <div class="calcell out"><span class="calnum">28</span></div>
+          <div class="calcell out"><span class="calnum">29</span></div>
+          <div class="calcell out"><span class="calnum">30</span></div>
+          <div class="calcell out"><span class="calnum">31</span></div>
+          <div class="calcell"><span class="calnum">1</span></div>
+          <div class="calcell"><span class="calnum">2</span></div>
+
+          <div class="calcell"><span class="calnum">3</span></div>
+          <div class="calcell"><span class="calnum">4</span><div class="evt real">10:00 · Realizada</div></div>
+          <div class="calcell"><span class="calnum">5</span></div>
+          <div class="calcell"><span class="calnum">6</span></div>
+          <div class="calcell"><span class="calnum">7</span><div class="evt canc">16:00 · Cancelada</div></div>
+          <div class="calcell"><span class="calnum">8</span></div>
+          <div class="calcell"><span class="calnum">9</span></div>
+
+          <div class="calcell"><span class="calnum">10</span></div>
+          <div class="calcell"><span class="calnum today">11</span></div>
+          <div class="calcell"><span class="calnum">12</span></div>
+          <div class="calcell"><span class="calnum">13</span></div>
+          <div class="calcell"><span class="calnum">14</span></div>
+          <div class="calcell"><span class="calnum">15</span></div>
+          <div class="calcell"><span class="calnum">16</span></div>
+
+          <div class="calcell"><span class="calnum">17</span></div>
+          <div class="calcell"><span class="calnum">18</span><div class="evt conf">10:00 · Presencial</div></div>
+          <div class="calcell"><span class="calnum">19</span></div>
+          <div class="calcell"><span class="calnum">20</span></div>
+          <div class="calcell"><span class="calnum">21</span></div>
+          <div class="calcell"><span class="calnum">22</span></div>
+          <div class="calcell"><span class="calnum">23</span></div>
+
+          <div class="calcell"><span class="calnum">24</span></div>
+          <div class="calcell"><span class="calnum">25</span><div class="evt conf">10:00 · Presencial</div></div>
+          <div class="calcell"><span class="calnum">26</span></div>
+          <div class="calcell"><span class="calnum">27</span><div class="evt sol">16:00 · Por confirmar</div></div>
+          <div class="calcell"><span class="calnum">28</span></div>
+          <div class="calcell"><span class="calnum">29</span></div>
+          <div class="calcell"><span class="calnum">30</span></div>
+        </div>
+      </div>
+      <div class="callegend">
+        <span><i class="lg" style="background:var(--accent-bg);border-left:3px solid var(--accent)"></i>Confirmada</span>
+        <span><i class="lg" style="border:1.5px dashed var(--warning-700)"></i>Por confirmar</span>
+        <span><i class="lg" style="background:var(--sunken)"></i>Realizada</span>
+        <span><i class="lg" style="border:1px solid var(--line-2)"></i>Cancelada</span>
+      </div>
+
+      <div class="note" style="margin-top:24px">
+        <b>En móvil la vista por defecto no es esta.</b> Una retícula mensual en 375 px de ancho es ilegible y sus chips se vuelven objetivos de toque imposibles. En móvil la vista por defecto es <b>agenda en lista</b>, y la retícula queda como opción secundaria en modo consulta. Es la decisión que más cambia la usabilidad real, porque la mayoría de las consultas van a ocurrir desde el teléfono.
+      </div>
+
+      <h3>La zona horaria no es un detalle</h3>
+      <div class="stack">
+        <div class="alert a-info"><b>Estás viendo la hora de Bogotá (GMT−5)</b>Tu dispositivo está en otra zona. ¿Quieres cambiar la zona de tu perfil?</div>
+      </div>
+      <p style="font-size:14px;color:var(--text-3);margin-top:14px">En Latinoamérica un paciente que viaja o migra puede perder una sesión por una diferencia de una hora. Se resuelve en el modelo de datos —todo instante en <code>timestamptz</code>, zona IANA en el perfil— no al maquetar.</p>
+    </section>
+
+    <section id="roles">
+      <span class="eyebrow">Estructura</span>
+      <h2>Dos puertas, no una</h2>
+      <p>El paciente y el profesional no comparten entrada. Son dos personas con relaciones distintas hacia la plataforma: una consulta lo suyo, la otra autoriza, agenda y —a futuro— envía documentos. La asimetría es el corazón del producto: <b style="color:var(--text)">el paciente pide, el profesional autoriza</b>. Ninguna acción del paciente produce un hecho por sí sola; una cita no existe como compromiso hasta que el profesional la confirma.</p>
+
+      <div class="doors" style="margin-top:28px">
+        <div class="door">
+          <div class="top">
+            <div class="dt">Paciente</div>
+            <div class="dp">/ingresar</div>
+          </div>
+          <div class="bod">
+            <div>Enlazada desde la landing</div>
+            <div>Registro público abierto</div>
+            <div>Cabecera blanca, densidad baja</div>
+            <div>7 secciones, una cosa a la vez</div>
+            <div>Aterriza en «Tu próxima cita»</div>
+          </div>
+        </div>
+        <div class="door pro">
+          <div class="top">
+            <div class="dt">Profesional</div>
+            <div class="dp">/profesional</div>
+          </div>
+          <div class="bod">
+            <div>No enlazada. Ruta conocida solo por él</div>
+            <div>Sin registro: la cuenta se crea por migración</div>
+            <div>Cabecera azul rey oscuro, densidad media</div>
+            <div>2 secciones, herramienta de trabajo</div>
+            <div>Aterriza en «Solicitudes pendientes (3)»</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:14px;color:var(--text-3);margin-top:16px">La cabecera oscura del área del profesional cumple una función concreta: es un recordatorio permanente de que lo que hay en pantalla son datos de otras personas.</p>
+
+      <div class="note" style="margin-top:24px">
+        <b>La URL separada no es la frontera de seguridad.</b> La frontera son las políticas de acceso en la base de datos: quien descubra <code>/profesional</code> no gana nada, porque sin el rol correcto Postgres le devuelve exactamente lo mismo que en su propio panel. Y entrar por la puerta equivocada <b>redirige, no falla</b> — un mensaje del tipo «esta cuenta no tiene permisos» convertiría el formulario en un detector de cuentas privilegiadas.
+      </div>
+    </section>
+
+    <section id="flujo">
+      <span class="eyebrow">Recorrido</span>
+      <h2>De la cuenta a la cita confirmada</h2>
+      <div class="flow" style="margin-top:26px">
+        <div class="step">
+          <div class="bullet"><div class="ring"></div><div class="line"></div></div>
+          <div class="body"><h4>Crear cuenta y verificar correo<span class="who pac">Paciente</span></h4><p>Los requisitos de contraseña se muestran antes de escribir, no como error posterior. Ante credenciales incorrectas, mensaje genérico: nunca revelar si un correo existe.</p></div>
+        </div>
+        <div class="step">
+          <div class="bullet"><div class="ring"></div><div class="line"></div></div>
+          <div class="body"><h4>Consentimiento informado<span class="who pac">Paciente</span></h4><p>Pantalla propia y bloqueante, no una casilla al pie del registro. Se registra con versión y fecha: si el texto cambia, hay que poder demostrar qué aceptó cada persona exactamente. Un booleano no sirve como evidencia.</p></div>
+        </div>
+        <div class="step">
+          <div class="bullet"><div class="ring"></div><div class="line"></div></div>
+          <div class="body"><h4>Solicitar una cita<span class="who pac">Paciente</span></h4><p>Propone fecha y hora, modalidad y una alternativa opcional. La interfaz dice «solicitar», nunca «reservar» — porque no queda reservada. Máximo una solicitud pendiente a la vez.</p></div>
+        </div>
+        <div class="step">
+          <div class="bullet"><div class="ring"></div><div class="line"></div></div>
+          <div class="body"><h4>Autorizar o proponer otra hora<span class="who pro">Profesional</span></h4><p>Desde su bandeja de solicitudes: confirmar, proponer otro horario o rechazar con motivo. Es el único punto donde una cita se vuelve un compromiso, y lo garantiza la base de datos, no el frontend.</p></div>
+        </div>
+        <div class="step">
+          <div class="bullet"><div class="ring"></div><div class="line"></div></div>
+          <div class="body"><h4>Notificación por correo<span class="who pac">Paciente</span></h4><p>Fecha, hora y modalidad. <b style="color:var(--text)">Nada más.</b> Ningún correo menciona contenido clínico ni motivo de consulta: el asunto puede aparecer en la pantalla de bloqueo de un teléfono que otra persona esté mirando.</p></div>
+        </div>
+        <div class="step">
+          <div class="bullet"><div class="ring"></div></div>
+          <div class="body"><h4>Recordatorio 24 horas antes<span class="who pac">Paciente</span></h4><p>Automático, con el mismo criterio de discreción. Y la cita ya visible en el calendario con su estado confirmado.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pendiente">
+      <span class="eyebrow">Abierto</span>
+      <h2>Lo que falta decidir</h2>
+      <p>El diseño está construido para absorber estas respuestas sin rehacerse, pero cada una cambia detalles concretos de pantalla.</p>
+      <ul class="open" style="margin-top:20px">
+        <li>País concreto de ejercicio, para precisar el marco de habeas data</li>
+        <li>Duración por defecto de una cita y franja horaria de atención</li>
+        <li>Política de cancelación: texto y margen mínimo de anticipación</li>
+        <li>Instrumento(s) de evaluación — el módulo está diferido y su sección es placeholder</li>
+        <li>¿El paciente ve su propio resultado? Se asume que <b style="color:var(--text)">no</b>, sin interpretación profesional. Requiere confirmación</li>
+        <li>Retención de datos: cuánto se conserva el historial y qué ocurre con las citas pasadas al eliminar una cuenta</li>
+      </ul>
+
+      <div class="note" style="margin-top:28px">
+        <b>Una tensión que resuelve el profesional, no nosotros.</b> El derecho de supresión del titular puede chocar con las obligaciones profesionales de conservación de historia clínica. La plataforma tiene que ofrecer la ruta de eliminación en la interfaz; qué se borra y qué se anonimiza es una decisión que el profesional toma con su asesor legal antes del lanzamiento.
+      </div>
+    </section>
+
+    <footer>
+      <span>Psi · Sistema de diseño · Borrador v0.2</span>
+      <span>Spec y planeación técnica en <code>docs/</code></span>
+    </footer>
+  </main>
+</div>

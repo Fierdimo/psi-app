@@ -1,0 +1,48 @@
+# Configuración mínima de Supabase local.
+#
+# ATENCIÓN: este archivo se escribió a mano porque el CLI de Supabase no
+# estaba instalado al crear el proyecto. Cuando lo instales, ejecuta
+# `supabase init` en una carpeta aparte y compara: el CLI genera el archivo
+# completo de la versión que tengas, con claves que aquí pueden faltar.
+#
+# Las migraciones de supabase/migrations/ son lo portable y lo importante;
+# este archivo solo describe el entorno local.
+
+project_id = "psi-app"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+# Servidor de correo de prueba. Los correos de verificación y recuperación
+# caen aquí en local; nunca salen a internet.
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Verificación obligatoria: SPEC.md §4.1. Un correo sin verificar no debe
+# poder acceder a información clínica.
+enable_confirmations = true
+double_confirm_changes = true

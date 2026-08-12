@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* ============================================================================
+   Estilos base.
+   Todo color sale de un token. Ver src/styles/tokens.css.
+   ========================================================================= */
+
+html {
+  /* Compensa el salto de layout al aparecer la barra de desplazamiento */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.625;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* cv05: 'l' con cola · ss03: 'a' de doble piso — legibilidad (SPEC.md §2.3) */
+  font-feature-settings: "cv05", "ss03";
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-strong);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+/* Horas, fechas y contadores no deben bailar al cambiar de dígito.
+   En un calendario esto no es cosmético (SPEC.md §2.3). */
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------------
+   Anillo de foco global.
+   Se aplica a TODO elemento interactivo y no se elimina nunca sin un
+   sustituto de contraste equivalente (SPEC.md §8.3).
+   -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enlace «Saltar al contenido» — visible solo al enfocar con teclado */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--panel);
+  color: var(--accent);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-weight: 500;
+}
+.skip-link:focus {
+  left: 16px;
+  top: 16px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-on-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

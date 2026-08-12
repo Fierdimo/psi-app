@@ -1,0 +1,143 @@
+/* ============================================================================
+   Psi — Tokens de diseño
+   ÚNICA FUENTE DE VERDAD DEL COLOR. Ningún componente declara un hex literal.
+   Verificado por `pnpm check:colors` (scripts/check-colors.mjs).
+
+   Regla fundacional (SPEC.md §2.1): NUNCA NEGRO.
+   No existe #000 en este archivo ni debe existir en ningún otro. El neutro
+   más oscuro es --color-ink-900 (#16233A) para texto y --color-brand-950
+   (#101740) para fondos. Las sombras derivan de brand-950, no de negro.
+
+   Contrastes validados contra WCAG 2.2 AA — ver SPEC.md §2.2.
+   ========================================================================= */
+
+@theme {
+  /* --- Marca · azul rey ------------------------------------------------- */
+  --color-brand-50: #eef3ff;
+  --color-brand-100: #dce5ff;
+  --color-brand-200: #bccbff;
+  --color-brand-300: #93a9fb;
+  --color-brand-400: #6b86f4;
+  --color-brand-500: #4b66e8;
+  --color-brand-600: #2f49d4; /* Azul rey. Primario. 6.94:1 sobre blanco */
+  --color-brand-700: #2438ac; /* Hover de primario. 9.39:1 */
+  --color-brand-800: #1c2c84; /* Azul rey oscuro. 12.05:1 */
+  --color-brand-900: #16225f;
+  --color-brand-950: #101740; /* Sustituye al negro. Origen de las sombras */
+
+  /* --- Neutros · grises azulados ---------------------------------------- */
+  --color-ink-900: #16233a; /* Texto principal.        15.72:1 · AAA */
+  --color-ink-700: #33415c; /* Cuerpo de texto.        10.24:1 · AAA */
+  --color-ink-500: #64748b; /* Texto atenuado.          4.76:1 · AA  */
+  --color-ink-400: #8494ac; /* Bordes INTERACTIVOS.     3.08:1 · AA-UI */
+  --color-ink-300: #c6d0de; /* Bordes decorativos.      1.56:1 · NO interactivo */
+  --color-ink-200: #dde3ed; /* Divisores, retícula del calendario */
+  --color-ink-100: #edf1f7; /* Superficie hundida, deshabilitado */
+
+  --color-surface-50: #f7f9fc; /* Fondo de página */
+  --color-surface-0: #ffffff; /* Superficie elevada */
+
+  /* --- Semánticos · desaturados a propósito ----------------------------- */
+  --color-success-600: #146b4b; /* 6.49:1 · AA  */
+  --color-success-50: #e9f6f0;
+  --color-warning-700: #7a4a02; /* 7.48:1 · AAA */
+  --color-warning-50: #fdf5e6;
+  --color-danger-600: #b3261e; /* 6.54:1 · AA  */
+  --color-danger-50: #fdecea;
+
+  /* --- Tipografía ------------------------------------------------------- */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+
+  --text-micro: 0.75rem; /* 12 / 18 */
+  --text-micro--line-height: 1.5;
+  --text-sm: 0.875rem; /* 14 / 22 */
+  --text-sm--line-height: 1.5714;
+  --text-base: 1rem; /* 16 / 26 — nunca menos en cuerpo ni en inputs */
+  --text-base--line-height: 1.625;
+  --text-lg: 1.125rem; /* 18 / 30 */
+  --text-lg--line-height: 1.6667;
+  --text-h4: 1.25rem; /* 20 / 28 */
+  --text-h4--line-height: 1.4;
+  --text-h3: 1.5rem; /* 24 / 32 */
+  --text-h3--line-height: 1.3333;
+  --text-h2: 1.875rem; /* 30 / 38 */
+  --text-h2--line-height: 1.2667;
+  --text-h1: 2.25rem; /* 36 / 42 */
+  --text-h1--line-height: 1.1667;
+  --text-display: 3rem; /* 48 / 52 */
+  --text-display--line-height: 1.0833;
+
+  /* --- Radios ----------------------------------------------------------- */
+  --radius-sm: 6px; /* Chips, badges, eventos del calendario */
+  --radius-md: 8px; /* Botones, inputs */
+  --radius-lg: 12px; /* Tarjetas */
+  --radius-xl: 16px; /* Modales */
+
+  /* --- Elevación · derivada de brand-950, jamás de negro ---------------- */
+  --shadow-xs: 0 1px 2px rgba(16, 23, 64, 0.05);
+  --shadow-sm:
+    0 1px 3px rgba(16, 23, 64, 0.07), 0 1px 2px rgba(16, 23, 64, 0.04);
+  --shadow-md:
+    0 4px 12px rgba(16, 23, 64, 0.08), 0 2px 4px rgba(16, 23, 64, 0.04);
+  --shadow-lg:
+    0 12px 32px rgba(16, 23, 64, 0.12), 0 4px 8px rgba(16, 23, 64, 0.06);
+
+  /* --- Movimiento ------------------------------------------------------- */
+  --ease-psi: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ============================================================================
+   Roles semánticos.
+
+   Los componentes consumen ESTOS, no la escala cruda. Así el tema oscuro
+   (diferido a post-v1, SPEC.md §14) se añade redefiniendo solo este bloque,
+   sin tocar un solo componente.
+   ========================================================================= */
+
+:root {
+  --bg: var(--color-surface-50);
+  --panel: var(--color-surface-0);
+  --sunken: var(--color-ink-100);
+
+  --text-strong: var(--color-ink-900);
+  --text-body: var(--color-ink-700);
+  --text-muted: var(--color-ink-500);
+
+  --line: var(--color-ink-200);
+  --line-decorative: var(--color-ink-300);
+  --line-interactive: var(--color-ink-400); /* mínimo 3:1 — WCAG 1.4.11 */
+
+  --accent: var(--color-brand-600);
+  --accent-hover: var(--color-brand-700);
+  --accent-active: var(--color-brand-800);
+  --accent-soft: var(--color-brand-50);
+  --accent-soft-border: var(--color-brand-100);
+  --accent-on-soft: var(--color-brand-700);
+
+  --focus-ring: var(--color-brand-600);
+  --focus-halo: rgba(47, 73, 212, 0.15);
+  --focus-halo-danger: rgba(179, 38, 30, 0.15);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-sunken: var(--sunken);
+
+  --color-text-strong: var(--text-strong);
+  --color-text-body: var(--text-body);
+  --color-text-muted: var(--text-muted);
+
+  --color-line: var(--line);
+  --color-line-decorative: var(--line-decorative);
+  --color-line-interactive: var(--line-interactive);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-border: var(--accent-soft-border);
+  --color-accent-on-soft: var(--accent-on-soft);
+}
