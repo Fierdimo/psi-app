@@ -3,10 +3,9 @@
 Portal del paciente para la consulta de un profesional de la psicología:
 citas, datos personales y —más adelante— evaluaciones, recursos y documentos.
 
-**Estado: F3 completada.** Sistema de diseño, esquema de datos, landing
-pública, autenticación con las dos entradas separadas, consentimiento
-informado bloqueante, área privada navegable, «Mis datos» completo y
-**calendario de citas** con solicitud, reprogramación y cancelación.
+**Estado: F5 completada.** El circuito está cerrado: el paciente solicita una
+cita desde su calendario y el profesional la confirma, rechaza o agenda desde
+su propia área, sin pasar por la base de datos a mano.
 
 ---
 
@@ -82,7 +81,7 @@ en nada que toque datos.
 ```bash
 pnpm check      # formato, lint, tipos, guardia de color y build
 pnpm test:rls   # 11 aserciones de Row Level Security
-pnpm test:e2e   # 27 flujos de autenticación, navegación, perfil y calendario
+pnpm test:e2e   # 36 flujos, incluido el circuito paciente → profesional → paciente
 ```
 
 ### Cuentas de prueba
@@ -178,9 +177,10 @@ supabase/
 
 ## Siguiente fase
 
-**F4 · Panel** (pequeña): tarjeta de próxima cita y solicitudes pendientes.
-Luego **F5 · Área del profesional**: bandeja de solicitudes con confirmar,
-rechazar y proponer otro horario; agenda completa; ficha de pacientes.
+**F4 · Panel** (media jornada): tarjeta de próxima cita y solicitudes
+pendientes en el inicio del paciente. Luego **F6 · Endurecimiento**: auditoría
+de accesibilidad, correo transaccional real, recordatorios con `pg_cron`,
+copias de seguridad y decisión de hosting.
 
 Sigue pendiente cerrar con el cliente: **país de ejercicio**, **duración por
 defecto de una cita y franja de atención**, y **política de cancelación**.
@@ -194,9 +194,10 @@ Mientras tanto la plataforma usa los valores por defecto de
 - Los textos de la landing (nombre, especialidad, áreas) son provisionales.
 - El correo transaccional usa el buzón local; falta configurar Resend como
   SMTP de GoTrue para producción.
-- Las solicitudes de eliminación de cuenta se registran pero el profesional
-  aún no tiene pantalla para atenderlas: se consultan en Studio.
-- Lo mismo con las solicitudes de cita: se crean correctamente, pero
-  confirmarlas requiere hoy pasar por Studio. Es el contenido de F5.
+- Las solicitudes de eliminación de cuenta se muestran en la ficha del
+  paciente y en el listado, pero resolverlas todavía se hace en Studio.
+- El profesional no puede **proponer otro horario** sobre una solicitud: puede
+  confirmar, rechazar o agendar una cita nueva. Falta una función de
+  transición en la base para ese caso.
 - La franja horaria (7:00–21:00) está fijada en código, no en
   `clinic_settings`. Se parametriza cuando el profesional defina la suya.

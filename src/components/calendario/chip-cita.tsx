@@ -19,23 +19,34 @@ export function ChipCita({
   cita,
   zona,
   className,
+  /** Texto que sustituye a la modalidad. En la agenda del profesional, el
+   *  nombre del paciente: saber DE QUIÉN es la cita importa más que si es
+   *  presencial. */
+  etiqueta,
+  /** El profesional navega a su propia ficha de la cita, no a la del paciente. */
+  base = "/calendario",
 }: {
   cita: Cita;
   zona: string;
   className?: string;
+  etiqueta?: string;
+  base?: string;
 }) {
   const aspecto = ASPECTO[cita.status];
 
   const etiquetaAccesible = [
     `Cita ${aspecto.descripcion.toLowerCase()}`,
+    etiqueta,
     fechaCompleta(cita.starts_at, zona),
     rangoHorario(cita.starts_at, cita.ends_at, zona),
     MODALIDAD[cita.modality],
-  ].join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <Link
-      href={`/calendario/${cita.id}`}
+      href={`${base}/${cita.id}`}
       aria-label={etiquetaAccesible}
       className={cn(
         "ease-psi tabular block truncate rounded-sm px-1.5 py-1 text-left text-[11.5px] leading-tight font-medium transition-opacity duration-150 hover:opacity-80",
@@ -45,9 +56,10 @@ export function ChipCita({
     >
       <span aria-hidden="true">
         {hora(cita.starts_at, zona)} ·{" "}
-        {aspecto.activa && cita.status === "confirmada"
-          ? MODALIDAD[cita.modality]
-          : aspecto.etiqueta}
+        {etiqueta ??
+          (aspecto.activa && cita.status === "confirmada"
+            ? MODALIDAD[cita.modality]
+            : aspecto.etiqueta)}
       </span>
     </Link>
   );

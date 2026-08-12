@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Brand } from "@/components/marca/brand";
+import { NavProfesional } from "@/components/navegacion/nav-profesional";
 import { Button } from "@/components/ui/button";
 import { cerrarSesion } from "@/lib/auth/acciones";
 import { exigirProfesional } from "@/lib/auth/perfil";
@@ -51,6 +52,8 @@ export default async function LayoutProfesional({
           </div>
         </div>
       </header>
+
+      <NavProfesional />
 
       <main id="contenido" className="flex-1">
         {children}

@@ -12,8 +12,8 @@ const NOMBRE_VISTA: Record<Vista, string> = {
   dia: "Día",
 };
 
-function url(vista: Vista, fecha: DateTime) {
-  return `/calendario?vista=${vista}&fecha=${fecha.toISODate()}`;
+function url(ruta: string, vista: Vista, fecha: DateTime) {
+  return `${ruta}?vista=${vista}&fecha=${fecha.toISODate()}`;
 }
 
 /**
@@ -28,10 +28,14 @@ export function Controles({
   vista,
   referencia,
   hoy,
+  /** El profesional navega dentro de su propia agenda, no del calendario del
+   *  paciente. */
+  ruta = "/calendario",
 }: {
   vista: Vista;
   referencia: DateTime;
   hoy: DateTime;
+  ruta?: string;
 }) {
   const esAgenda = vista === "agenda";
 
@@ -39,7 +43,7 @@ export function Controles({
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-1">
         <Link
-          href={url(vista, desplazar(vista, referencia, -1))}
+          href={url(ruta, vista, desplazar(vista, referencia, -1))}
           aria-label="Periodo anterior"
           className="border-line-interactive text-text-body hover:border-accent hover:text-accent grid size-9 place-items-center rounded-md border"
         >
@@ -47,14 +51,14 @@ export function Controles({
         </Link>
 
         <Link
-          href={url(vista, hoy)}
+          href={url(ruta, vista, hoy)}
           className="border-line-interactive text-text-body hover:border-accent hover:text-accent flex h-9 items-center rounded-md border px-3 text-sm font-medium"
         >
           Hoy
         </Link>
 
         <Link
-          href={url(vista, desplazar(vista, referencia, 1))}
+          href={url(ruta, vista, desplazar(vista, referencia, 1))}
           aria-label="Periodo siguiente"
           className="border-line-interactive text-text-body hover:border-accent hover:text-accent grid size-9 place-items-center rounded-md border"
         >
@@ -69,7 +73,7 @@ export function Controles({
             return (
               <li key={v}>
                 <Link
-                  href={url(v, referencia)}
+                  href={url(ruta, v, referencia)}
                   aria-current={activa ? "true" : undefined}
                   className={cn(
                     "ease-psi flex h-8 items-center rounded-[5px] px-3 text-sm transition-colors duration-150",

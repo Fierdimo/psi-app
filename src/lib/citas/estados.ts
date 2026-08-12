@@ -26,6 +26,25 @@ export type Cita = {
 };
 
 /**
+ * Cita con los datos del paciente.
+ *
+ * El profesional necesita saber DE QUIÉN es cada cita; el paciente no, porque
+ * todas son suyas. Por eso el nombre es opcional en los componentes de
+ * calendario en vez de existir un segundo juego de vistas.
+ */
+export type CitaConPaciente = Cita & {
+  paciente: { nombre: string | null; apellidos: string | null } | null;
+};
+
+/** «Ana Restrepo», o un texto neutro si el perfil aún no tiene nombre. */
+export function nombrePaciente(cita: CitaConPaciente) {
+  const partes = [cita.paciente?.nombre, cita.paciente?.apellidos].filter(
+    Boolean,
+  );
+  return partes.length > 0 ? partes.join(" ") : "Paciente sin nombre";
+}
+
+/**
  * Tratamiento visual de cada estado (SPEC.md §7.4).
  *
  * El punto clave: las citas NO se pintan como bloques de color sólido. Una

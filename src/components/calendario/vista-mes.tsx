@@ -25,19 +25,29 @@ const MAX_CHIPS = 3;
  * Máximo tres chips por celda y «+N más» que lleva al día: apilar seis citas
  * en una celda de 96 px produce texto de 8 px que nadie puede leer ni tocar.
  */
-export function VistaMes({
+export function VistaMes<T extends Cita>({
   referencia,
   citas,
   zona,
+  etiquetaDeCita,
+  base = "/calendario",
+  rutaVista = "/calendario",
 }: {
   referencia: DateTime;
-  citas: Cita[];
+  citas: T[];
   zona: string;
+  /** Qué mostrar en el chip además de la hora. El profesional pone el nombre
+   *  del paciente; el paciente deja el valor por defecto (la modalidad). */
+  etiquetaDeCita?: (cita: T) => string;
+  /** Prefijo del enlace de cada cita. */
+  base?: string;
+  /** Ruta del calendario al que salta «+N más». */
+  rutaVista?: string;
 }) {
   const dias = diasDeLaRejilla(referencia);
   const hoy = ahoraEn(zona).toISODate();
 
-  const porDia = new Map<string, Cita[]>();
+  const porDia = new Map<string, T[]>();
   for (const cita of citas) {
     const clave = enZona(cita.starts_at, zona).toISODate()!;
     porDia.set(clave, [...(porDia.get(clave) ?? []), cita]);
@@ -97,12 +107,18 @@ export function VistaMes({
                 </span>
 
                 {delDia.slice(0, MAX_CHIPS).map((cita) => (
-                  <ChipCita key={cita.id} cita={cita} zona={zona} />
+                  <ChipCita
+                    key={cita.id}
+                    cita={cita}
+                    zona={zona}
+                    base={base}
+                    etiqueta={etiquetaDeCita?.(cita)}
+                  />
                 ))}
 
                 {delDia.length > MAX_CHIPS && (
                   <Link
-                    href={`/calendario?vista=dia&fecha=${clave}`}
+                    href={`${rutaVista}?vista=dia&fecha=${clave}`}
                     className="text-text-muted hover:text-accent px-1 text-[11px]"
                   >
                     +{delDia.length - MAX_CHIPS} más

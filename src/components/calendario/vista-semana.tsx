@@ -24,16 +24,21 @@ const ALTO_HORA = 56; // px por hora
  * plataforma que no significa error, y funciona porque es la convención
  * universal en calendarios: nadie la lee como alarma.
  */
-export function VistaSemana({
+export function VistaSemana<T extends Cita>({
   referencia,
   citas,
   zona,
   dias = 7,
+  etiquetaDeCita,
+  base = "/calendario",
 }: {
   referencia: DateTime;
-  citas: Cita[];
+  citas: T[];
   zona: string;
   dias?: 1 | 7;
+  /** Ver la nota en `VistaMes`. */
+  etiquetaDeCita?: (cita: T) => string;
+  base?: string;
 }) {
   const inicio = dias === 7 ? referencia.startOf("week") : referencia;
   const columnas = Array.from({ length: dias }, (_, i) =>
@@ -152,6 +157,8 @@ export function VistaSemana({
                       <ChipCita
                         cita={cita}
                         zona={zona}
+                        base={base}
+                        etiqueta={etiquetaDeCita?.(cita)}
                         className="h-full whitespace-normal"
                       />
                     </div>
