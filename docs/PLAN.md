@@ -1,8 +1,11 @@
 # Psi — Planeación Técnica
 
-> **Estado:** Borrador v0.1 · **Fecha:** 2026-08-11
-> **Depende de:** `docs/SPEC.md` v0.2
-> **Principio rector:** la aplicación se construye **agnóstica del hosting**. Dónde se despliega es un parámetro que se decide al final, no una dependencia que se hornea al principio.
+> **Estado:** v0.2 · **Fecha:** 2026-08-12 · **Fases F0–F6 implementadas**
+> **Depende de:** `docs/SPEC.md` v0.3
+> **Principio rector:** la aplicación se construye **agnóstica del hosting**. Dónde se despliega es un parámetro que se decide al final, no una dependencia que se hornea al principio. Se ha respetado: a fecha de hoy el hosting sigue sin decidir y la aplicación funciona igual.
+>
+> Este documento describe **lo construido**, no lo planeado. Donde algo quedó
+> fuera se dice explícitamente y por qué — ver §11 y §15.
 
 ---
 
@@ -425,9 +428,11 @@ La fuente de errores más probable de este proyecto, y en Latinoamérica no es t
 
 ---
 
-## 11. Orden de construcción
+## 11. Orden de construcción — registro
 
-Cada fase termina en algo desplegable y revisable. Los tamaños son **relativos**, no compromisos de fecha; los días asumen trabajo enfocado de una persona con el spec ya cerrado.
+Cada fase terminó en algo desplegable y revisable. **Todas están completas.**
+Se conservan las estimaciones originales junto a lo que realmente contuvo cada
+una, porque la diferencia es información útil para la próxima planeación.
 
 ### F0 · Fundaciones — S (2–3 días)
 
@@ -462,7 +467,39 @@ Envoltorio visual propio (cabecera `--brand-800`, densidad media, navegación co
 
 Pruebas de RLS, auditoría de accesibilidad con teclado y lector de pantalla, revisión de contraste, e2e de los flujos críticos, `pg_cron` de recordatorios, observabilidad, decisión de hosting y despliegue, copias de seguridad **con restauración probada**.
 
-**Total aproximado: 25–34 días de trabajo enfocado.** F3 es el riesgo; si se recorta, se recortan las vistas de semana y día (§9.2).
+### Lo que NO entró, y por qué
+
+- **Proponer otro horario** desde la bandeja del profesional. Puede confirmar,
+  rechazar o agendar una cita nueva, pero no contraproponer sobre la solicitud
+  existente. Falta una función de transición en la base; se dejó sin hacer en
+  vez de improvisar un apaño de dos pasos que perdiera el vínculo con la
+  solicitud original.
+- **Resolver solicitudes de eliminación de cuenta.** Se registran y se muestran
+  al profesional en el listado y en la ficha, pero marcarlas como atendidas se
+  hace hoy en Studio.
+- **Servicio de errores** (Sentry o equivalente). Los fallos se ven en los
+  registros del servidor.
+- **Revisión manual de accesibilidad** con teclado y lector de pantalla. La
+  auditoría automática (§12.1) cubre contraste, etiquetas y estructura, pero no
+  dice si el recorrido tiene sentido.
+
+### Lo que se descubrió construyendo
+
+Cosas que no estaban en el plan y costaron tiempo real:
+
+- **Zod 4 cambió `.uuid()`** para exigir RFC 4122 estricto. Postgres acepta
+  cualquier valor con esa forma, así que un identificador válido para la base
+  era rechazado por la validación. Se usa `z.guid()`.
+- **GoTrue no tolera NULL** en `confirmation_token` y columnas afines. Una
+  siembra incompleta produce un 500 opaco al iniciar sesión.
+- **`service_role` no hereda permisos de escritura** sobre las tablas propias:
+  hay que concederlos de forma explícita (migración 0005). Es una ventaja
+  disfrazada de molestia, porque obliga a decidir tabla por tabla.
+- **Los estilos base fuera de `@layer base`** ganan a las utilidades de
+  Tailwind. Produjo títulos a 1.3:1 sobre el panel azul durante varias fases,
+  sin que nadie lo notara hasta la auditoría automática.
+- **Una redirección desde un layout anidado** cambia lo que se renderiza pero
+  no siempre la URL. El destino se calcula ahora en un solo salto (§7.2).
 
 ---
 

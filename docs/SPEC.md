@@ -1,9 +1,20 @@
 # Psi — Especificación de Diseño y Producto
 
-> **Estado:** Borrador v0.2 · **Fecha:** 2026-08-11
-> **Cambios frente a v0.1:** el v1 pasa de «plataforma de pruebas psicotécnicas» a **portal del paciente**, con el calendario de citas como funcionalidad central. El módulo de evaluaciones queda diferido a placeholder hasta definir instrumento.
+> **Estado:** v0.3 · **Fecha:** 2026-08-12 · **Implementado**
 > **Alcance:** diseño (sistema visual completo) + producto (roles, flujos, pantallas, estados).
 > **Nombre provisional:** «Psi». Reemplazar vía un único token de marca — ver §2.4.
+>
+> **Historial**
+>
+> - **v0.1** — plataforma centrada en pruebas psicotécnicas.
+> - **v0.2** — el v1 pasa a **portal del paciente** con el calendario como
+>   funcionalidad central; el módulo de evaluaciones queda diferido.
+> - **v0.3** — este documento pasa de propuesta a **descripción de lo
+>   construido**. Los tonos de texto se rehacen sobre la familia azul
+>   institucional (§2.2) tras comprobar que los grises azulados se leían como
+>   negro en pantalla.
+>
+> Lo que sigue marcado como pendiente lo está de verdad: ver §9.3 y §15.
 
 ---
 
@@ -88,9 +99,9 @@ Los tres colores institucionales son **azul rey**, **azul rey oscuro** y **blanc
 
 | Token          | Hex       | Uso                                                     | Contraste s/ blanco        |
 | -------------- | --------- | ------------------------------------------------------- | -------------------------- |
-| `--ink-900`    | `#16233A` | Texto principal, títulos                                | 15.72 : 1 · AAA            |
-| `--ink-700`    | `#33415C` | Texto de cuerpo secundario                              | 10.24 : 1 · AAA            |
-| `--ink-500`    | `#64748B` | Texto atenuado, etiquetas, ayuda                        | 4.76 : 1 · AA              |
+| `--ink-900`    | `#092096` | Texto principal, títulos                                | 12.66 : 1 · AAA            |
+| `--ink-700`    | `#25378C` | Texto de cuerpo secundario                              | 10.48 : 1 · AAA            |
+| `--ink-500`    | `#5E6C9C` | Texto atenuado, etiquetas, ayuda                        | 5.12 : 1 · AA              |
 | `--ink-400`    | `#8494AC` | **Bordes de campos interactivos**, iconos inactivos     | 3.08 : 1 · AA-UI           |
 | `--ink-300`    | `#C6D0DE` | Bordes decorativos (no interactivos)                    | 1.56 : 1 · solo decorativo |
 | `--ink-200`    | `#DDE3ED` | Divisores, **líneas de la retícula del calendario**     | decorativo                 |

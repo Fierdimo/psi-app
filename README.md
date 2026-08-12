@@ -13,13 +13,53 @@ ver «Antes de salir a producción».
 
 ## Documentación
 
-| Documento                                            | Contenido                                                     |
-| ---------------------------------------------------- | ------------------------------------------------------------- |
-| [`docs/SPEC.md`](docs/SPEC.md)                       | Diseño y producto: identidad visual, roles, flujos, pantallas |
-| [`docs/PLAN.md`](docs/PLAN.md)                       | Planeación técnica: stack, modelo de datos, seguridad, fases  |
-| [`docs/design-system.html`](docs/design-system.html) | Versión visual del sistema de diseño                          |
+| Documento                                            | Contenido                                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| [`docs/SPEC.md`](docs/SPEC.md)                       | v0.3 · Diseño y producto: identidad visual, roles, flujos, pantallas  |
+| [`docs/PLAN.md`](docs/PLAN.md)                       | v0.2 · Técnico: stack, modelo de datos, seguridad y registro de fases |
+| [`docs/design-system.html`](docs/design-system.html) | Versión visual del sistema de diseño. Ábrelo en el navegador          |
+
+Los tres describen **lo construido**, no lo planeado. Donde algo quedó fuera se
+dice explícitamente y por qué.
 
 Lee el spec antes de tocar un color, y el plan antes de tocar el esquema.
+
+---
+
+## Qué hace la plataforma
+
+Dos personas la usan y ven cosas distintas.
+
+**El paciente** entra por `/ingresar`, acepta el consentimiento informado una
+vez y accede a su calendario: consulta sus citas, propone un horario nuevo,
+pide un cambio o cancela. También gestiona sus datos, descarga una copia de
+todo lo que la plataforma guarda sobre él y puede solicitar la eliminación de
+su cuenta.
+
+**El profesional** entra por `/profesional` —ruta no enlazada desde ninguna
+parte— y ve su agenda con la bandeja de solicitudes pendientes. Confirma o
+rechaza, agenda citas directamente, cierra las que ya pasaron y consulta la
+ficha de cada paciente.
+
+La asimetría es el corazón del producto: **el paciente pide, el profesional
+autoriza**. Una cita no existe como compromiso hasta que el profesional la
+confirma, y eso lo garantiza la base de datos.
+
+### Mapa de rutas
+
+```
+Público      /  ·  /ingresar  ·  /registro  ·  /recuperar
+             /privacidad  ·  /terminos  ·  /consentimiento-informado
+
+Paciente     /panel        Próxima cita y accesos
+             /calendario   Agenda, mes, semana y día
+             /mis-datos    Perfil, cuenta, preferencias y privacidad
+             /resultados · /sesiones · /recursos · /documentos   (placeholder)
+
+Profesional  /profesional              Su entrada, sin enlazar
+             /profesional/agenda       Bandeja de solicitudes y calendario
+             /profesional/pacientes    Listado y fichas
+```
 
 ---
 
@@ -90,14 +130,20 @@ pnpm test:e2e   # 46 pruebas: flujos, circuito completo y accesibilidad (axe)
 
 Contraseña de todas: `psi-local-2026`
 
-| Correo                 | Rol                                         |
-| ---------------------- | ------------------------------------------- |
-| `profesional@psi.test` | Profesional                                 |
-| `ana@psi.test`         | Paciente (zona horaria de Bogotá)           |
-| `beto@psi.test`        | Paciente (zona horaria de Ciudad de México) |
+| Correo                 | Rol         | Para qué sirve                                                      |
+| ---------------------- | ----------- | ------------------------------------------------------------------- |
+| `profesional@psi.test` | Profesional | Elena Herrera. Entra por `/profesional`                             |
+| `ana@psi.test`         | Paciente    | Tiene una cita confirmada y una realizada. Zona: Bogotá             |
+| `beto@psi.test`        | Paciente    | Sin citas. Zona: **Ciudad de México**, para ver el aviso de desfase |
+| `carmen@psi.test`      | Paciente    | Reservada a la prueba del consentimiento; no la uses a mano         |
 
-Los correos de verificación y recuperación caen en Inbucket,
-en <http://localhost:54324>. Nunca salen a internet.
+En la primera entrada, cualquier cuenta pasa por el consentimiento informado:
+es bloqueante a propósito.
+
+Los correos de verificación y recuperación caen en Mailpit,
+en <http://localhost:54324>. Nunca salen a internet. Los transaccionales
+—confirmación de cita, recordatorios— no se envían sin `RESEND_API_KEY`: se
+registran en la consola del servidor.
 
 ---
 
@@ -113,18 +159,36 @@ en <http://localhost:54324>. Nunca salen a internet.
 
 ---
 
-## Las cuatro reglas que no se negocian
+## Las cinco reglas que no se negocian
 
-### 1. Nunca negro
+### 1. Nunca negro — y se comprueba a la vista, no sobre el papel
 
 No existe `#000`, `black`, `rgba(0,0,0,…)` ni los casi-negros `#111`/`#222` en
-ninguna parte. El texto más oscuro es `ink-900` (`#16233A`); el fondo más
-oscuro, `brand-950` (`#101740`). Las sombras derivan de `brand-950`.
+ninguna parte. Los tres tonos de texto salen de la **familia azul
+institucional**:
 
-`pnpm check:colors` falla el build ante cualquier intento, y también ante
-cualquier literal de color fuera de `src/styles/tokens.css`. Si una línea
-necesita excepción real, se marca con el comentario `color-guard-ignore` y su
-justificación.
+|          | Valor     | Contraste       | Azul − rojo |
+| -------- | --------- | --------------- | ----------- |
+| Títulos  | `#092096` | 12.66 : 1 · AAA | 141         |
+| Cuerpo   | `#25378C` | 10.48 : 1 · AAA | 103         |
+| Atenuado | `#5E6C9C` | 5.12 : 1 · AA   | 62          |
+
+Hubo dos intentos previos —`#16233A` y `#233657`— con sesgo azul suficiente
+para pasar cualquier comprobación automática. Los dos se leían como negro en
+pantalla. **Si hay que medir un color para saber que no es negro, la regla no
+se está cumpliendo.**
+
+Dos guardias, porque una sola no bastó:
+
+- `pnpm check:colors` revisa el **código fuente** y falla el build ante
+  cualquier negro o ante un literal de color fuera de `src/styles/tokens.css`.
+  Se exime una línea con `color-guard-ignore` y su justificación, o un archivo
+  entero con `color-guard-archivo-exento` (lo usan las plantillas de correo,
+  donde no existen las variables CSS).
+- `e2e/nunca-negro.spec.ts` revisa el **color calculado** de cada elemento con
+  texto visible en trece rutas. Un negro que llega por herencia o por
+  especificidad no aparece en el código, y así se coló uno en la raíz del
+  documento durante varias fases.
 
 ### 2. El color vive en un solo archivo
 
@@ -155,31 +219,67 @@ auditoría en la misma transacción.
 Ninguna acción de un paciente puede producir una cita confirmada, y eso lo
 garantiza la base de datos, no el frontend.
 
+### 5. Un correo dice fecha, hora y modalidad. Nada más
+
+Nunca el motivo de consulta, nunca contenido clínico, nunca una palabra que
+delate de qué trata la cita — tampoco en el asunto ni en el remitente.
+
+El motivo es concreto: el asunto de un correo aparece en la pantalla de
+bloqueo de un teléfono, y ese teléfono puede estar sobre una mesa a la vista de
+una pareja, un familiar o un compañero de trabajo. Que alguien esté en
+tratamiento psicológico es información sensible por sí sola, aunque no se diga
+nada de su contenido.
+
+Las plantillas están en `src/lib/correo/plantillas.ts` y cada correo lleva la
+hora en la zona horaria de quien lo recibe.
+
 ---
 
 ## Estructura
 
 ```
-docs/            Spec, plan y sistema de diseño
-scripts/         Guardia de color
+docs/                  Spec, plan y sistema de diseño
+e2e/                   Pruebas de flujo, accesibilidad y «nunca negro»
+scripts/               Guardia de color
 src/
-  app/           Rutas (App Router)
+  app/
+    (publico)/         Landing, legales y demostración del sistema
+    (auth)/            Entradas, registro y recuperación
+    (paciente)/        Panel, calendario, mis datos y placeholders
+    profesional/       Su entrada + (privado)/ con agenda y pacientes
+    api/tareas/        Endpoint de recordatorios, protegido por secreto
   components/
-    ui/          Componentes base repintados
-    marca/       Wordmark
-  lib/           Utilidades
-  styles/        tokens.css — único origen del color
+    ui/                Componentes base repintados
+    calendario/        Vistas de agenda, mes, semana y día
+    profesional/       Bandeja de solicitudes y agenda
+    navegacion/        Barras lateral, inferior y del profesional
+    marca/             Wordmark
+  lib/
+    citas/             Estados y acciones sobre citas
+    correo/            Plantillas y envío transaccional
+    fechas/            Luxon y zonas horarias
+    supabase/          Clientes de navegador, servidor y administración
+    validacion/        Esquemas Zod
+  styles/              tokens.css — único origen del color
 supabase/
-  migrations/    Esquema, RLS y funciones de transición
-  tests/         Pruebas de RLS
-  seed.sql       Datos ficticios de desarrollo
+  migrations/          Esquema, RLS y funciones de transición
+  tests/               Pruebas de RLS
+  seed.sql             Datos ficticios de desarrollo
 ```
+
+### Dónde está cada cosa
+
+| Si quieres…                                | Mira en                                            |
+| ------------------------------------------ | -------------------------------------------------- |
+| Cambiar un color                           | `src/styles/tokens.css` — y solo ahí               |
+| Entender por qué una cita cambia de estado | `supabase/migrations/*_funciones_citas.sql`        |
+| Ajustar quién ve qué                       | Las políticas RLS de las migraciones, no el código |
+| Tocar el texto de un correo                | `src/lib/correo/plantillas.ts`                     |
+| Añadir una sección al área del paciente    | `src/components/navegacion/secciones.ts`           |
 
 ---
 
-## Siguiente fase
-
-### Antes de salir a producción
+## Antes de salir a producción
 
 Nada de esto es código de producto; son decisiones y conexiones de entorno.
 
@@ -205,7 +305,7 @@ defecto de una cita y franja de atención**, y **política de cancelación**.
 Mientras tanto la plataforma usa los valores de `clinic_settings`: 60 minutos,
 24 horas de anticipación y jornada de 7:00 a 21:00.
 
-### Pendientes conocidos
+## Pendientes conocidos
 
 - Las páginas legales son borradores y necesitan revisión profesional.
 - Los textos de la landing (nombre, especialidad, áreas) son provisionales.

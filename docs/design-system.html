@@ -14,9 +14,9 @@
     --brand-900: #16225F;
     --brand-950: #101740;
 
-    --ink-900: #16233A;
-    --ink-700: #33415C;
-    --ink-500: #64748B;
+    --ink-900: #092096;
+    --ink-700: #25378C;
+    --ink-500: #5E6C9C;
     --ink-400: #8494AC;
     --ink-300: #C6D0DE;
     --ink-200: #DDE3ED;
@@ -416,7 +416,7 @@
       <div class="brandline">
         <div class="glyph" aria-hidden="true">Ψ</div>
         <div class="brandname">Psi</div>
-        <div class="brandmeta">Borrador v0.2 · 11 ago 2026</div>
+        <div class="brandmeta">v0.3 · implementado · 12 ago 2026</div>
       </div>
       <h1>Sistema visual para el portal de una consulta de psicología</h1>
       <p class="lede">La tensión de este proyecto es <strong>confianza contra modernidad</strong>. Se resuelve dividiendo el trabajo: la estructura es conservadora — jerarquía clara, densidad baja, ninguna sorpresa — y el acabado es contemporáneo — tipografía nítida, espacio generoso, cero ornamento. Alguien que entra a ver cuándo es su próxima sesión ya se siente expuesto; la interfaz no debe añadir nada a eso.</p>
@@ -425,15 +425,19 @@
     <section id="negro">
       <span class="eyebrow">Principio fundacional</span>
       <h2>Nunca negro, en ninguna parte</h2>
-      <p>No se usa <code>#000000</code> ni ningún neutro puro: ni en texto, ni en bordes, ni en sombras, ni en iconos, ni en overlays. Todo neutro oscuro se desplaza hacia el azul institucional. La diferencia es sutil en un swatch y evidente en un párrafo — el negro puro produce un contraste duro que se lee como interfaz de sistema, no como entorno de cuidado.</p>
+      <p>No se usa <code>#000000</code> ni ningún neutro puro: ni en texto, ni en bordes, ni en sombras, ni en iconos, ni en overlays. El texto sale de la <strong>familia azul institucional</strong>, no de una escala de grises.</p>
+
+      <div class="note" style="margin-top:20px">
+        <b>La regla se cumple a la vista, no sobre el papel.</b> Se probaron dos valores para el texto principal —<code>#16233A</code> y <code>#233657</code>— con sesgo azul suficiente para pasar cualquier comprobación automática. Los dos se leían como negro en pantalla. Si hay que medir un color para saber que no es negro, la regla no se está cumpliendo. Los valores actuales tienen el canal azul entre 62 y 141 puntos por encima del rojo: el tinte no se intuye, se ve.
+      </div>
 
       <div class="compare">
         <div class="no">
-          <span class="tag">Prohibido · #000000</span>
+          <span class="tag">Prohibido · negro puro</span>
           <p>Tu próxima cita es el martes 18 de agosto a las 10:00, en modalidad presencial. Puedes solicitar un cambio hasta 24 horas antes.</p>
         </div>
         <div class="yes">
-          <span class="tag">Correcto · ink-900 #16233A</span>
+          <span class="tag">Correcto · ink-900 #092096</span>
           <p>Tu próxima cita es el martes 18 de agosto a las 10:00, en modalidad presencial. Puedes solicitar un cambio hasta 24 horas antes.</p>
         </div>
       </div>
@@ -489,17 +493,17 @@
           <div class="us">El fondo más oscuro de la app. Sustituye al negro y origina toda sombra.</div>
         </div>
         <div class="chip">
-          <div class="sw" style="background:#16233A"></div>
-          <div class="nm">Texto principal</div>
-          <div class="hx">#16233A · ink-900</div>
+          <div class="sw" style="background:#092096"></div>
+          <div class="nm">Título</div>
+          <div class="hx">#092096 · ink-900</div>
           <div class="us">El color más oscuro que verá un texto. 15.72:1 sobre blanco.</div>
         </div>
       </div>
 
-      <h3>Neutros — grises azulados, nunca puros</h3>
+      <h3>Texto — de la familia azul, no de una escala de grises</h3>
       <div class="chips">
-        <div class="chip"><div class="sw" style="background:#33415C"></div><div class="nm">ink-700</div><div class="hx">#33415C</div><div class="us">Cuerpo de texto</div></div>
-        <div class="chip"><div class="sw" style="background:#64748B"></div><div class="nm">ink-500</div><div class="hx">#64748B</div><div class="us">Texto atenuado, etiquetas</div></div>
+        <div class="chip"><div class="sw" style="background:#25378C"></div><div class="nm">ink-700</div><div class="hx">#25378C</div><div class="us">Cuerpo. Menos saturado que el título a propósito: un párrafo largo en el azul del título cansa la vista</div></div>
+        <div class="chip"><div class="sw" style="background:#5E6C9C"></div><div class="nm">ink-500</div><div class="hx">#5E6C9C</div><div class="us">Atenuado. Validado sobre blanco, superficie hundida y acento</div></div>
         <div class="chip"><div class="sw" style="background:#8494AC"></div><div class="nm">ink-400</div><div class="hx">#8494AC</div><div class="us">Bordes de campos interactivos</div></div>
         <div class="chip"><div class="sw" style="background:#DDE3ED"></div><div class="nm">ink-200</div><div class="hx">#DDE3ED</div><div class="us">Retícula del calendario</div></div>
         <div class="chip"><div class="sw" style="background:#EDF1F7"></div><div class="nm">ink-100</div><div class="hx">#EDF1F7</div><div class="us">Superficie hundida, deshabilitado</div></div>
@@ -533,9 +537,9 @@
             <tr><th>Par</th><th>Ratio</th><th>Nivel</th><th>Uso</th></tr>
           </thead>
           <tbody>
-            <tr><td class="tok">ink-900 / blanco</td><td class="num">15.72</td><td><span class="pass">AAA</span></td><td>Títulos y texto principal</td></tr>
-            <tr><td class="tok">ink-700 / blanco</td><td class="num">10.24</td><td><span class="pass">AAA</span></td><td>Cuerpo de texto</td></tr>
-            <tr><td class="tok">ink-500 / blanco</td><td class="num">4.76</td><td><span class="pass">AA</span></td><td>Texto atenuado, ayuda</td></tr>
+            <tr><td class="tok">ink-900 / blanco</td><td class="num">12.66</td><td><span class="pass">AAA</span></td><td>Títulos y texto principal</td></tr>
+            <tr><td class="tok">ink-700 / blanco</td><td class="num">10.48</td><td><span class="pass">AAA</span></td><td>Cuerpo de texto</td></tr>
+            <tr><td class="tok">ink-500 / blanco</td><td class="num">5.12</td><td><span class="pass">AA</span></td><td>Texto atenuado, ayuda</td></tr>
             <tr><td class="tok">ink-400 / blanco</td><td class="num">3.08</td><td><span class="pass">AA · UI</span></td><td>Borde de componentes interactivos</td></tr>
             <tr><td class="tok">brand-600 / blanco</td><td class="num">6.94</td><td><span class="pass">AA</span></td><td>Enlaces y botón primario</td></tr>
             <tr><td class="tok">blanco / brand-800</td><td class="num">12.05</td><td><span class="pass">AAA</span></td><td>Cabecera del profesional</td></tr>
@@ -550,6 +554,10 @@
         <b>La regla que rompe los grises bonitos.</b> WCAG 2.2 §1.4.11 exige 3:1 para el límite visual de un componente interactivo. El gris suave que uno querría para el borde de un input — <code>ink-300 #C6D0DE</code> — da 1.56:1 y <b>no puede</b> usarse ahí; solo <code>ink-400 #8494AC</code> o más oscuro. Es la desviación más común respecto al gris «que se ve mejor», y hay que sostenerla: un campo cuyo borde no se distingue del fondo no existe para quien tiene baja visión.
       </div>
 
+      <div class="note" style="margin-top:16px">
+        <b>Un color se mide contra CADA fondo en que se usa.</b> El tono atenuado cumplía de sobra sobre blanco y fallaba sobre las superficies hundidas —cabeceras del calendario, conmutador de vistas— donde también aparece. Un token validado contra un único fondo no está validado.
+      </div>
+
       <h3>El resto del compromiso</h3>
       <ul class="open">
         <li>Toda funcionalidad operable solo con teclado, con orden de tabulación lógico y enlace «Saltar al contenido»</li>
@@ -559,7 +567,12 @@
         <li>Cambios de mes y de estado anunciados en región <code>aria-live="polite"</code></li>
         <li>Zoom al 200 % sin pérdida de contenido ni desplazamiento horizontal</li>
         <li><code>prefers-reduced-motion</code> respetado: se desactiva todo desplazamiento y quedan solo fundidos</li>
+        <li>Nada se atenúa con <code>opacity</code>: rebaja el contraste de forma invisible para quien lo escribe. Los días fuera del mes llegaron a quedar en 2.6:1 por eso</li>
       </ul>
+
+      <div class="note" style="margin-top:20px">
+        <b>Verificado en cada compilación, no una vez.</b> Una auditoría automática recorre diecinueve rutas comprobando contraste, etiquetas y estructura; otra prueba recorre trece comprobando el color <em>calculado</em> de cada texto visible. Esta segunda existe porque un negro que llega por herencia o por especificidad no aparece en el código fuente — y así se coló uno en la raíz del documento durante varias fases.
+      </div>
     </section>
 
     <section id="tipografia">
@@ -827,7 +840,7 @@
     </section>
 
     <footer>
-      <span>Psi · Sistema de diseño · Borrador v0.2</span>
+      <span>Psi · Sistema de diseño · v0.3 · implementado</span>
       <span>Spec y planeación técnica en <code>docs/</code></span>
     </footer>
   </main>
