@@ -33,7 +33,7 @@ test.describe.serial("Vistas del calendario", () => {
     await irAlCalendario(page);
 
     await expect(
-      page.getByText(/hora de bogota|hora de bogotá/i),
+      page.getByText("Hora de Bogotá", { exact: false }),
     ).toBeVisible();
     // La cita confirmada de la siembra aparece en el panel de próximas.
     await expect(page.getByText("Confirmada").first()).toBeVisible();
@@ -196,8 +196,11 @@ test.describe("Zonas horarias", () => {
     await guardarSeccion(page, /guardar preferencias/i);
 
     await page.goto("/calendario?vista=agenda");
+    // Se compara con la etiqueta exacta que ve el usuario. La expresión
+    // regular anterior aceptaba variantes sin tilde y por eso no detectó que la
+    // cabecera decía «Bogota»; ahora una regresión de acentuación falla aquí.
     await expect(
-      page.getByText(/hora de mexico|hora de méxico/i),
+      page.getByText("Hora de Ciudad de México", { exact: false }),
     ).toBeVisible();
 
     // Bogotá (GMT−5) y Ciudad de México (GMT−6) difieren exactamente una hora.
