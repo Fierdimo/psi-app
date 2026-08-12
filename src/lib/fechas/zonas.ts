@@ -30,6 +30,32 @@ export const ZONAS_HORARIAS = [
 
 export const ZONAS_VALIDAS = ZONAS_HORARIAS.map((z) => z.valor);
 
+/**
+ * Nombre de ciudad en español, con su acentuación.
+ *
+ * Los identificadores IANA son ASCII —`America/Bogota`, `America/Mexico_City`—
+ * así que derivar el nombre del identificador produce «Bogota» y «Mexico
+ * City». En un producto en español eso se lee como descuido.
+ */
+export const CIUDAD_DE_ZONA: Record<string, string> = {
+  "America/Bogota": "Bogotá",
+  "America/Mexico_City": "Ciudad de México",
+  "America/Argentina/Buenos_Aires": "Buenos Aires",
+  "America/Santiago": "Santiago",
+  "America/Sao_Paulo": "São Paulo",
+  "America/Caracas": "Caracas",
+  "America/La_Paz": "La Paz",
+  "America/Asuncion": "Asunción",
+  "America/Montevideo": "Montevideo",
+  "America/Panama": "Panamá",
+  "America/Costa_Rica": "San José",
+  "America/Guatemala": "Guatemala",
+  "America/Santo_Domingo": "Santo Domingo",
+  "America/New_York": "Nueva York",
+  "America/Los_Angeles": "Los Ángeles",
+  "Europe/Madrid": "Madrid",
+};
+
 export function etiquetaDeZona(valor: string) {
   return ZONAS_HORARIAS.find((z) => z.valor === valor)?.etiqueta ?? valor;
 }

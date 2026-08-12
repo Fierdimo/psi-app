@@ -110,6 +110,11 @@ where id = '22222222-2222-2222-2222-222222222222';
 
 -- -----------------------------------------------------------------------------
 -- Citas de ejemplo, una por estado, para poder ver el calendario poblado.
+--
+-- Las horas se fijan en la zona de la consulta y no como desplazamiento desde
+-- `now()`: calcularlas desde el instante actual las hace caer a las 02:00 o
+-- las 20:00 según a qué hora se siembre, y una agenda con sesiones de
+-- madrugada no sirve para revisar nada.
 -- -----------------------------------------------------------------------------
 insert into public.appointments (
   patient_id, professional_id, starts_at, ends_at, modality, location, status, created_by
@@ -118,24 +123,24 @@ values
   -- Confirmada, próxima. Es la que alimenta la tarjeta de «próxima cita».
   (
     '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-    date_trunc('hour', now()) + interval '6 days' + interval '10 hours',
-    date_trunc('hour', now()) + interval '6 days' + interval '11 hours',
+    ((current_date + 6) + time '10:00') at time zone 'America/Bogota',
+    ((current_date + 6) + time '11:00') at time zone 'America/Bogota',
     'presencial', 'Consultorio 402, Av. Principal 1234', 'confirmada',
     '33333333-3333-3333-3333-333333333333'
   ),
   -- Realizada, en el pasado.
   (
     '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-    date_trunc('hour', now()) - interval '7 days',
-    date_trunc('hour', now()) - interval '7 days' + interval '1 hour',
+    ((current_date - 7) + time '09:00') at time zone 'America/Bogota',
+    ((current_date - 7) + time '10:00') at time zone 'America/Bogota',
     'presencial', 'Consultorio 402, Av. Principal 1234', 'realizada',
     '33333333-3333-3333-3333-333333333333'
   ),
   -- Solicitud pendiente de Beto: alimenta la bandeja del profesional.
   (
     '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333',
-    date_trunc('hour', now()) + interval '9 days' + interval '16 hours',
-    date_trunc('hour', now()) + interval '9 days' + interval '17 hours',
+    ((current_date + 9) + time '16:00') at time zone 'America/Bogota',
+    ((current_date + 9) + time '17:00') at time zone 'America/Bogota',
     'virtual', null, 'solicitada',
     '22222222-2222-2222-2222-222222222222'
   );

@@ -1,5 +1,7 @@
 import { DateTime, Interval, Settings } from "luxon";
 
+import { CIUDAD_DE_ZONA } from "./zonas";
+
 /**
  * Capa de fechas (PLAN.md §10).
  *
@@ -77,7 +79,8 @@ export function distanciaEnDias(iso: string, zona: string) {
 /** Etiqueta de la zona activa para la cabecera: «Hora de Bogotá · GMT−5». */
 export function etiquetaZonaActiva(zona: string) {
   const ahora = ahoraEn(zona);
-  const ciudad = zona.split("/").at(-1)?.replace(/_/g, " ") ?? zona;
+  const ciudad =
+    CIUDAD_DE_ZONA[zona] ?? zona.split("/").at(-1)?.replace(/_/g, " ") ?? zona;
   // El signo menos tipográfico (−) evita que el guion se confunda con un rango.
   const desfase = ahora.toFormat("ZZ").replace("-", "−").replace(":00", "");
   return `Hora de ${ciudad} · GMT${desfase}`;
