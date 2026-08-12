@@ -119,6 +119,14 @@
   --focus-ring: var(--color-brand-600);
   --focus-halo: rgba(47, 73, 212, 0.15);
   --focus-halo-danger: rgba(179, 38, 30, 0.15);
+
+  /* --- Medidas de la estructura ------------------------------------------
+     La cabecera privada es fija, y la barra lateral se fija JUSTO DEBAJO de
+     ella. Ambas leen esta misma medida: si cada una llevara su propio número,
+     al cambiar una la otra quedaría tapada o flotando, que es exactamente el
+     fallo que este token evita. Incluye el borde inferior (box-sizing:
+     border-box). */
+  --alto-cabecera: 61px;
 }
 
 @theme inline {

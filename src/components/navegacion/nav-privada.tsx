@@ -23,16 +23,29 @@ export function BarraLateral() {
       aria-label="Secciones"
       className="border-line hidden w-[248px] shrink-0 border-r lg:block"
     >
-      <ul className="sticky top-0 flex flex-col gap-0.5 p-4">
-        {SECCIONES.map((seccion) => (
-          <li key={seccion.href}>
-            <EnlaceLateral
-              seccion={seccion}
-              activa={esActiva(pathname, seccion.href)}
-            />
-          </li>
-        ))}
-      </ul>
+      {/*
+        Se fija JUSTO DEBAJO de la cabecera, no en `top-0`.
+        Con `top-0` la barra sube hasta el borde de la ventana y la cabecera
+        —que también es fija y va por encima— le tapa el primer enlace en
+        cuanto se desplaza la página. Al coincidir el punto de fijación con su
+        posición natural, la barra no se mueve en ningún momento.
+
+        `max-h` + `overflow-y-auto`: si algún día hay más secciones de las que
+        caben en pantalla, la barra tiene su propio desplazamiento en lugar de
+        recortar las últimas.
+      */}
+      <div className="sticky top-[var(--alto-cabecera)] max-h-[calc(100dvh-var(--alto-cabecera))] overflow-y-auto overscroll-contain p-4">
+        <ul className="flex flex-col gap-0.5">
+          {SECCIONES.map((seccion) => (
+            <li key={seccion.href}>
+              <EnlaceLateral
+                seccion={seccion}
+                activa={esActiva(pathname, seccion.href)}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
     </nav>
   );
 }

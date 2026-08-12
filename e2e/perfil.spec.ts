@@ -28,6 +28,33 @@ test.describe.serial("Navegación privada", () => {
     }
   });
 
+  test("la barra lateral no se mueve al desplazar una página larga", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.paciente);
+    // «Mis datos» es la pantalla más alta del área privada.
+    await page.goto("/mis-datos");
+
+    const primerEnlace = page
+      .getByRole("navigation", { name: "Secciones" })
+      .getByRole("link")
+      .first();
+
+    const antes = await primerEnlace.boundingBox();
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(300);
+    const despues = await primerEnlace.boundingBox();
+
+    /*
+     * Regresión: la barra se fijaba en `top-0`, igual que la cabecera, así que
+     * al desplazar subía hasta quedar debajo de ella y el primer enlace
+     * desaparecía. Debe quedarse exactamente donde está, y por debajo de la
+     * cabecera.
+     */
+    expect(Math.abs(antes!.y - despues!.y)).toBeLessThan(2);
+    await expect(primerEnlace).toBeInViewport();
+  });
+
   test("las secciones sin contenido explican qué vivirá ahí", async ({
     page,
   }) => {

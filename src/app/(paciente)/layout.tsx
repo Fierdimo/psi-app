@@ -25,8 +25,8 @@ export default async function LayoutPaciente({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-line bg-panel sticky top-0 z-10 border-b">
-        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <header className="border-line bg-panel sticky top-0 z-20 h-[var(--alto-cabecera)] border-b">
+        <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/panel" className="rounded-md">
             <Brand size="sm" />
           </Link>
