@@ -2,7 +2,8 @@
 
 > **Estado:** v0.3 · **Fecha:** 2026-08-12 · **Implementado**
 > **Alcance:** diseño (sistema visual completo) + producto (roles, flujos, pantallas, estados).
-> **Nombre provisional:** «Psi». Reemplazar vía un único token de marca — ver §2.4.
+> **Marca:** «JBR Psicometrías», la consulta de Jesús Banquez Ramírez, psicólogo
+> organizacional. Se resuelve por un único token de marca — ver §2.4.
 >
 > **Historial**
 >
@@ -176,7 +177,7 @@ Un solo tipo de letra, bien usado, se lee como más profesional que un emparejam
 
 ### 2.4 Marca
 
-Hasta tener identidad definitiva, el nombre se renderiza como **wordmark tipográfico**: «Psi» en Inter 600, `--brand-800`, tracking −0.02em, acompañado de una marca gráfica simple (un glifo Ψ geométrico o un monograma en cuadrado redondeado `--brand-600`).
+El nombre se renderiza como **wordmark tipográfico**: «JBR Psicometrías» en Inter 600, `--brand-800`, tracking −0.02em, acompañado de la **marca real de la consulta** (`/marca/jbr-marca.png`): un perfil humano trazado como red de nodos, en el mismo azul que `--brand-600`. Sobre fondos oscuros no existe versión clara del archivo y se invierte por filtro; al ser una marca de un solo color, la inversión da blanco limpio.
 
 Se implementa como un componente único `<Brand />` y un token `NEXT_PUBLIC_BRAND_NAME`, de modo que el cambio a la marca real toque un solo archivo.
 
@@ -217,10 +218,22 @@ Discreto y rápido. El movimiento aquí sirve para orientar, nunca para entreten
 - **Sin animaciones en bucle, sin parallax, sin contadores animados.**
 - Respetar `prefers-reduced-motion: reduce` desactivando todo desplazamiento y dejando solo fundidos de opacidad.
 
+**Excepción: la landing pública (`/`).** Dentro de la aplicación el movimiento solo orienta; en la landing además persuade, y por eso ahí sí se permiten revelados al hacer scroll, entrada escalonada y un desplazamiento propio del retrato. La excepción es de superficie, no de criterio, y se acota así:
+
+- Vale **solo en `/`**. Ninguna pantalla del paciente ni del profesional la hereda.
+- `prefers-reduced-motion: reduce` sigue apagándolo **todo**, no atenuándolo.
+- Sigue sin haber bucles: cada animación termina y se queda quieta.
+- El movimiento nunca retrasa la lectura: entradas de 400 ms como máximo, escalonados de 60 ms.
+- Se implementa con `motion`, la única dependencia de animación del proyecto, y solo en `src/components/landing/`.
+
+**La red de nodos del hero** es la única animación continua de todo el producto, y existe por una razón concreta: la marca de la consulta es un perfil humano trazado como red de nodos y su promesa es «mediciones y evaluaciones». El fondo del hero es esa misma metáfora en movimiento, no un efecto de catálogo. Se pinta en canvas, lee sus colores de los tokens en tiempo de ejecución, vive detrás del contenido, se detiene cuando sale de pantalla y con `prefers-reduced-motion` pinta un solo cuadro y para. El puntero **repele** los nodos: atraerlos los apelmaza en el cursor y destruye la red a los pocos segundos.
+
+Coste conocido: los bloques revelados se sirven en opacidad 0 hasta entrar en pantalla. Sin JavaScript la landing queda en blanco por debajo del hero. Se acepta porque la app entera requiere JavaScript, pero conviene recordarlo antes de mover ese componente a una página que deba leerse sin él.
+
 ### 2.7 Iconografía e imagen
 
 - **Iconos:** Lucide, trazo 1.5 px, tamaño 20 px (24 px en navegación). Color heredado del texto, nunca azul salvo que sean accionables.
-- **Fotografía:** si se usa, retratos reales en contexto profesional, tratamiento natural. Prohibido el stock de gente sonriendo a la cámara con los brazos cruzados.
+- **Fotografía:** si se usa, retratos reales en contexto profesional, tratamiento natural. Prohibido el stock de gente sonriendo a la cámara con los brazos cruzados. La landing usa un retrato recortado del propio profesional (`/retrato-jbr.png`) sobre un panel `--brand-50`; la regla del stock no le aplica porque no es un modelo, es él. Del material del sitio anterior se descartaron las ilustraciones de personajes y las fotos de equipos genéricos, que sí caían de lleno en los antipatrones de §1.1.
 - **Ilustración:** solo geométrica y abstracta, en tonos de marca, con moderación. Sin personajes.
 - **Cero emojis** en la interfaz de producto.
 
@@ -398,10 +411,20 @@ Agenda → Solicitudes pendientes → [Confirmar] → cita CONFIRMADA + correo a
 
 Objetivo único: que alguien que llega por recomendación entienda quién es el profesional y cree una cuenta.
 
-Estructura: encabezado con wordmark y «Ingresar» → sección principal con el nombre del profesional, su especialidad y una llamada clara → enfoque y áreas de trabajo → cómo funciona la plataforma en tres pasos → nota de confidencialidad → pie con enlaces legales.
+Estructura: encabezado fijo con wordmark, navegación por anclas y «Entrar» → sección principal con el nombre del profesional, su especialidad y una llamada clara → sobre mí → para personas → cómo funciona la plataforma en tres pasos → nota de confidencialidad → para empresas → pruebas y evaluaciones → contacto → pie con enlaces legales y datos de contacto.
+
+**Es una sola página.** Las únicas rutas públicas además de `/` son las tres legales, así que el catálogo completo de la consulta vive en la landing y se navega por anclas. La landing no enlaza a nada que no exista.
+
+La consulta tiene dos mitades y solo una pasa por la plataforma. El acompañamiento a personas (acompañamiento psicológico, riesgo psicosocial, acoso y conflicto, burnout, coaching y desarrollo profesional) termina en «Crear cuenta». Los servicios a empresas (selección, evaluación psicotécnica, estudios de confiabilidad, formación y desarrollo, ofertas de empleo) y las pruebas psicométricas no generan paciente ni cita: sus bloques rematan en WhatsApp y correo, nunca en registro.
+
+Cada servicio se renderiza con el mismo componente: tarjeta con título, descripción, fichas opcionales y una línea de beneficios opcional. El detalle del catálogo es contenido, no adorno — es lo que distingue a esta consulta de una tarjeta de presentación. Los inventarios largos van como fichas y no como viñetas: veintiséis puntos en lista leen como un acta; en fichas leen como un repertorio.
+
+**El hero declara la bifurcación antes que el catálogo.** A la izquierda, nombre y credenciales; a la derecha, el retrato. Debajo, dos tarjetas —«Eres una persona» y «Eres una empresa»— que separan las dos puertas desde el primer pantallazo. Quien llega buscando una consultoría no debería tener que leer sobre citas para descubrir que se equivocó de camino.
+
+**Ritmo de bandas.** El fondo alterna `--surface-0`, `--surface-50` y `--brand-50`, con dos momentos en `--brand-800`: las credenciales, justo bajo el hero, y la confidencialidad. Una landing de una sola pieza necesita que cada sección se anuncie sola; por eso todas llevan antetítulo en `--accent`.
 
 - Sin testimonios de pacientes. Además de éticamente delicado en psicología, resta credibilidad.
-- Sin precios en v1.
+- Sin precios. Los del catálogo de empresa se negocian por volumen; publicarlos aquí crearía una segunda fuente de verdad.
 - La nota de confidencialidad es una sección, no letra pequeña.
 
 ### 7.2 Autenticación (`/ingresar`, `/registro`)

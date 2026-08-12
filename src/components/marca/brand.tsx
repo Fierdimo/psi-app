@@ -1,13 +1,22 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
 /**
  * Wordmark de la plataforma (SPEC.md §2.4).
  *
- * Punto único de cambio para la identidad: cuando llegue la marca definitiva,
- * se toca este archivo y la variable NEXT_PUBLIC_BRAND_NAME. Nada más.
+ * Punto único de cambio para la identidad: este archivo y la variable
+ * NEXT_PUBLIC_BRAND_NAME. Nada más.
+ *
+ * El glifo es la marca real de la consulta —un perfil humano trazado como red
+ * de nodos— en el mismo azul de `--brand-600`. Sobre fondos oscuros no existe
+ * una versión clara del archivo, así que se invierte por filtro: la marca es
+ * de un solo color, de modo que invertirla da blanco limpio y no un negativo
+ * sucio.
  */
 
-export const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME ?? "Psi";
+export const BRAND_NAME =
+  process.env.NEXT_PUBLIC_BRAND_NAME ?? "JBR Psicometrías";
 
 type BrandProps = {
   /** `dark` para fondos azul rey oscuro (panel de ingreso, área del profesional). */
@@ -18,11 +27,7 @@ type BrandProps = {
   className?: string;
 };
 
-const glyphSize = {
-  sm: "size-7 text-base rounded-[7px]",
-  md: "size-9 text-xl rounded-[9px]",
-  lg: "size-11 text-2xl rounded-[11px]",
-};
+const glyphPx = { sm: 28, md: 36, lg: 44 };
 
 const textSize = {
   sm: "text-base",
@@ -36,20 +41,22 @@ export function Brand({
   glyphOnly = false,
   className,
 }: BrandProps) {
+  const px = glyphPx[size];
+
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <span
+      <Image
+        src="/marca/jbr-marca.png"
+        alt=""
         aria-hidden="true"
+        width={px}
+        height={px}
+        style={{ width: px, height: px }}
         className={cn(
-          "grid place-items-center leading-none font-semibold",
-          glyphSize[size],
-          tone === "dark"
-            ? "bg-surface-0 text-brand-800"
-            : "bg-brand-600 text-surface-0",
+          "shrink-0 object-contain",
+          tone === "dark" && "brightness-0 invert",
         )}
-      >
-        Ψ
-      </span>
+      />
       {glyphOnly ? (
         <span className="sr-only">{BRAND_NAME}</span>
       ) : (

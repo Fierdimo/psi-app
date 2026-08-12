@@ -17,7 +17,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME ?? "Psi";
+const BRAND_NAME = process.env.NEXT_PUBLIC_BRAND_NAME ?? "JBR Psicometrías";
 
 export const metadata: Metadata = {
   title: {

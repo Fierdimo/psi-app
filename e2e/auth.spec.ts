@@ -18,7 +18,7 @@ test.describe("Acceso público", () => {
   }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { level: 1, name: /elena herrera/i }),
+      page.getByRole("heading", { level: 1, name: /banquez/i }),
     ).toBeVisible();
     await page.getByRole("link", { name: "Crear cuenta" }).first().click();
     await expect(page).toHaveURL(/\/registro/);
