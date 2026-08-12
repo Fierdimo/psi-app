@@ -3,9 +3,11 @@
 Portal del paciente para la consulta de un profesional de la psicología:
 citas, datos personales y —más adelante— evaluaciones, recursos y documentos.
 
-**Estado: F5 completada.** El circuito está cerrado: el paciente solicita una
-cita desde su calendario y el profesional la confirma, rechaza o agenda desde
-su propia área, sin pasar por la base de datos a mano.
+**Estado: v1 funcionalmente completa.** El circuito está cerrado —el paciente
+solicita, el profesional confirma— y la plataforma incluye correo
+transaccional, recordatorios, cabeceras de seguridad y auditoría automática de
+accesibilidad. Lo que queda antes de producción es despliegue, no producto:
+ver «Antes de salir a producción».
 
 ---
 
@@ -81,7 +83,7 @@ en nada que toque datos.
 ```bash
 pnpm check      # formato, lint, tipos, guardia de color y build
 pnpm test:rls   # 11 aserciones de Row Level Security
-pnpm test:e2e   # 36 flujos, incluido el circuito paciente → profesional → paciente
+pnpm test:e2e   # 46 pruebas: flujos, circuito completo y accesibilidad (axe)
 ```
 
 ### Cuentas de prueba
@@ -177,23 +179,38 @@ supabase/
 
 ## Siguiente fase
 
-**F4 · Panel** (media jornada): tarjeta de próxima cita y solicitudes
-pendientes en el inicio del paciente. Luego **F6 · Endurecimiento**: auditoría
-de accesibilidad, correo transaccional real, recordatorios con `pg_cron`,
-copias de seguridad y decisión de hosting.
+### Antes de salir a producción
+
+Nada de esto es código de producto; son decisiones y conexiones de entorno.
+
+1. **Elegir hosting** (`docs/PLAN.md` §3.3). La aplicación es agnóstica: migrar
+   entre Supabase gestionado y un VPS es reapuntar tres variables.
+2. **Conectar el disparador de recordatorios.** La lógica está hecha; falta
+   quien la llame a diario:
+   - Supabase gestionado: `pg_cron` + `pg_net` haciendo `POST` a
+     `/api/tareas/recordatorios` con `Authorization: Bearer $TAREAS_SECRETO`.
+   - VPS: un cron del sistema con `curl` contra el mismo endpoint.
+3. **Configurar Resend**: como remitente de la aplicación (`RESEND_API_KEY`) y
+   como SMTP de GoTrue en `supabase/config.toml`, para los correos de
+   verificación y recuperación.
+4. **Copias de seguridad** con una restauración probada. Una copia que nunca se
+   restauró no es una copia.
+5. **Revisión legal** de privacidad, términos y consentimiento, hoy en borrador.
+6. **Revisión manual de accesibilidad** con teclado y lector de pantalla. La
+   auditoría automática cubre contraste, etiquetas y estructura, pero no dice
+   si el recorrido tiene sentido.
 
 Sigue pendiente cerrar con el cliente: **país de ejercicio**, **duración por
 defecto de una cita y franja de atención**, y **política de cancelación**.
-Mientras tanto la plataforma usa los valores por defecto de
-`clinic_settings`: 60 minutos, 24 horas de anticipación y jornada de 7:00 a
-21:00.
+Mientras tanto la plataforma usa los valores de `clinic_settings`: 60 minutos,
+24 horas de anticipación y jornada de 7:00 a 21:00.
 
 ### Pendientes conocidos
 
 - Las páginas legales son borradores y necesitan revisión profesional.
 - Los textos de la landing (nombre, especialidad, áreas) son provisionales.
-- El correo transaccional usa el buzón local; falta configurar Resend como
-  SMTP de GoTrue para producción.
+- Sin `RESEND_API_KEY` los correos no se envían: se registran en consola. Es
+  deliberado, para que en local no estorbe.
 - Las solicitudes de eliminación de cuenta se muestran en la ficha del
   paciente y en el listado, pero resolverlas todavía se hace en Studio.
 - El profesional no puede **proponer otro horario** sobre una solicitud: puede
@@ -201,3 +218,5 @@ Mientras tanto la plataforma usa los valores por defecto de
   transición en la base para ese caso.
 - La franja horaria (7:00–21:00) está fijada en código, no en
   `clinic_settings`. Se parametriza cuando el profesional defina la suya.
+- No hay servicio de errores conectado (Sentry o equivalente). Los fallos se
+  ven en los registros del servidor.

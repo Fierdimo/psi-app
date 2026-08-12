@@ -72,7 +72,11 @@ from (
     ('11111111-1111-1111-1111-111111111111'::uuid, 'ana@psi.test',
      '{"nombre":"Ana","apellidos":"Restrepo"}'::jsonb),
     ('22222222-2222-2222-2222-222222222222'::uuid, 'beto@psi.test',
-     '{"nombre":"Beto","apellidos":"Cárdenas"}'::jsonb)
+     '{"nombre":"Beto","apellidos":"Cárdenas"}'::jsonb),
+    -- Reservada para la prueba de que el consentimiento bloquea. Ninguna otra
+    -- prueba la usa, así que su estado no depende del orden de ejecución.
+    ('44444444-4444-4444-4444-444444444444'::uuid, 'carmen@psi.test',
+     '{"nombre":"Carmen","apellidos":"Ibáñez"}'::jsonb)
 ) as u (id, email, meta)
 on conflict (id) do nothing;
 

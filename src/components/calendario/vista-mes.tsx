@@ -17,10 +17,13 @@ const MAX_CHIPS = 3;
 /**
  * Retícula mensual.
  *
- * Se marca como `role="grid"` con encabezados de columna: un calendario es
- * bidimensional y un lector de pantalla necesita saber que la celda del día 18
- * pertenece a la columna «martes». Sin esa estructura, la lectura es una
- * secuencia de números sin sentido.
+ * Se marca como `role="grid"` con filas, encabezados de columna y celdas: un
+ * calendario es bidimensional y un lector de pantalla necesita poder decir
+ * «fila 3, martes, 18». Sin esa estructura la lectura es una secuencia de
+ * números sin sentido.
+ *
+ * Las filas usan `display: contents` para aportar la semántica sin romper la
+ * maquetación de siete columnas.
  *
  * Máximo tres chips por celda y «+N más» que lleva al día: apilar seis citas
  * en una celda de 96 px produce texto de 8 px que nadie puede leer ni tocar.
@@ -47,6 +50,10 @@ export function VistaMes<T extends Cita>({
   const dias = diasDeLaRejilla(referencia);
   const hoy = ahoraEn(zona).toISODate();
 
+  // Se agrupa en tandas de siete: cada tanda es una fila de la tabla.
+  const semanas: DateTime[][] = [];
+  for (let i = 0; i < dias.length; i += 7) semanas.push(dias.slice(i, i + 7));
+
   const porDia = new Map<string, T[]>();
   for (const cita of citas) {
     const clave = enZona(cita.starts_at, zona).toISODate()!;
@@ -58,14 +65,14 @@ export function VistaMes<T extends Cita>({
       <div
         role="grid"
         aria-label={`Calendario de ${capitalizar(referencia.toFormat("LLLL yyyy"))}`}
-        className="min-w-0"
+        className="grid grid-cols-7"
       >
-        <div role="row" className="bg-sunken grid grid-cols-7">
+        <div role="row" className="contents">
           {DIAS_SEMANA.map((dia) => (
             <div
               key={dia}
               role="columnheader"
-              className="text-text-muted px-1 py-2 text-center text-[11px] font-semibold tracking-[0.06em] uppercase"
+              className="text-text-muted bg-sunken px-1 py-2 text-center text-[11px] font-semibold tracking-[0.06em] uppercase"
             >
               <span aria-hidden="true">{dia.slice(0, 1)}</span>
               <span className="sr-only">{dia}</span>
@@ -76,58 +83,65 @@ export function VistaMes<T extends Cita>({
           ))}
         </div>
 
-        <div className="grid grid-cols-7">
-          {dias.map((dia) => {
-            const clave = dia.toISODate()!;
-            const delDia = porDia.get(clave) ?? [];
-            const fueraDelMes = dia.month !== referencia.month;
-            const esHoy = clave === hoy;
+        {semanas.map((semana) => (
+          <div role="row" key={semana[0].toISODate()} className="contents">
+            {semana.map((dia) => {
+              const clave = dia.toISODate()!;
+              const delDia = porDia.get(clave) ?? [];
+              const fueraDelMes = dia.month !== referencia.month;
+              const esHoy = clave === hoy;
 
-            return (
-              <div
-                role="gridcell"
-                key={clave}
-                className={cn(
-                  "border-line flex min-h-[92px] flex-col gap-1 border-r border-b p-1 last:border-r-0 [&:nth-child(7n)]:border-r-0",
-                  fueraDelMes && "bg-bg",
-                )}
-              >
-                <span
+              return (
+                <div
+                  role="gridcell"
+                  key={clave}
                   className={cn(
-                    "tabular text-micro self-start px-1",
-                    esHoy
-                      ? "bg-accent text-panel grid size-[22px] place-items-center rounded-full px-0 font-semibold"
-                      : fueraDelMes
-                        ? "text-text-muted opacity-65"
-                        : "text-text-body",
+                    "border-line flex min-h-[92px] flex-col gap-1 border-r border-b p-1 [&:nth-child(7n)]:border-r-0",
+                    fueraDelMes && "bg-bg",
                   )}
                 >
-                  {esHoy && <span className="sr-only">Hoy, </span>}
-                  {dia.day}
-                </span>
-
-                {delDia.slice(0, MAX_CHIPS).map((cita) => (
-                  <ChipCita
-                    key={cita.id}
-                    cita={cita}
-                    zona={zona}
-                    base={base}
-                    etiqueta={etiquetaDeCita?.(cita)}
-                  />
-                ))}
-
-                {delDia.length > MAX_CHIPS && (
-                  <Link
-                    href={`${rutaVista}?vista=dia&fecha=${clave}`}
-                    className="text-text-muted hover:text-accent px-1 text-[11px]"
+                  <span
+                    className={cn(
+                      "tabular text-micro self-start px-1",
+                      esHoy
+                        ? "bg-accent text-panel grid size-[22px] place-items-center rounded-full px-0 font-semibold"
+                        : fueraDelMes
+                          ? // Sin `opacity`. Atenuar con opacidad rebaja el
+                            // contraste de forma invisible para quien lo
+                            // escribe: aquí daba 2.6:1, ilegible. La jerarquía
+                            // ya la marcan el color más claro y el fondo
+                            // distinto de la celda.
+                            "text-text-muted"
+                          : "text-text-body",
+                    )}
                   >
-                    +{delDia.length - MAX_CHIPS} más
-                  </Link>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                    {esHoy && <span className="sr-only">Hoy, </span>}
+                    {dia.day}
+                  </span>
+
+                  {delDia.slice(0, MAX_CHIPS).map((cita) => (
+                    <ChipCita
+                      key={cita.id}
+                      cita={cita}
+                      zona={zona}
+                      base={base}
+                      etiqueta={etiquetaDeCita?.(cita)}
+                    />
+                  ))}
+
+                  {delDia.length > MAX_CHIPS && (
+                    <Link
+                      href={`${rutaVista}?vista=dia&fecha=${clave}`}
+                      className="text-text-muted hover:text-accent px-1 text-[11px]"
+                    >
+                      +{delDia.length - MAX_CHIPS} más
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );

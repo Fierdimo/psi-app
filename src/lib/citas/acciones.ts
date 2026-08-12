@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirSesion } from "@/lib/auth/perfil";
+import { avisarAlPaciente, avisarAlProfesional } from "@/lib/correo/avisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { erroresDeZod, type EstadoFormulario } from "@/lib/validacion/auth";
 import {
@@ -80,7 +81,7 @@ export async function solicitarCita(
   const duracion = parametros?.default_duration_minutes ?? 60;
   const fin = inicio.plus({ minutes: duracion });
 
-  const { error } = await supabase.rpc("solicitar_cita", {
+  const { data: nuevaCita, error } = await supabase.rpc("solicitar_cita", {
     p_starts_at: inicio.toUTC().toISO(),
     p_ends_at: fin.toUTC().toISO(),
     p_modality: datos.data.modalidad,
@@ -90,6 +91,10 @@ export async function solicitarCita(
   if (error) {
     return { ok: false, mensaje: mensajeDeError(error) };
   }
+
+  // El profesional no está mirando la pantalla: si no se le avisa, la
+  // solicitud se queda esperando hasta que entre por casualidad.
+  if (typeof nuevaCita === "string") await avisarAlProfesional(nuevaCita);
 
   revalidatePath("/calendario");
   revalidatePath("/panel");
@@ -170,6 +175,8 @@ export async function cancelarCita(
   if (error) {
     return { ok: false, mensaje: mensajeDeError(error) };
   }
+
+  await avisarAlPaciente(datos.data.cita, { tipo: "cancelada" });
 
   revalidatePath("/calendario");
   revalidatePath("/panel");

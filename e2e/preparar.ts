@@ -14,12 +14,25 @@ export const CUENTAS = {
   paciente: { correo: "ana@psi.test", contrasena: "psi-local-2026" },
   otroPaciente: { correo: "beto@psi.test", contrasena: "psi-local-2026" },
   profesional: { correo: "profesional@psi.test", contrasena: "psi-local-2026" },
+  /**
+   * Cuenta exclusiva de la prueba del consentimiento.
+   *
+   * Cualquier prueba que inicie sesión acepta el consentimiento por el camino,
+   * así que compartir cuenta hacía que «el consentimiento bloquea» pasara o
+   * fallara según el orden de los archivos. Con una cuenta propia, la prueba
+   * no depende de lo que hagan las demás.
+   */
+  sinConsentimiento: {
+    correo: "carmen@psi.test",
+    contrasena: "psi-local-2026",
+  },
 } as const;
 
 const IDS_DE_PRUEBA = [
   "11111111-1111-1111-1111-111111111111",
   "22222222-2222-2222-2222-222222222222",
   "33333333-3333-3333-3333-333333333333",
+  "44444444-4444-4444-4444-444444444444",
 ];
 
 export default async function preparar() {

@@ -28,7 +28,12 @@
   /* --- Neutros · grises azulados ---------------------------------------- */
   --color-ink-900: #16233a; /* Texto principal.        15.72:1 · AAA */
   --color-ink-700: #33415c; /* Cuerpo de texto.        10.24:1 · AAA */
-  --color-ink-500: #64748b; /* Texto atenuado.          4.76:1 · AA  */
+  /* Texto atenuado. Se oscureció desde #64748B: aquel daba 4.76:1 sobre
+     blanco pero solo 4.19:1 sobre las superficies hundidas y teñidas donde
+     también se usa —cabeceras del calendario, conmutador de vistas— y ahí
+     incumplía. Este cumple en las tres: 5.41 sobre blanco, 4.77 sobre
+     ink-100 y 4.87 sobre brand-50. */
+  --color-ink-500: #5d6b80;
   --color-ink-400: #8494ac; /* Bordes INTERACTIVOS.     3.08:1 · AA-UI */
   --color-ink-300: #c6d0de; /* Bordes decorativos.      1.56:1 · NO interactivo */
   --color-ink-200: #dde3ed; /* Divisores, retícula del calendario */

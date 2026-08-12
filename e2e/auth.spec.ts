@@ -81,7 +81,8 @@ test.describe("Credenciales", () => {
 test.describe.serial("Consentimiento y roles", () => {
   test("el consentimiento bloquea el acceso al panel", async ({ page }) => {
     await page.goto("/ingresar");
-    await rellenarIngreso(page, CUENTAS.paciente);
+    // Cuenta reservada: ver la nota en preparar.ts.
+    await rellenarIngreso(page, CUENTAS.sinConsentimiento);
 
     await expect(page).toHaveURL(/\/consentimiento/);
     await expect(
@@ -100,11 +101,13 @@ test.describe.serial("Consentimiento y roles", () => {
     page,
   }) => {
     await page.goto("/ingresar");
-    await rellenarIngreso(page, CUENTAS.paciente);
+    await rellenarIngreso(page, CUENTAS.sinConsentimiento);
     await page.getByRole("button", { name: /he leído y acepto/i }).click();
 
     await expect(page).toHaveURL(/\/panel/);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Ana");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Carmen",
+    );
 
     await page.goto("/panel");
     await expect(page).toHaveURL(/\/panel/);

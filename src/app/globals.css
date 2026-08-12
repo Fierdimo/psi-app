@@ -6,39 +6,53 @@
    Todo color sale de un token. Ver src/styles/tokens.css.
    ========================================================================= */
 
-html {
-  /* Compensa el salto de layout al aparecer la barra de desplazamiento */
-  scrollbar-gutter: stable;
-}
+/*
+ * Los estilos de elemento van DENTRO de `@layer base`.
+ *
+ * Sin la capa quedan sin capa, y en la cascada el CSS sin capa gana a
+ * cualquier `@layer` — incluidas las utilidades de Tailwind. El efecto era
+ * silencioso y grave: un `<h2 class="text-surface-0">` sobre el panel azul
+ * oscuro seguía pintándose con el color de `h2`, dando un contraste de 1.3:1.
+ * Es decir, títulos casi invisibles en las pantallas de entrada.
+ *
+ * Dentro de `base`, cualquier utilidad de color puede sobreescribirlos, que es
+ * el comportamiento que se espera al escribir una clase.
+ */
+@layer base {
+  html {
+    /* Compensa el salto de layout al aparecer la barra de desplazamiento */
+    scrollbar-gutter: stable;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--text-body);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.625;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* cv05: 'l' con cola · ss03: 'a' de doble piso — legibilidad (SPEC.md §2.3) */
-  font-feature-settings: "cv05", "ss03";
-}
+  body {
+    background: var(--bg);
+    color: var(--text-body);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.625;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* cv05: 'l' con cola · ss03: 'a' de doble piso — legibilidad (SPEC.md §2.3) */
+    font-feature-settings: "cv05", "ss03";
+  }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  color: var(--text-strong);
-  font-weight: 600;
-  text-wrap: balance;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--text-strong);
+    font-weight: 600;
+    text-wrap: balance;
+  }
 
-/* Horas, fechas y contadores no deben bailar al cambiar de dígito.
-   En un calendario esto no es cosmético (SPEC.md §2.3). */
-time,
-.tabular {
-  font-variant-numeric: tabular-nums;
+  /* Horas, fechas y contadores no deben bailar al cambiar de dígito.
+     En un calendario esto no es cosmético (SPEC.md §2.3). */
+  time,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* ----------------------------------------------------------------------------

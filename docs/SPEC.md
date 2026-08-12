@@ -85,6 +85,12 @@ Los tres colores institucionales son **azul rey**, **azul rey oscuro** y **blanc
 | `--surface-50` | `#F7F9FC` | Fondo de página, **celdas de día fuera del mes actual** |
 | `--surface-0`  | `#FFFFFF` | Fondo de tarjeta, superficie elevada                    |
 
+> **El contraste hay que medirlo sobre CADA fondo en que se usa el color.**
+> `--ink-500` cumplía de sobra sobre blanco y fallaba sobre las superficies
+> hundidas —cabeceras del calendario, conmutador de vistas—, donde también se
+> usa. Se oscureció hasta que cumple en las tres superficies del sistema. Un
+> token que solo se valida contra un fondo no está validado.
+
 > **Regla de contraste que rige los bordes:** WCAG 2.2 §1.4.11 exige 3:1 para el límite visual de un componente interactivo. `--ink-300` (1.56:1) **no puede** usarse como borde de un input, checkbox o botón secundario — solo `--ink-400` o más oscuro. Esta es la desviación más común respecto a los grises «bonitos» y hay que sostenerla.
 
 #### Semánticos

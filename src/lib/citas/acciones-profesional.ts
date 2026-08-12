@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { exigirProfesional } from "@/lib/auth/perfil";
+import { avisarAlPaciente } from "@/lib/correo/avisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { erroresDeZod, type EstadoFormulario } from "@/lib/validacion/auth";
 
@@ -78,6 +79,7 @@ export async function confirmarCita(
 
   if (error) return { ok: false, mensaje: mensajeDeError(error) };
 
+  await avisarAlPaciente(datos.data.cita, { tipo: "confirmada" });
   refrescar();
   /*
    * Se redirige en vez de devolver un mensaje.
@@ -110,6 +112,10 @@ export async function rechazarCita(
 
   if (error) return { ok: false, mensaje: mensajeDeError(error) };
 
+  await avisarAlPaciente(datos.data.cita, {
+    tipo: "rechazada",
+    motivo: datos.data.motivo,
+  });
   refrescar();
   redirect("/profesional/agenda?rechazada=1");
 }

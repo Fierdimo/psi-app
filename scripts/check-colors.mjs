@@ -67,6 +67,18 @@ function stripComments(source) {
 
 const IGNORE_MARKER = "color-guard-ignore";
 
+/**
+ * Exención de archivo completo para la regla 2.
+ *
+ * Existe por un caso real: las plantillas de correo. Un cliente de correo no
+ * resuelve variables CSS ni carga hojas de estilo, así que los colores tienen
+ * que ir literales y en línea. Marcar cada línea sería ruido.
+ *
+ * La regla 1 —NUNCA NEGRO— sigue aplicando también ahí: un correo tampoco
+ * debe usar negro puro.
+ */
+const IGNORE_FILE_MARKER = "color-guard-archivo-exento";
+
 function scan(file, patterns, rule) {
   const abs = resolve(ROOT, file);
   const source = readFileSync(abs, "utf8");
@@ -110,8 +122,13 @@ for (const file of files) {
   // Regla 1 aplica en todas partes, incluido tokens.css.
   scan(normalized, BLACK_PATTERNS, "NUNCA NEGRO");
 
-  // Regla 2 exime al archivo de tokens, que es justamente donde viven.
-  if (normalized !== TOKENS_FILE) {
+  // Regla 2 exime al archivo de tokens —donde viven los colores— y a los
+  // archivos que declaran su exención con justificación.
+  const contenido = readFileSync(resolve(ROOT, normalized), "utf8");
+  const exento =
+    normalized === TOKENS_FILE || contenido.includes(IGNORE_FILE_MARKER);
+
+  if (!exento) {
     scan(normalized, COLOR_LITERAL_PATTERNS, "COLOR FUERA DE TOKENS");
   }
 }
