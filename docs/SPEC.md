@@ -34,9 +34,18 @@ La tensión central del proyecto es _confianza_ contra _modernidad_. Se resuelve
 
 Todo neutro oscuro se construye desplazado hacia el azul institucional. Esto no es un capricho estético: un texto azul-tinta sobre blanco se lee como más suave y menos agresivo que el negro puro, que en pantallas modernas produce un contraste duro asociado a interfaces de sistema, no a entornos de cuidado.
 
-- El texto más oscuro de la app es `--ink-900` = `#16233A`.
+- El texto más oscuro de la app es `--ink-900` = `#16225F`, que es el mismo `brand-900` de la escala institucional.
 - El fondo más oscuro (tema oscuro, footer, hero) es `--brand-950` = `#101740`.
 - Las sombras usan RGBA derivado de `--brand-950`, nunca de negro.
+
+**«Nunca negro» no se cumple sobre el papel, se cumple a la vista.** Se
+probaron dos valores —`#16233A` y `#233657`— con sesgo azul suficiente para
+pasar cualquier comprobación automática. Los dos se leían como negro. Si hay
+que medir un color para saber que no es negro, la regla no se está cumpliendo.
+
+Por eso los tres tonos de texto salen ahora de la **familia azul institucional**
+y no de una escala de grises azulados: el canal azul queda entre 74 y 95 puntos
+por encima del rojo, y el tinte se percibe de inmediato.
 
 ```css
 /* ✅ correcto */

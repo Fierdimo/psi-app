@@ -5,7 +5,7 @@
 
    Regla fundacional (SPEC.md §2.1): NUNCA NEGRO.
    No existe #000 en este archivo ni debe existir en ningún otro. El neutro
-   más oscuro es --color-ink-900 (#16233A) para texto y --color-brand-950
+   más oscuro es --color-ink-900 (#16225F) para texto y --color-brand-950
    (#101740) para fondos. Las sombras derivan de brand-950, no de negro.
 
    Contrastes validados contra WCAG 2.2 AA — ver SPEC.md §2.2.
@@ -26,14 +26,22 @@
   --color-brand-950: #101740; /* Sustituye al negro. Origen de las sombras */
 
   /* --- Neutros · grises azulados ---------------------------------------- */
-  --color-ink-900: #16233a; /* Texto principal.        15.72:1 · AAA */
-  --color-ink-700: #33415c; /* Cuerpo de texto.        10.24:1 · AAA */
+  /* Los tres tonos de TEXTO salen de la familia azul, no de una escala de
+     grises azulados.
+     Historia de la decisión: se empezó con #16233A y luego #233657, ambos con
+     sesgo azul suficiente para pasar cualquier comprobación automática. Ambos
+     se leían como negro. La regla «nunca negro» no se cumple sobre el papel:
+     se cumple cuando alguien mira la pantalla y ve azul sin tener que medir.
+     Estos valores tienen el canal azul entre 74 y 95 puntos por encima del
+     rojo, y el tinte se percibe de inmediato. */
+  --color-ink-900: #16225f; /* = brand-900. Títulos.  14.70:1 · AAA */
+  --color-ink-700: #2b3d75; /* Cuerpo de texto.        10.36:1 · AAA */
   /* Texto atenuado. Se oscureció desde #64748B: aquel daba 4.76:1 sobre
      blanco pero solo 4.19:1 sobre las superficies hundidas y teñidas donde
      también se usa —cabeceras del calendario, conmutador de vistas— y ahí
      incumplía. Este cumple en las tres: 5.41 sobre blanco, 4.77 sobre
      ink-100 y 4.87 sobre brand-50. */
-  --color-ink-500: #5d6b80;
+  --color-ink-500: #5a6890;
   --color-ink-400: #8494ac; /* Bordes INTERACTIVOS.     3.08:1 · AA-UI */
   --color-ink-300: #c6d0de; /* Bordes decorativos.      1.56:1 · NO interactivo */
   --color-ink-200: #dde3ed; /* Divisores, retícula del calendario */
