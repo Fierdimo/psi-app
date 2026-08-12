@@ -46,6 +46,26 @@ const nextConfig: NextConfig = {
   // vulnerabilidades conocidas.
   poweredByHeader: false,
 
+  /*
+   * Orígenes permitidos para el servidor de DESARROLLO.
+   *
+   * `next dev` sirve su propio bundle y su canal de recarga en caliente, y
+   * rechaza las peticiones que llegan desde un host distinto al que arrancó.
+   * Al enseñar el sitio por un túnel —ngrok y similares— el navegador pide
+   * esos archivos al dominio del túnel, Next los niega y la página se queda
+   * sin JavaScript.
+   *
+   * Solo afecta a `next dev`. En producción esta clave se ignora, así que no
+   * abre nada.
+   */
+  allowedDevOrigins: [
+    "*.ngrok-free.app",
+    "*.ngrok-free.dev",
+    "*.ngrok.io",
+    "*.ngrok.app",
+    "*.trycloudflare.com",
+  ],
+
   async headers() {
     return [{ source: "/:path*", headers: CABECERAS }];
   },

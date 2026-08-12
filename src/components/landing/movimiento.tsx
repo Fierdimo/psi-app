@@ -8,7 +8,7 @@ import {
   useTransform,
 } from "motion/react";
 import Image from "next/image";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,18 @@ import { cn } from "@/lib/utils";
 
 const CURVA = [0.2, 0, 0, 1] as const;
 
-/** Aparición al entrar en pantalla. Una sola vez, nunca al volver a subir. */
+/**
+ * Aparición al entrar en pantalla. Una sola vez, nunca al volver a subir.
+ *
+ * REGLA DURA: el marcado del servidor sale VISIBLE. `initial={false}` impide
+ * que se serialice `opacity: 0`, y el bloque solo se esconde después, ya en el
+ * cliente, y únicamente si está por debajo del pliegue —donde esconderlo no
+ * puede verse—. Si el JavaScript nunca corre, la página se lee entera.
+ *
+ * Esto no es una precaución teórica: al servir el sitio por un túnel de
+ * desarrollo el guion no llegó a ejecutarse y la landing apareció en blanco,
+ * con todo el texto dentro del HTML pero invisible.
+ */
 export function Revelar({
   children,
   retraso = 0,
@@ -40,16 +51,42 @@ export function Revelar({
   className?: string;
 }) {
   const sinMovimiento = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const [oculto, setOculto] = useState(false);
 
-  if (sinMovimiento) return <div className={className}>{children}</div>;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || sinMovimiento) return;
+
+    // Ya a la vista: se queda como está. Esconderlo ahora sería un parpadeo.
+    if (el.getBoundingClientRect().top <= window.innerHeight) return;
+
+    setOculto(true);
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        if (!entrada.isIntersecting) return;
+        setOculto(false);
+        observador.disconnect();
+      },
+      { rootMargin: "0px 0px -12% 0px" },
+    );
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [sinMovimiento]);
 
   return (
     <motion.div
+      ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "0px 0px -12% 0px" }}
-      transition={{ duration: 0.4, delay: retraso, ease: CURVA }}
+      initial={false}
+      animate={oculto ? { opacity: 0, y: 14 } : { opacity: 1, y: 0 }}
+      // Esconder es instantáneo y ocurre fuera de pantalla; solo la aparición
+      // se anima.
+      transition={
+        oculto
+          ? { duration: 0 }
+          : { duration: 0.4, delay: retraso, ease: CURVA }
+      }
     >
       {children}
     </motion.div>
@@ -57,9 +94,11 @@ export function Revelar({
 }
 
 /**
- * Entrada del hero. No espera al scroll: es lo primero que se ve, así que
- * se anima al montar y con un escalonado corto para que no retrase la lectura
- * del nombre.
+ * Entrada del hero, en CSS (`.entrada` de globals.css).
+ *
+ * No usa `motion` a propósito: una animación de montaje en JavaScript exige
+ * servir el hero invisible, y ese es justo el fallo que dejaba la página en
+ * blanco sin guion. En CSS la animación corre sola y termina siempre visible.
  */
 export function EntradaHero({
   children,
@@ -67,22 +106,17 @@ export function EntradaHero({
   className,
 }: {
   children: ReactNode;
+  /** Escalonado en segundos. */
   retraso?: number;
   className?: string;
 }) {
-  const sinMovimiento = useReducedMotion();
-
-  if (sinMovimiento) return <div className={className}>{children}</div>;
-
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: retraso, ease: CURVA }}
+    <div
+      className={cn("entrada", className)}
+      style={retraso ? { animationDelay: `${retraso}s` } : undefined}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -150,12 +184,12 @@ export function Retrato({ className }: { className?: string }) {
         <div className="bg-accent-soft absolute inset-0 rounded-full" />
       </motion.div>
 
+      {/* La aparición va en CSS (`.entrada`) y el desplazamiento por scroll en
+          JavaScript: así el retrato se ve aunque el guion no corra, y solo se
+          pierde el efecto de profundidad, que es prescindible. */}
       <motion.div
         style={quieto ? undefined : { y: yRetrato }}
-        initial={quieto ? undefined : { opacity: 0 }}
-        animate={quieto ? undefined : { opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.15, ease: CURVA }}
-        className="absolute inset-x-0 bottom-0 flex justify-center"
+        className="entrada absolute inset-x-0 bottom-0 flex justify-center"
       >
         <Image
           src="/retrato-jbr.png"

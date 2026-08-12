@@ -24,6 +24,52 @@ test.describe("Acceso público", () => {
     await expect(page).toHaveURL(/\/registro/);
   });
 
+  /*
+   * La landing tiene que LEERSE sin JavaScript.
+   *
+   * Esto no es purismo: cuando la entrada se animaba desde JavaScript, el
+   * contenido se servía en `opacity: 0` y bastaba con que el guion no llegara
+   * a ejecutarse —al enseñar el sitio por un túnel de desarrollo— para que la
+   * página apareciera EN BLANCO con todo el texto dentro del HTML. La suite no
+   * lo detectó porque el navegador de las pruebas siempre ejecuta el guion.
+   */
+  test.describe("sin JavaScript", () => {
+    test.use({ javaScriptEnabled: false });
+
+    test("la landing se lee entera", async ({ page }) => {
+      await page.goto("/");
+
+      await expect(
+        page.getByRole("heading", { level: 1, name: /banquez/i }),
+      ).toBeVisible();
+      // Una de cada banda, incluida la última, que es la que más lejos queda
+      // del pliegue y la primera en desaparecer si algo vuelve a esconderse.
+      await expect(
+        page.getByText(/Me destaco por hacer las cosas/),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /Hablemos de lo que necesitas/ }),
+      ).toBeVisible();
+
+      // La entrada es una animación CSS con `fill-mode: backwards`: mientras
+      // corre su retraso, el bloque sigue en el primer fotograma y por tanto
+      // en opacidad 0. Eso es correcto —termina visible—, así que lo que hay
+      // que comprobar es el estado FINAL, no un instante intermedio.
+      await page.evaluate(() =>
+        Promise.all(document.getAnimations().map((a) => a.finished)),
+      );
+
+      const invisibles = await page.locator("main *").evaluateAll(
+        (els) =>
+          els.filter((el) => {
+            const opacidad = Number.parseFloat(getComputedStyle(el).opacity);
+            return opacidad < 0.1 && (el.textContent ?? "").trim().length > 20;
+          }).length,
+      );
+      expect(invisibles).toBe(0);
+    });
+  });
+
   test("las páginas legales son accesibles sin sesión", async ({ page }) => {
     for (const ruta of [
       "/privacidad",

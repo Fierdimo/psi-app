@@ -228,7 +228,12 @@ Discreto y rápido. El movimiento aquí sirve para orientar, nunca para entreten
 
 **La red de nodos del hero** es la única animación continua de todo el producto, y existe por una razón concreta: la marca de la consulta es un perfil humano trazado como red de nodos y su promesa es «mediciones y evaluaciones». El fondo del hero es esa misma metáfora en movimiento, no un efecto de catálogo. Se pinta en canvas, lee sus colores de los tokens en tiempo de ejecución, vive detrás del contenido, se detiene cuando sale de pantalla y con `prefers-reduced-motion` pinta un solo cuadro y para. El puntero **repele** los nodos: atraerlos los apelmaza en el cursor y destruye la red a los pocos segundos.
 
-Coste conocido: los bloques revelados se sirven en opacidad 0 hasta entrar en pantalla. Sin JavaScript la landing queda en blanco por debajo del hero. Se acepta porque la app entera requiere JavaScript, pero conviene recordarlo antes de mover ese componente a una página que deba leerse sin él.
+**El movimiento nunca es condición para ver el contenido.** La landing se lee entera sin JavaScript, y hay una prueba que lo comprueba (`auth.spec.ts`, «sin JavaScript»). De ahí salen dos reglas de implementación:
+
+- Las animaciones de **entrada** van en CSS (`.entrada` en `globals.css`), no en JavaScript. Una animación de montaje en JS obliga a servir el bloque en `opacity: 0`, y basta con que el guion no llegue a ejecutarse para que la página aparezca en blanco con el texto dentro del HTML.
+- Los **revelados al hacer scroll** salen del servidor visibles (`initial={false}`) y solo se esconden después, ya en el cliente, y únicamente si están por debajo del pliegue.
+
+Se aprendió por las malas: al servir el sitio por un túnel de desarrollo, `next dev` rechazó las peticiones de su propio bundle por venir de otro host, el guion no corrió y la landing salió en blanco. Por eso `next.config.ts` declara además `allowedDevOrigins`.
 
 ### 2.7 Iconografía e imagen
 
