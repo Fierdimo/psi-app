@@ -657,6 +657,12 @@ No es formalismo. Lo que cambia entre una y otra es justo lo que la persona nece
 
 Sin aceptación registrada **para esa evaluación** no se abre el examen. El titular del dato es quien la acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
 
+**Negarse no es una puerta que se cierra.** Alguien puede rechazar por prudencia, ver que sin eso no continúa el proceso y decidir después aceptar. Esa segunda decisión tiene que ser posible sin pedirle nada a nadie: vuelve a su invitación y acepta.
+
+Y en la otra dirección también, porque es lo que el propio consentimiento promete: _«tengo derecho a retirar mi consentimiento en cualquier momento sin consecuencias negativas»_. Si eso está escrito, la plataforma tiene que poder cumplirlo.
+
+De ahí que el consentimiento de una evaluación no sea un interruptor sino un **historial de decisiones**: cada respuesta se guarda con su fecha, y lo que manda es la última. Se conservan también los rechazos, y no por burocracia — que conste que alguien pudo negarse **es lo que hace válido que después aceptara**. Un consentimiento sin la posibilidad demostrable de rechazo no es consentimiento.
+
 **El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
 
 **Nada sale de la plataforma sin que el profesional lo mande.** Son tres actos suyos y distintos, y no se funden en uno por comodidad: **confirmar** dice «acepto la sesión»; **emitir las invitaciones** dice «ya pueden crear su cuenta»; y **abrir el examen**, durante la sesión presencial, dice «pueden empezar a responder». Confirmar una fecha no debe hacer que a nadie le llegue un correo, porque entre una cosa y otra suele faltar el trámite. Hay una prueba que lo afirma: tras confirmar, la tabla de invitaciones sigue vacía.
@@ -836,6 +842,7 @@ La evaluación psicométrica necesita **su propio consentimiento**, distinto del
 - [x] **¿Cómo se reconoce que dos fichas son la misma persona?** Por su **documento de identidad**, que pasa a ser obligatorio en el listado y único por empresa. El correo queda como canal de invitación, no como identidad.
 - [x] Quien **ya tiene cuenta** acepta la invitación **con esa cuenta**: el enlace la lleva al ingreso y vuelve a la invitación, y la función enlaza su ficha a la cuenta que ya tenía.
 - [x] **¿Se reconoce por cédula a quien ya tiene cuenta al cargarlo?** **No, y a propósito.** Sería cómodo —ahorraría un correo— pero convertiría el listado en un detector: la empresa carga una cédula, ve la insignia «cuenta activa» y averigua que esa persona tiene cuenta en una consulta de psicología. Hoy esa insignia solo se enciende cuando **la persona acepta**, es decir, cuando ella lo revela. Es el mismo detector que se rechazó en el registro.
+- [ ] **¿Retirar el consentimiento después de responder detiene el informe?** Rechazar antes de empezar es claro: no se abre el examen. Lo que falta decidir es qué ocurre si alguien responde y **luego** retira su consentimiento, antes de que el informe se publique. Se recomienda que lo detenga —es lo que el texto promete y lo que la persona espera al leerlo—, y conviene ver que choca con la regla de que cancelar no retira lo ya evaluado: aquella protege a la empresa que pagó; esta protege a la persona. No son el mismo caso y pueden resolverse distinto.
 - [ ] ¿El informe de resultados se descarga en PDF? Si sí, hay que rehacer su diseño: el actual usa rojo, verde y cian, ajenos a la paleta.
 - [x] **¿Entran pruebas de rendimiento?** Todavía no se aplican, pero **el modelo las contempla desde el primer día**: `assessments.kind` distingue inventario de prueba de rendimiento, y existen `time_limit_seconds` y la clave de corrección del ítem aunque hoy vayan siempre vacíos. Reservar el sitio cuesta tres columnas; añadirlas con el esquema poblado cuesta una migración con datos clínicos dentro.
 - [ ] Duración por defecto de una cita y franja horaria de atención

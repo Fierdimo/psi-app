@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -48,10 +48,15 @@ export function FormularioSesion({
    * el contador— y si no se limpia también, la pantalla dice «2 de 3» sobre
    * tres casillas sin marcar. Se descubrió mirando la pantalla después de
    * enviar, no leyendo el código.
+   *
+   * Se ajusta durante el render comparando con el valor anterior, no en un
+   * efecto: sincronizar estado en `useEffect` provoca un render en cascada.
    */
-  useEffect(() => {
+  const [okPrevio, setOkPrevio] = useState(estado.ok);
+  if (estado.ok !== okPrevio) {
+    setOkPrevio(estado.ok);
     if (estado.ok) setMarcadas(new Set());
-  }, [estado.ok]);
+  }
 
   if (personas.length === 0) {
     return (

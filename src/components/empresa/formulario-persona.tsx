@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ const INICIAL: EstadoFormulario = { ok: false };
  */
 export function FormularioPersona() {
   const [estado, accion, enviando] = useActionState(cargarPersona, INICIAL);
-  const formulario = useRef<HTMLFormElement>(null);
 
   /*
    * El vínculo cambia la etiqueta del cargo, y no es un detalle: «cargo» y
@@ -31,18 +30,26 @@ export function FormularioPersona() {
    */
   const [vinculo, setVinculo] = useState("aspirante");
 
-  // Tras un alta correcta se vacía, porque lo normal es cargar a varias
-  // seguidas y tener que borrar los campos a mano cansa a la tercera.
-  useEffect(() => {
-    if (estado.ok) {
-      formulario.current?.reset();
-      setVinculo("aspirante");
-    }
-  }, [estado.ok]);
+  /*
+   * Se ajusta DURANTE el render y no en un efecto.
+   *
+   * Lo normal es cargar a varias personas seguidas, así que tras un alta
+   * correcta el selector vuelve a su valor por defecto. Los demás campos los
+   * vacía React solo al enviar un formulario con acción de servidor; este no,
+   * porque su valor lo controlamos nosotros para poder cambiar la etiqueta del
+   * cargo.
+   *
+   * Sincronizarlo con `useEffect` provoca un render en cascada —y el lint lo
+   * rechaza, con razón: el valor se puede derivar comparando con el anterior.
+   */
+  const [okPrevio, setOkPrevio] = useState(estado.ok);
+  if (estado.ok !== okPrevio) {
+    setOkPrevio(estado.ok);
+    if (estado.ok) setVinculo("aspirante");
+  }
 
   return (
     <form
-      ref={formulario}
       action={accion}
       className="border-line bg-panel flex flex-col gap-5 rounded-lg border p-6"
       noValidate

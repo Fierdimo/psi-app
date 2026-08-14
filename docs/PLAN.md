@@ -373,6 +373,26 @@ alter table public.consents
 
 Con eso una sola tabla sigue siendo la evidencia de todo lo que alguien aceptó —lo cual importa para el derecho de acceso y para la exportación de datos—, y cada evaluación arrastra el suyo.
 
+**Pero la restricción no puede ser sobre cualquier fila, sino sobre las aceptaciones.** El consentimiento de una evaluación es reversible en las dos direcciones (`SPEC.md` §9.2): quien rechaza puede aceptar después, y quien aceptó puede retirarlo. La tabla pasa a ser un **historial de decisiones** y no un interruptor:
+
+```sql
+alter table public.consents
+  add column decision text not null default 'aceptado'
+  check (decision in ('aceptado', 'rechazado'));
+
+-- Única sobre las ACEPTACIONES, no sobre todas las filas. Rechazar puede
+-- repetirse —alguien duda, se niega, lo piensa y vuelve— pero de cada
+-- evaluación hay a lo sumo una aceptación viva.
+create unique index consents_aceptacion_unica
+  on public.consents (user_id, document_key, version, assignment_id)
+  nulls not distinct
+  where (decision = 'aceptado');
+```
+
+El estado vigente de una evaluación es **la última decisión registrada**, no la existencia de una fila. `habilitar_examen` lo consulta así, y por eso un rechazo posterior cierra lo que una aceptación anterior había abierto.
+
+Guardar los rechazos no es burocracia: que conste que alguien **pudo** negarse es lo que hace válido que después aceptara.
+
 #### El resultado tiene forma variable
 
 Cada instrumento declara sus parámetros en `assessment_parameters`, y esa declaración **es el contrato del motor**:
