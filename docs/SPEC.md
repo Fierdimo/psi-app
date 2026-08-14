@@ -651,7 +651,11 @@ Toda hora se almacena en `timestamptz` (UTC) y se presenta en la zona horaria de
 
 Tres candados en ese circuito, y ninguno es opcional:
 
-**El consentimiento lo firma el empleado, no su empresa.** Sin aceptación registrada no se abre el examen. El titular del dato es quien lo acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
+**El consentimiento lo firma el empleado, no su empresa, y una vez por cada evaluación.** No se consiente «ser evaluado» en general: se consiente **esta** evaluación, con su propósito, su instrumento y su destinatario. Dos evaluaciones son dos consentimientos, aunque las pida la misma empresa y aunque el texto sea idéntico.
+
+No es formalismo. Lo que cambia entre una y otra es justo lo que la persona necesita saber para decidir: para qué se le evalúa, quién verá el resultado y en qué proceso se usa. Un consentimiento firmado hace ocho meses para un proceso de selección no autoriza una evaluación de desarrollo interno, ni al revés.
+
+Sin aceptación registrada **para esa evaluación** no se abre el examen. El titular del dato es quien la acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
 
 **El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
 

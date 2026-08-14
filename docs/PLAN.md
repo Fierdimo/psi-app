@@ -349,6 +349,30 @@ documents               certificados e informes en Storage, con su metadato
 
 **`assessment_items.options` es `jsonb`** con la forma `[{ id, texto, escala }]`. La `escala` es un dato —a qué constructo tributa la opción—, pero **qué se hace con ella es código**: el motor. Esa frontera es la que impide que la baremación acabe siendo un intérprete escrito en JSON.
 
+#### Un consentimiento por evaluación, no uno por persona
+
+`consents` guarda hoy una fila por `(user_id, document_key, version)` con esa terna como restricción única. Sirve para los documentos de plataforma —el consentimiento de atención, la privacidad, los términos—, que se aceptan una vez por versión.
+
+**No sirve para las evaluaciones**, que se consienten una por una (`SPEC.md` §9.2). La misma persona, con el mismo texto y la misma versión, tiene que poder aceptar dos veces si son dos evaluaciones distintas; con la restricción actual, la segunda choca.
+
+La forma de resolverlo, cuando se cree el esquema del motor:
+
+```sql
+alter table public.consents
+  add column assignment_id uuid references assignments (id) on delete cascade;
+
+-- `nulls not distinct` (Postgres 15+, aquí corre 17) es la pieza clave: sin
+-- ella los NULL se consideran distintos entre sí y la tabla admitiría varias
+-- aceptaciones del MISMO documento de plataforma, que es justo lo que la
+-- restricción original impedía.
+alter table public.consents drop constraint consents_user_id_document_key_version_key;
+alter table public.consents
+  add constraint consents_unico
+  unique nulls not distinct (user_id, document_key, version, assignment_id);
+```
+
+Con eso una sola tabla sigue siendo la evidencia de todo lo que alguien aceptó —lo cual importa para el derecho de acceso y para la exportación de datos—, y cada evaluación arrastra el suyo.
+
 #### El resultado tiene forma variable
 
 Cada instrumento declara sus parámetros en `assessment_parameters`, y esa declaración **es el contrato del motor**:
