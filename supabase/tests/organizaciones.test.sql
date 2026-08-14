@@ -16,12 +16,13 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(12);
+select plan(14);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
 delete from public.appointment_changes;
 delete from public.appointment_attendees;
+delete from public.organization_people;
 delete from public.appointments;
 delete from public.consents;
 delete from public.audit_log;
@@ -58,10 +59,16 @@ values
 -- interfaz. Es exactamente lo que las pruebas de más abajo comprueban que un
 -- usuario no puede hacerse a sí mismo.
 update public.profiles set role = 'profesional' where id = :'doctor';
-update public.profiles set role = 'empresa',  organization_id = :'acme'   where id = :'jefe_acme';
-update public.profiles set role = 'empleado', organization_id = :'acme'   where id = :'emp_acme';
-update public.profiles set role = 'empresa',  organization_id = :'globex' where id = :'jefe_globex';
-update public.profiles set role = 'empleado', organization_id = :'globex' where id = :'emp_globex';
+update public.profiles set role = 'empresa', organization_id = :'acme'   where id = :'jefe_acme';
+update public.profiles set role = 'empresa', organization_id = :'globex' where id = :'jefe_globex';
+
+-- Los evaluados NO cambian de rol ni «pertenecen» a nadie: siguen siendo
+-- personas con cuenta propia. Su vínculo con la empresa es la fila del listado.
+insert into public.organization_people (id, organization_id, nombre, email, profile_id) values
+  ('eeee1111-0000-4000-8000-000000000001', :'acme',   'Empleado Acme',   'emp@acme.test',   :'emp_acme'),
+  ('eeee2222-0000-4000-8000-000000000002', :'globex', 'Empleado Globex', 'emp@globex.test', :'emp_globex'),
+  -- Una persona cargada que todavía no aceptó su invitación: sin cuenta.
+  ('eeee3333-0000-4000-8000-000000000003', :'acme',   'Sin Cuenta Aún',  'futuro@acme.test', null);
 
 -- Una cita de evaluación por empresa, y una individual del paciente.
 insert into public.appointments (id, organization_id, professional_id, starts_at, ends_at, status, created_by)
@@ -72,9 +79,11 @@ values
 insert into public.appointments (patient_id, professional_id, starts_at, ends_at, status, created_by)
 values (:'paciente', :'doctor', now() + interval '11 days', now() + interval '11 days 1 hour', 'confirmada', :'doctor');
 
-insert into public.appointment_attendees (appointment_id, profile_id) values
-  ('11111111-0000-4000-8000-000000000001', :'emp_acme'),
-  ('22222222-0000-4000-8000-000000000002', :'emp_globex');
+insert into public.appointment_attendees (appointment_id, person_id) values
+  ('11111111-0000-4000-8000-000000000001', 'eeee1111-0000-4000-8000-000000000001'),
+  -- Se puede convocar a quien aún no tiene cuenta: ese es el punto del listado.
+  ('11111111-0000-4000-8000-000000000001', 'eeee3333-0000-4000-8000-000000000003'),
+  ('22222222-0000-4000-8000-000000000002', 'eeee2222-0000-4000-8000-000000000002');
 
 create or replace function tests_como(p_uid uuid) returns void
 language plpgsql as $$
@@ -110,8 +119,15 @@ select is(
 
 select is(
   (select count(*)::int from public.appointment_attendees),
-  1,
-  'Acme ve a sus convocados, y solo a los suyos'
+  2,
+  'Acme ve a sus dos convocados, incluido el que aún no tiene cuenta'
+);
+
+-- Acme cargó dos personas; la tercera del fixture es de Globex.
+select is(
+  (select count(*)::int from public.organization_people),
+  2,
+  'Acme ve su listado completo, y NADA del listado de Globex'
 );
 
 -- Una cita individual de un paciente no es asunto de ninguna empresa.
@@ -163,7 +179,13 @@ select is(
 select is(
   (select count(*)::int from public.appointment_attendees),
   1,
-  'El empleado solo se ve a sí mismo en la lista de convocados'
+  'El evaluado solo se ve a sí mismo en la lista de convocados'
+);
+
+select is(
+  (select count(*)::int from public.organization_people),
+  1,
+  'El evaluado no ve el listado de personal de la empresa, solo su propia fila'
 );
 
 -- =============================================================================

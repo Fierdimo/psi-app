@@ -254,11 +254,16 @@ La segunda fila es la importante: **no hay atajo**. La restricción de exclusió
 
 ```
 organizations            la empresa cliente
-appointment_attendees    quiénes asisten a una cita
-invitations              alta de un empleado por correo, con testigo y caducidad
+organization_people      su listado de personas a evaluar; la cuenta llega después
+appointment_attendees    a quiénes se convocó a cada sesión
+invitations              alta por correo de una persona del listado, con testigo
 ```
 
-**No hay tabla de membresías.** La pertenencia es una columna en `profiles`. Una tabla aparte permitiría que alguien perteneciera a varias empresas —que hoy no ocurre— y a cambio convertiría cada política de aislamiento en dos saltos en lugar de uno. En este módulo eso pesa más que la flexibilidad. La columna es tan sensible como `role`, y queda protegida por el mismo mecanismo: la migración 0001 concede una lista blanca de columnas actualizables y `organization_id` no está en ella.
+**No hay rol de empleado, y el listado es la razón de que no haga falta.** Una persona evaluada por encargo de su empresa sigue siendo una persona: su relación con esa empresa es un encargo, no una identidad. Modelarla como rol impedía que quien fue evaluado contratara después una asesoría individual con la misma cuenta —justo el cruce que el negocio quiere explotar—, hacía que la pertenencia no caducara nunca, y habría hecho desaparecer a esas personas del listado de pacientes del profesional, que filtra por `role = 'paciente'`.
+
+**Una empresa encarga cien evaluaciones de una vez, y eso decide la forma del modelo.** Exigir que las cien personas tuvieran cuenta antes de poder pedir la cita invierte el orden real: habría que invitarlas, esperar a que aceptaran y solo entonces agendar. Por eso `organization_people` guarda nombre y correo, se convoca desde ahí, y `profile_id` se rellena cuando la persona acepta su invitación. Se puede convocar a quien todavía no tiene cuenta.
+
+**`profiles.organization_id` significa «administra esta empresa», nunca «trabaja aquí».** Una tabla aparte permitiría que alguien perteneciera a varias empresas —que hoy no ocurre— y a cambio convertiría cada política de aislamiento en dos saltos en lugar de uno. En este módulo eso pesa más que la flexibilidad. La columna es tan sensible como `role`, y queda protegida por el mismo mecanismo: la migración 0001 concede una lista blanca de columnas actualizables y `organization_id` no está en ella.
 
 `appointments.patient_id` pasa a ser **nulable** y una restricción exige que la cita sea de una persona o de una empresa, nunca de las dos ni de ninguna. Los asistentes viven en `appointment_attendees`.
 
