@@ -99,22 +99,40 @@ export async function actualizarSesion(request: NextRequest) {
     return NextResponse.redirect(destino);
   }
 
-  // Puerta del consentimiento. Se evalúa antes que el rol y aplica a los dos
-  // roles: nadie usa la plataforma sin haber aceptado la versión en vigor.
+  // Puerta del consentimiento.
+  //
+  // Se pedía a TODO el mundo, y era un error de categoría: el consentimiento
+  // informado lo otorga el paciente AL profesional. Pedírselo al profesional
+  // es pedirle que se autorice a sí mismo, y pedírselo a una empresa es peor,
+  // porque el consentimiento de una evaluación lo firma la persona evaluada y
+  // nunca quien la manda evaluar (SPEC §9.2).
+  //
+  // Va por rol y no por ruta porque es el rol quien determina si la persona
+  // está en posición de otorgarlo.
   if (user && esRutaPrivada(pathname) && pathname !== "/consentimiento") {
-    const { data: consentimiento } = await supabase
-      .from("consents")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("document_key", CONSENTIMIENTO.clave)
-      .eq("version", CONSENTIMIENTO.version)
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .maybeSingle();
 
-    if (!consentimiento) {
-      const destino = request.nextUrl.clone();
-      destino.pathname = "/consentimiento";
-      destino.search = "";
-      return NextResponse.redirect(destino);
+    const loOtorga = perfil?.role === "paciente";
+
+    if (loOtorga) {
+      const { data: consentimiento } = await supabase
+        .from("consents")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("document_key", CONSENTIMIENTO.clave)
+        .eq("version", CONSENTIMIENTO.version)
+        .maybeSingle();
+
+      if (!consentimiento) {
+        const destino = request.nextUrl.clone();
+        destino.pathname = "/consentimiento";
+        destino.search = "";
+        return NextResponse.redirect(destino);
+      }
     }
   }
 

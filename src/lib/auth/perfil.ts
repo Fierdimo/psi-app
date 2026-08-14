@@ -55,16 +55,26 @@ export async function tieneConsentimientoVigente(userId: string) {
 }
 
 /**
- * Exige sesión con consentimiento vigente y devuelve el perfil.
+ * Exige sesión y, si quien mira es paciente, consentimiento vigente.
  *
- * El consentimiento se evalúa ANTES que el rol y aplica a los dos: nadie usa
- * la plataforma sin haber aceptado la versión en vigor (SPEC.md §6.1).
+ * Solo el paciente lo otorga. El profesional lo RECIBE —pedírselo sería
+ * pedirle que se autorice a sí mismo— y una empresa no puede consentir por la
+ * persona a la que manda evaluar, que firma el suyo antes de responder
+ * (SPEC.md §9.2).
+ *
+ * La comprobación vive en tres sitios —aquí, en el proxy y en la acción de
+ * ingreso— porque cada uno protege una puerta distinta, y durante un tiempo
+ * solo dos de los tres estuvieron corregidos: el fallo seguía apareciendo por
+ * el tercero. Si se cambia la regla, se cambian los tres.
  */
 export async function exigirSesion(): Promise<Perfil> {
   const perfil = await obtenerPerfil();
   if (!perfil) redirect("/ingresar");
 
-  if (!(await tieneConsentimientoVigente(perfil.id)))
+  if (
+    perfil.role === "paciente" &&
+    !(await tieneConsentimientoVigente(perfil.id))
+  )
     redirect("/consentimiento");
 
   return perfil;

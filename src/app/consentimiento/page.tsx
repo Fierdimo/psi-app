@@ -27,6 +27,13 @@ export default async function ConsentimientoPage() {
   const perfil = await obtenerPerfil();
   if (!perfil) redirect("/ingresar");
 
+  // Quien no es paciente no está en posición de otorgarlo: el profesional lo
+  // RECIBE, y una empresa no puede consentir por la persona a la que manda
+  // evaluar. Se comprueba también aquí y no solo en el middleware, porque una
+  // pantalla que solo se protege en el enrutado se queda expuesta el día que
+  // alguien llega a ella por otro camino.
+  if (perfil.role !== "paciente") redirect(inicioSegunRol(perfil.role));
+
   // Si ya lo aceptó, no tiene sentido volver a pedirlo.
   const supabase = await crearClienteServidor();
   const { data: yaAceptado } = await supabase

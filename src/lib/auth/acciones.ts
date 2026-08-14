@@ -84,7 +84,11 @@ export async function ingresar(
    * dice «/panel». Decidir el destino de una vez evita toda esa clase de
    * incoherencias.
    */
-  if (!(await tieneConsentimientoVigente(data.user.id))) {
+  // Solo al paciente. El consentimiento informado lo OTORGA el paciente al
+  // profesional: pedírselo al profesional es pedirle que se autorice a sí
+  // mismo, y una empresa no puede consentir por la persona a la que manda
+  // evaluar (SPEC §9.2).
+  if (rol === "paciente" && !(await tieneConsentimientoVigente(data.user.id))) {
     redirect("/consentimiento");
   }
 

@@ -183,6 +183,23 @@ test.describe.serial("Consentimiento y roles", () => {
     await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
   });
 
+  /*
+   * El consentimiento informado lo otorga el paciente AL profesional. Pedírselo
+   * al profesional es pedirle que se autorice a sí mismo, y durante un tiempo
+   * la plataforma se lo pidió: la puerta se aplicaba a todos los roles.
+   */
+  test("al profesional NO se le pide el consentimiento informado", async ({
+    page,
+  }) => {
+    await page.goto("/profesional");
+    await rellenarIngreso(page, CUENTAS.profesional);
+    await page.waitForURL(/\/profesional\/agenda/);
+
+    // Ni de camino, ni entrando a la pantalla a propósito.
+    await page.goto("/consentimiento");
+    await expect(page).toHaveURL(/\/profesional\/agenda/);
+  });
+
   test("el profesional que entra por la puerta del paciente también llega a su agenda", async ({
     page,
   }) => {
