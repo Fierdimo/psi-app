@@ -269,6 +269,15 @@ invitations              alta por correo de una persona del listado, con testigo
 
 `una_solicitud_pendiente_por_paciente` **no necesitó cambio**, contra lo que se temió al planear: es un índice único sobre `patient_id`, y en un índice único los NULL se consideran distintos entre sí. Como las citas corporativas llevan `patient_id` nulo, no compiten por él. La regla sigue aplicando exactamente donde se pensó.
 
+#### Lo que la auditoría de las funciones dejó pendiente
+
+Tras el agujero de `cancelar_cita` se revisaron las siete funciones de citas contra el caso corporativo. `confirmar_cita`, `rechazar_cita`, `cerrar_cita` y `agendar_cita` comprueban el rol de profesional antes de nada y no usan `patient_id` en ninguna condición: seguras. `solicitar_reprogramacion` filtra dentro de un `WHERE`, donde NULL no coincide con nada, así que falla cerrado. `solicitar_cita` ganó una comprobación de rol en 0011.
+
+Quedan dos huecos que **no son fallos de seguridad sino funciones que faltan**, y conviene tenerlos a la vista antes de montar interfaz encima:
+
+- **Una empresa no puede pedir que le cambien la fecha.** `solicitar_reprogramacion` solo entiende citas individuales. Con cien personas convocadas, mover una sesión es justo lo que más va a pasar.
+- **Cerrar una cita de grupo es todo o nada.** `cerrar_cita(cita, asistio)` recibe un único booleano, y en una sesión de quince personas la asistencia es de cada una. Cerrar así perdería quién faltó, que es precisamente lo que hay que reportarle a la empresa.
+
 #### El aislamiento entre empresas es el riesgo mayor del proyecto
 
 Hasta ahora RLS respondía a «cada quien ve lo suyo». Ahora hay un límite nuevo —la organización— y el dato que se filtraría en un error son **resultados psicológicos de personas identificadas**. Dos reglas para no equivocarse:

@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(24);
+select plan(26);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -272,6 +272,32 @@ select is(
 );
 
 -- =============================================================================
+-- UNA CUENTA DE EMPRESA NO PIDE CONSULTAS INDIVIDUALES
+--
+-- `solicitar_cita` nunca miró quién la llamaba. Sin esta comprobación, una
+-- cuenta de empresa se pedía a sí misma una cita individual y esa cita
+-- aparecía en la agenda con un «paciente» que no figura en el listado de
+-- pacientes, porque ese listado filtra por rol.
+-- =============================================================================
+select tests_como(:'jefe_acme');
+
+select throws_ok(
+  'select public.solicitar_cita(now() + interval ''30 days'', now() + interval ''30 days 1 hour'')',
+  'P0001',
+  'Una cuenta de empresa no solicita consultas individuales.',
+  'Una cuenta de empresa NO puede pedirse una consulta individual'
+);
+
+-- La persona evaluada por una empresa sí puede: su cuenta es suya, y es
+-- exactamente el cruce que el negocio quiere explotar.
+select tests_como(:'emp_acme');
+
+select lives_ok(
+  'select public.solicitar_cita(now() + interval ''30 days'', now() + interval ''30 days 1 hour'')',
+  'Quien fue evaluado por una empresa SÍ puede pedir su propia consulta individual'
+);
+
+-- =============================================================================
 -- QUIÉN PUEDE CANCELAR UNA CITA CORPORATIVA
 --
 -- Al volver `patient_id` nulable apareció un agujero silencioso en
@@ -319,8 +345,9 @@ select tests_como(:'doctor');
 
 select is(
   (select count(*)::int from public.appointments),
-  3,
-  'El profesional ve las tres citas: las dos corporativas y la individual'
+  4,
+  'El profesional ve las cuatro: dos corporativas y dos individuales, una de '
+  'ellas pedida por alguien a quien ya evaluó una empresa'
 );
 
 select * from finish();
