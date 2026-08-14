@@ -239,9 +239,236 @@ create table audit_log (
 
 `consents` registra **versión** además de fecha. Si el consentimiento cambia, hay que poder demostrar qué texto exacto aceptó cada persona y cuándo. Un booleano `acepto = true` no sirve como evidencia.
 
-### 5.4 Evaluaciones
+### 5.4 Organizaciones y citas de grupo — v2
 
-**No se crean tablas en v1.** El módulo está diferido (`SPEC.md` §9.2) y crear un esquema sin conocer el instrumento produce un modelo que habrá que rehacer. La sección de la interfaz es placeholder y no consulta nada.
+El giro a evaluación corporativa (`SPEC.md` §9.2) **no es aditivo**: rompe tres invariantes que hoy están escritas en la base y funcionando.
+
+| Lo que hay hoy                                             | Por qué deja de servir                                                              |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `appointments.patient_id` — un paciente, obligatorio       | Una cita de evaluación tiene varios asistentes                                      |
+| `sin_solapamiento` — exclusión GiST sobre el rango horario | Impide el atajo de crear N citas simultáneas. **La base rechazaría las ocho filas** |
+| `una_solicitud_pendiente_por_paciente`                     | Se temió que bloqueara a las empresas. **No lo hace** — ver abajo                   |
+| `user_role` — enum de dos valores                          | Entran `empresa` y `empleado`                                                       |
+
+La segunda fila es la importante: **no hay atajo**. La restricción de exclusión existe para que dos personas no ocupen la misma hora del profesional, y sigue siendo correcta. Por eso la cita pasa a tener asistentes en tabla aparte en lugar de multiplicarse.
+
+```
+organizations            la empresa cliente
+appointment_attendees    quiénes asisten a una cita
+invitations              alta de un empleado por correo, con testigo y caducidad
+```
+
+**No hay tabla de membresías.** La pertenencia es una columna en `profiles`. Una tabla aparte permitiría que alguien perteneciera a varias empresas —que hoy no ocurre— y a cambio convertiría cada política de aislamiento en dos saltos en lugar de uno. En este módulo eso pesa más que la flexibilidad. La columna es tan sensible como `role`, y queda protegida por el mismo mecanismo: la migración 0001 concede una lista blanca de columnas actualizables y `organization_id` no está en ella.
+
+`appointments.patient_id` pasa a ser **nulable** y una restricción exige que la cita sea de una persona o de una empresa, nunca de las dos ni de ninguna. Los asistentes viven en `appointment_attendees`.
+
+`una_solicitud_pendiente_por_paciente` **no necesitó cambio**, contra lo que se temió al planear: es un índice único sobre `patient_id`, y en un índice único los NULL se consideran distintos entre sí. Como las citas corporativas llevan `patient_id` nulo, no compiten por él. La regla sigue aplicando exactamente donde se pensó.
+
+#### El aislamiento entre empresas es el riesgo mayor del proyecto
+
+Hasta ahora RLS respondía a «cada quien ve lo suyo». Ahora hay un límite nuevo —la organización— y el dato que se filtraría en un error son **resultados psicológicos de personas identificadas**. Dos reglas para no equivocarse:
+
+1. **Toda tabla del módulo lleva `organization_id`**, aunque parezca derivable por join. Una política que depende de tres saltos es una política que nadie revisa.
+2. **La pertenencia se resuelve en una función `security definer`**, como `is_professional()` (§6.1), y las políticas la llaman. Nunca se repite la subconsulta.
+
+```sql
+create function public.mi_organizacion() returns uuid
+language sql stable security definer set search_path = public as $$
+  select organization_id from profiles where id = auth.uid();
+$$;
+
+create policy "empresa: solo sus propios empleados"
+  on results for select using (
+    exists (
+      select 1 from assignments a
+      where a.id = results.assignment_id
+        and a.organization_id = public.mi_organizacion()
+        and a.status = 'publicada'
+    )
+  );
+```
+
+#### La recursión que hay que esperar
+
+Al escribir las políticas cruzadas —la de citas consultando asistentes y la de asistentes consultando citas— Postgres respondió `infinite recursion detected in policy for relation "appointments"` y tumbó **también** las pruebas de aislamiento entre pacientes que ya pasaban. No fue una sorpresa evitable leyendo con cuidado: es el mismo ciclo que obligó a que `is_professional()` fuera `security definer` (§6.1), y reaparece en cuanto dos tablas se miran entre sí desde sus políticas.
+
+La regla, entonces, generalizada: **toda política que consulte otra tabla protegida por RLS lo hace a través de una función `security definer`**, nunca con una subconsulta directa. Aquí son `asisto_a_cita()` y `organizacion_de_cita()`.
+
+Nótese que la condición de publicación se repite para la empresa: **el profesional autoriza una vez y libera a los dos destinatarios**, nunca uno antes que el otro.
+
+### 5.5 Evaluaciones — v2
+
+En v1 no se creó ninguna tabla, a propósito: un esquema escrito sin conocer el instrumento se rehace. Con el alcance ya fijado —pacientes individuales, resultados bajo autorización del profesional (`SPEC.md` §9.2)— el modelo sí se puede escribir, porque **ninguna de estas tablas depende de qué prueba concreta se cargue**.
+
+```
+assessments             plantilla del instrumento; `engine` dice qué módulo lo califica
+assessment_items        ítems, opciones y orden. Datos, no código
+assessment_parameters   qué devuelve esta prueba: cuántos parámetros y de qué tipo
+assignments             una aplicación a un paciente, con su ciclo de vida
+responses               una fila por ítem respondido; se escribe según se responde
+results                 la cabecera del resultado: calificado, publicado, nota global
+result_values           una fila por parámetro: lo calculado y lo escrito por el profesional
+documents               certificados e informes en Storage, con su metadato
+```
+
+**No hay tabla `sessions`.** El spec la preveía, y se descarta: una tabla de intentos solo se gana su sitio cuando puede haber varios por asignación, y aquí volver a aplicar significa **asignar de nuevo**, que además deja mejor historial. Si algún día hace falta reintentar dentro de una misma asignación, se añade entonces.
+
+**`assessment_items.options` es `jsonb`** con la forma `[{ id, texto, escala }]`. La `escala` es un dato —a qué constructo tributa la opción—, pero **qué se hace con ella es código**: el motor. Esa frontera es la que impide que la baremación acabe siendo un intérprete escrito en JSON.
+
+#### El resultado tiene forma variable
+
+Cada instrumento declara sus parámetros en `assessment_parameters`, y esa declaración **es el contrato del motor**:
+
+```sql
+create table public.assessment_parameters (
+  id            uuid primary key default gen_random_uuid(),
+  assessment_id uuid not null references assessments (id) on delete cascade,
+  key           text not null,          -- 'D', 'segmento', 'recomendaciones'…
+  label         text not null,
+  kind          text not null,          -- numerico | escala | categoria | texto
+  position      int  not null,
+  -- Algunos parámetros los calcula el motor, otros solo puede redactarlos el
+  -- profesional, y en otros conviven los dos. Esta pareja lo dice.
+  computed      boolean not null default true,
+  allows_note   boolean not null default false,
+  unique (assessment_id, key)
+);
+
+create table public.result_values (
+  assignment_id uuid not null references assignments (id) on delete cascade,
+  parameter_key text not null,
+  value         jsonb,        -- lo que calculó el motor
+  suggested     text,         -- redacción normalizada que propone el motor
+  note          text,         -- lo que escribió el profesional. Manda esto
+  primary key (assignment_id, parameter_key)
+);
+```
+
+Una fila por parámetro, y no un `jsonb` opaco en `results`, por dos razones: permite seguir **un mismo parámetro a lo largo del tiempo** cuando la prueba se repite, y permite que el profesional edite un apartado sin reescribir el bloque entero.
+
+La interfaz del motor queda así:
+
+```ts
+type ValorDeParametro = {
+  key: string;
+  value?: unknown; // según el `kind` declarado
+  suggested?: string; // redacción normalizada, si el instrumento la trae
+};
+
+interface MotorDePrueba {
+  calificar(items: Item[], respuestas: Respuesta[]): ValorDeParametro[];
+}
+```
+
+Al calificar se **valida que las claves devueltas coincidan con los parámetros declarados** como `computed`. Un motor que se deja uno sin devolver es un error detectado al momento, no un informe con un hueco descubierto por el paciente.
+
+Lo que se publica es `note` cuando existe y `suggested` cuando no. El motor propone; el profesional dispone y firma.
+
+**La calificación no cabe en la base.** Los motores son TypeScript, así que entre `enviada` y `calificada` hay un paso en el servidor de Next: valida que la prueba esté completa, ejecuta el motor y escribe el resultado. Debe ser **idempotente**, porque un reintento tras un fallo de red no puede producir dos resultados.
+
+**Sitio reservado para las pruebas de rendimiento.** Hoy no se aplica ninguna, pero el esquema las contempla desde el principio (`SPEC.md` §9.3): `assessments.kind` (`inventario` | `rendimiento`), `assessments.time_limit_seconds` y `assessment_items.answer_key`. Van vacías mientras solo haya inventarios. Son tres columnas ahora; serían una migración sobre datos clínicos después.
+
+#### Los textos normalizados son datos, no código
+
+Un instrumento trae dos clases de texto: el que **describe** una escala siempre igual, y el que **depende del nivel** obtenido —bajo, medio, alto—. Los dos son contenido que el profesional querrá corregir con el tiempo, así que viven en tablas y no dentro del motor:
+
+```sql
+create table public.assessment_texts (
+  assessment_id uuid not null references assessments (id) on delete cascade,
+  parameter_key text not null,
+  -- null = descripción fija de la escala; si no, el nivel al que aplica
+  level         text,
+  body          text not null,
+  primary key (assessment_id, parameter_key, coalesce(level, ''))
+);
+```
+
+Así, cambiar la redacción de «puntaje medio en Dominancia» es editar una fila, no desplegar. **El motor decide el nivel; la tabla dice cómo se cuenta.** Los puntos de corte sí van en el motor, porque son baremación.
+
+#### El primer instrumento, leído del formulario real
+
+El formulario que la consulta usa hoy (Google Forms, 52 elementos) **no es una prueba: son dos**, aplicadas en una sola sesión. Esto se comprobó leyendo el formulario publicado, no suponiéndolo.
+
+| Bloque           | Formato                                                             | Ítems |
+| ---------------- | ------------------------------------------------------------------- | ----- |
+| Consentimiento   | Aceptar / No aceptar                                                | 1     |
+| Datos personales | Documento, nombres, edad, sexo, cargo, fecha, empresa               | 7     |
+| Sección I · DISC | Bloques de 4 adjetivos; se marca el que MÁS y el que MENOS describe | 28    |
+| Secciones II–V   | 4 bloques de 10 afirmaciones en escala 1–5 → cuadrantes A, B, C y D | 40    |
+
+De ahí salen dos consecuencias de diseño:
+
+1. **Una asignación puede producir varias secciones de resultado.** Por eso `assessment_parameters` lleva `section`: el informe agrupa por ella (`disc`, `dominancia_cerebral`) sin que el motor tenga que devolver una estructura anidada.
+2. **La restricción ipsativa se valida en la plataforma.** Una cuadrícula de Google no puede impedir que alguien marque MÁS y MENOS en la misma fila, o que no marque ninguna. El tipo `forced_choice` sí: exactamente una fila por columna, comprobado antes de aceptar la respuesta. Es la primera mejora medible frente al método actual.
+
+La baremación del segundo bloque se dedujo del informe y encaja: suma de 10 ítems de 1 a 5, multiplicada por dos, da la escala 0–100 sobre la que operan los rangos declarados (80–100 primario, 60–79 secundario, 0–59 terciario).
+
+#### Escrituras por función, como las citas
+
+Ninguna transición se hace con `UPDATE` directo (§6.2):
+
+| Función                                               | Quién       | Efecto                                                                  |
+| ----------------------------------------------------- | ----------- | ----------------------------------------------------------------------- |
+| `asignar_prueba(assessment, evaluado, cita, vence)`   | profesional | Crea en `asignada`                                                      |
+| `habilitar_examen(asignacion)`                        | profesional | Lo abre en la sesión presencial                                         |
+| `iniciar_prueba(asignacion)`                          | evaluado    | Pasa a `en_curso`; exige estar habilitado y con consentimiento aceptado |
+| `responder_item(asignacion, item, valor)`             | evaluado    | Inserta o reemplaza; solo en `en_curso`                                 |
+| `enviar_prueba(asignacion)`                           | evaluado    | Pasa a `enviada`; exige estar completa                                  |
+| `calificar_prueba(asignacion, puntuaciones, informe)` | servidor    | Pasa a `calificada`                                                     |
+| `redactar_parametro(asignacion, clave, texto)`        | profesional | Escribe su texto en un parámetro                                        |
+| `publicar_resultado(asignacion, nota)`                | profesional | Pasa a `publicada`                                                      |
+| `anular_asignacion(asignacion, motivo)`               | profesional | Pasa a `anulada`                                                        |
+
+#### RLS — las tres políticas que importan
+
+```sql
+-- 1. El banco de ítems NO es público para cualquiera con cuenta.
+--    Un paciente solo ve los ítems de una prueba que le asignaron y que
+--    está respondiendo. Sin esto, cualquiera se descarga el instrumento.
+create policy "paciente: ítems solo de su prueba en curso"
+  on assessment_items for select using (
+    exists (
+      select 1 from assignments a
+      where a.assessment_id = assessment_items.assessment_id
+        and a.patient_id = auth.uid()
+        and a.status = 'en_curso'
+    )
+  );
+
+-- 2. El resultado es invisible hasta que el profesional lo publica.
+--    Esta política ES el requisito de SPEC §9.2, escrito donde no se puede
+--    olvidar: no depende de que la interfaz recuerde ocultarlo.
+create policy "paciente: solo resultados publicados"
+  on results for select using (
+    exists (
+      select 1 from assignments a
+      where a.id = results.assignment_id
+        and a.patient_id = auth.uid()
+        and a.status = 'publicada'
+    )
+  );
+
+-- 3. Las respuestas no se tocan después de enviar.
+create policy "paciente: responde solo mientras está en curso"
+  on responses for insert with check (
+    exists (
+      select 1 from assignments a
+      where a.id = responses.assignment_id
+        and a.patient_id = auth.uid()
+        and a.status = 'en_curso'
+    )
+  );
+```
+
+#### Documentos y Storage
+
+Primera vez que el proyecto usa Supabase Storage. Bucket **privado** `documentos`, rutas `pacientes/<patient_id>/<uuid>-<nombre>`, y una fila en `documents` con el metadato. El acceso se sirve con URLs firmadas de vida corta, nunca con el objeto público.
+
+`documents.visible_to_patient` acompaña a la publicación: los certificados de una evaluación se liberan **con** el resultado, no antes.
+
+#### Auditoría
+
+`audit_log` (§5.3) registra asignar, enviar, calificar, publicar y descargar un documento. Publicar un resultado y descargar un certificado son los dos accesos que un día habrá que poder demostrar.
 
 ---
 
@@ -482,6 +709,20 @@ Pruebas de RLS, auditoría de accesibilidad con teclado y lector de pantalla, re
 - **Revisión manual de accesibilidad** con teclado y lector de pantalla. La
   auditoría automática (§12.1) cubre contraste, etiquetas y estructura, pero no
   dice si el recorrido tiene sentido.
+
+### v2 · Evaluaciones — orden propuesto
+
+Cuatro fases. Las tres primeras no necesitan saber qué instrumento es; la carga del contenido real espera a la licencia (`SPEC.md` §9.3).
+
+**F7 · Motor y catálogo — M (5–7 días).** Tablas, RLS con sus pruebas, la interfaz `MotorDePrueba` y su registro, un instrumento de laboratorio para desarrollar contra algo, y el catálogo del profesional.
+
+**F8 · Sesión del paciente — M (5–6 días).** Ejecutor genérico para todos los tipos de ítem, autoguardado, reanudación y envío. Es la fase con más superficie de accesibilidad: se responde con teclado y sin presión de tiempo.
+
+**F9 · Revisión y publicación — S (3–4 días).** Vista de revisión del profesional, nota de interpretación, publicación, y el aviso por correo al paciente —neutro, sin nombrar el instrumento ni el resultado.
+
+**F10 · Documentos y certificados — S (3 días).** Storage, subida desde la ficha del paciente, liberación junto al resultado y descarga por URL firmada.
+
+El consentimiento específico de evaluación entra en F7, no al final: sin él no se puede aplicar la primera prueba.
 
 ### Lo que se descubrió construyendo
 

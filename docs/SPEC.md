@@ -251,7 +251,22 @@ Se aprendió por las malas: al servir el sitio por un túnel de desarrollo, `nex
 | **Paciente**    | Persona que crea su cuenta y recibe atención | `/ingresar`    | Registrarse, editar sus datos, ver su calendario, **solicitar** cita, solicitar reprogramación, cancelar, ver las secciones placeholder            |
 | **Profesional** | El psicólogo titular de la plataforma        | `/profesional` | Ver la agenda completa, **autorizar o rechazar** solicitudes, crear citas, reprogramar, cerrar citas como realizadas o no asistidas, ver pacientes |
 
-La distinción no es de jerarquía sino de **naturaleza de la relación**: el paciente _pide_, el profesional _autoriza_. Ninguna acción del paciente produce un hecho por sí sola — una cita no existe como compromiso hasta que el profesional la confirma. Esto se refleja en el modelo de estados (§9.1), en el lenguaje de la interfaz (§13: «solicitar», nunca «reservar») y en las dos entradas separadas (§5.1).
+### 3.1 Los dos roles que entran en v2
+
+La consulta vende dos cosas distintas, y hasta v1 la plataforma solo servía a una. En v2 entran dos actores más:
+
+| Rol          | Quién es                                       | Qué puede hacer                                                                                                                          |
+| ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empresa**  | Organización cliente que contrata evaluaciones | Registrarse, dar de alta a sus empleados, **solicitar** una cita de evaluación para varios, y ver los informes que el profesional libere |
+| **Empleado** | Persona evaluada por encargo de una empresa    | Aceptar su consentimiento, responder la prueba y ver su propio informe                                                                   |
+
+**Un empleado no es un paciente**, y la diferencia no es terminológica: no hay relación clínica, no pide cita —se la agenda su empresa—, y su informe tiene un segundo destinatario. Por eso son roles separados y no un paciente con una etiqueta.
+
+La asimetría fundacional se conserva en las dos ramas: la empresa _pide_, el profesional _autoriza_; y ningún informe llega a nadie —ni al empleado ni a la empresa— hasta que el profesional lo revisa y lo publica.
+
+### 3.2 La relación
+
+La distinción no es de jerarquía sino de **naturaleza de la relación**: quien recibe la atención _pide_, el profesional _autoriza_. Ninguna acción del paciente produce un hecho por sí sola — una cita no existe como compromiso hasta que el profesional la confirma. Esto se refleja en el modelo de estados (§9.1), en el lenguaje de la interfaz (§13: «solicitar», nunca «reservar») y en las entradas separadas (§5.1).
 
 El área del profesional crece con el producto: hoy autoriza citas, mañana enviará documentos, asignará evaluaciones y compartirá recursos. Las cuatro secciones placeholder del paciente (§4.3) son, vistas desde el otro lado, cuatro funcionalidades futuras del profesional.
 
@@ -585,16 +600,119 @@ Toda hora se almacena en `timestamptz` (UTC) y se presenta en la zona horaria de
 
 `AppointmentChange` y `AuditLog` no son opcionales aunque no tengan interfaz en v1: en un contexto clínico hay que poder responder quién cambió qué y cuándo.
 
-### 9.2 Diferido — módulo de evaluaciones
+### 9.2 Módulo de evaluaciones — v2
 
-El instrumento está **por definir**, y podrían incorporarse varias pruebas ahora o más adelante. En v1 no se implementa: la sección es placeholder (§7.6) y no se crean tablas más allá de lo necesario para no bloquear.
+**Alcance: evaluación por encargo de una empresa.** El instrumento con el que arranca el módulo —DISC más dominancia cerebral— es una prueba de selección y desarrollo de personal, y se aplica a empleados y candidatos por cuenta de una organización. La atención individual sigue existiendo, pero **no comparte este circuito**: un paciente pide su cita y recibe acompañamiento; un empleado no pide nada, lo agenda su empresa.
 
-Cuando se retome, el diseño previsto es un motor extensible con entidades `Assessment` (plantilla) · `Item` · `Assignment` (asignación con fechas) · `Session` (intento) · `Response` · `Result`, y tipos de ítem intercambiables (`single_choice`, `likert`, `multiple_choice`, `open_text`, `ranking`, `numeric`, `image_choice`) que se renderizan en un mismo marco de sesión. Esa especificación se retomará cuando haya instrumento.
+#### El circuito corporativo
+
+```
+1. La empresa se registra y da de alta a sus empleados
+2. Solicita una cita de evaluación para varios de ellos
+3. El profesional la confirma → cada empleado recibe su invitación por correo
+4. El empleado crea su cuenta y acepta SU consentimiento
+5. El día de la cita: parte presencial, y el profesional abre el examen en línea
+6. El empleado responde; el sistema califica
+7. El profesional revisa, redacta y publica
+8. El informe queda disponible para el empleado Y para la empresa
+```
+
+Tres candados en ese circuito, y ninguno es opcional:
+
+**El consentimiento lo firma el empleado, no su empresa.** Sin aceptación registrada no se abre el examen. El titular del dato es quien lo acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
+
+**El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
+
+**Nada se publica solo.** El sistema califica en cuanto el empleado envía, pero el informe no existe para nadie hasta que el profesional lo revisa y lo firma.
+
+#### Quién ve qué
+
+|                                        | Empleado | Empresa | Profesional |
+| -------------------------------------- | -------- | ------- | ----------- |
+| Sus propias respuestas                 | ✓        | —       | ✓           |
+| Su informe completo, una vez publicado | ✓        | ✓       | ✓           |
+| Informes de sus compañeros             | —        | ✓       | ✓           |
+| Empleados de otra empresa              | —        | —       | ✓           |
+
+**La empresa ve el informe individual completo de cada empleado que contrató evaluar.** Es lo que su consentimiento declara y lo que el negocio requiere. Precisamente por eso el consentimiento debe decirlo con todas las letras antes de la primera pregunta, y por eso el aislamiento entre organizaciones es el punto de RLS más delicado de toda la plataforma: un fallo ahí expone resultados psicológicos de personas identificadas a una empresa que no las contrató.
+
+#### La regla que gobierna el módulo
+
+**Ningún resultado llega al paciente sin que el profesional lo revise y lo autorice.** Es la misma asimetría que rige las citas —el paciente pide, el profesional autoriza— aplicada al dato más delicado de la plataforma. Una puntuación cruda sin lectura profesional no informa: desinforma.
+
+De ahí que la calificación y la publicación sean **dos actos separados**. El sistema califica solo, en cuanto el paciente envía; el profesional revisa, escribe su interpretación, adjunta los certificados que correspondan y solo entonces publica. Hasta ese momento el resultado existe, pero para el paciente no.
+
+#### Ciclo de vida de una asignación
+
+```
+asignada → en_curso → enviada → calificada → publicada
+                ↓                     ↑
+             vencida              (la calificación es automática;
+                                   la publicación NO)
+```
+
+`anulada` es alcanzable desde cualquier estado previo a `publicada`. Volver a aplicar una prueba no reabre la asignación: se asigna otra vez, y el historial conserva las dos.
+
+#### Motor extensible
+
+Un instrumento se compone de dos mitades: **sus ítems son datos** y **su calificación es código**.
+
+Los ítems, sus opciones y su orden viven en tablas, de modo que un único ejecutor de sesión dibuja cualquier prueba y no se escribe interfaz nueva por instrumento. Los tipos previstos son `single_choice`, `likert`, `multiple_choice`, `open_text`, `ranking`, `numeric`, `image_choice` y **`forced_choice`** —elegir dentro de un bloque la que MÁS y la que MENOS describe—, que es el formato ipsativo que usan los instrumentos tipo DISC y que la versión anterior de este spec no contemplaba.
+
+La calificación, en cambio, es un módulo que implementa `MotorDePrueba` y se registra por clave; la plantilla guarda cuál le toca. Se decidió así tras descartar la alternativa: expresar la baremación como reglas en datos funciona mientras solo haya que sumar por escala, pero un instrumento con elección forzada, segmentos y tabla de patrones acaba obligando a inventar un lenguaje de programación en JSON. Un módulo por instrumento se lee y se prueba.
+
+**La calificación corre solo en el servidor.** Si el algoritmo viajara al navegador quedaría público, y quien responde podría orientar sus respuestas hacia el perfil que le convenga. Para una consulta que vende evaluación, esa lógica es el producto.
+
+#### Un resultado no es una puntuación: es un conjunto de parámetros
+
+Cada instrumento **declara sus propios parámetros**, en número y naturaleza libres. Uno puede tener cuatro escalas numéricas; otro, dos categorías y un texto; otro, catorce apartados. La plataforma no presupone ninguna forma.
+
+Un parámetro tiene un tipo —numérico, escala, categoría o texto— y una marca de si **admite texto del profesional**. Esto último es lo que separa este módulo de un corrector automático: hay parámetros que la máquina calcula, hay parámetros que solo el profesional puede redactar, y hay parámetros donde conviven los dos.
+
+El reparto de trabajo es siempre el mismo: **el motor propone, el profesional dispone.** El motor calcula los valores y, cuando el instrumento trae textos normalizados, sugiere su redacción. En la pantalla de revisión el profesional los ve ya rellenos y puede corregirlos, ampliarlos o sustituirlos por completo antes de publicar. Lo que se publica es siempre lo que él firmó, no lo que salió del algoritmo.
+
+Que los parámetros sean filas y no un bloque opaco tiene un segundo beneficio, y es clínico: permite mirar un mismo parámetro a lo largo del tiempo cuando una prueba se aplica más de una vez.
+
+#### Pantallas
+
+**Profesional**
+
+| Ruta                          | Qué hace                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `/profesional/pruebas`        | Catálogo de instrumentos disponibles y asignaciones en curso                                           |
+| `/profesional/pacientes/[id]` | Gana un bloque de evaluaciones: asignar, ver estado, entrar a revisar                                  |
+| `/profesional/pruebas/[id]`   | Revisión: respuestas, puntuaciones, interpretación del motor, nota propia, certificados y **publicar** |
+
+**Paciente**
+
+| Ruta               | Qué hace                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `/resultados`      | Deja de ser placeholder: sus pruebas con estado real                                  |
+| `/resultados/[id]` | Ejecutor de la sesión, o el resultado publicado si ya lo está                         |
+| `/documentos`      | Deja de ser placeholder: los certificados e informes que el profesional haya liberado |
+
+El ejecutor muestra un ítem o un bloque cada vez, con progreso visible y **autoguardado en cada respuesta**: perder veintiocho respuestas por una caída de red es perder la prueba entera. Al volver, se retoma donde se dejó.
+
+#### Honestidad de los estados
+
+Igual que una cita pendiente no se disfraza de confirmada, una prueba enviada no se disfraza de disponible. El paciente ve «Enviada · pendiente de revisión», y nada sugiere que pueda consultar algo que su profesional aún no ha leído. Si una asignación vence sin enviarse, lo dice.
+
+#### Consentimiento
+
+La evaluación psicométrica necesita **su propio consentimiento**, distinto del de atención: para qué se aplica, quién verá los resultados y cuánto se conservan. Se acepta antes de la primera prueba, no en el alta.
 
 ### 9.3 Decisiones pendientes
 
 - [ ] Instrumento(s) de evaluación y su baremación
-- [ ] ¿El paciente ve su propio resultado? (se asume que no, sin interpretación profesional)
+- [x] **¿El paciente ve su propio resultado?** Sí, pero **solo tras revisión y autorización expresa del profesional**, junto con los certificados que correspondan. Ver §9.2.
+- [x] **¿Candidatos de empresa?** **Sí, y son el caso principal del módulo.** La plataforma se orienta a la asesoría corporativa —evaluación técnica y de empleabilidad por encargo de una organización— sin perder la atención individual, que se reenfoca hacia la mejora del perfil laboral. Ver §9.2.
+- [x] **¿Qué ve la empresa?** El **informe individual completo** de cada empleado que mandó evaluar, una vez publicado por el profesional.
+- [x] **¿Cómo entra el empleado?** Cuenta propia por invitación al correo. Es la única forma de que acepte un consentimiento verificable y de que el informe le pertenezca de verdad.
+- [x] **¿Cuándo se abre el examen?** Lo habilita el profesional durante la sesión presencial. No se abre solo por llegar la fecha.
+- [ ] **Licencia del instrumento.** Los ítems y las tablas de interpretación de una edición comercial suelen estar licenciados, aunque el modelo subyacente sea de dominio público. Aplicarlo por un formulario no es lo mismo que servirlo desde una plataforma propia. **Bloquea cargar el contenido real de la prueba**, no el diseño del motor.
+- [ ] ¿Puede el paciente subir documentos, o el flujo es solo profesional → paciente? Se asume lo segundo mientras no se diga otra cosa.
+- [ ] ¿El informe de resultados se descarga en PDF? Si sí, hay que rehacer su diseño: el actual usa rojo, verde y cian, ajenos a la paleta.
+- [x] **¿Entran pruebas de rendimiento?** Todavía no se aplican, pero **el modelo las contempla desde el primer día**: `assessments.kind` distingue inventario de prueba de rendimiento, y existen `time_limit_seconds` y la clave de corrección del ítem aunque hoy vayan siempre vacíos. Reservar el sitio cuesta tres columnas; añadirlas con el esquema poblado cuesta una migración con datos clínicos dentro.
 - [ ] Duración por defecto de una cita y franja horaria de atención
 - [ ] Política de cancelación (texto y margen de anticipación)
 - [ ] País concreto de ejercicio, para precisar el marco de habeas data
