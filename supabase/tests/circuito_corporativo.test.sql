@@ -12,7 +12,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(16);
+select plan(21);
 
 delete from public.appointment_changes;
 delete from public.appointment_attendees;
@@ -44,6 +44,14 @@ values
 update public.profiles set role = 'profesional' where id = :'doctor';
 update public.profiles set role = 'empresa', organization_id = :'acme'   where id = :'jefe_acme';
 update public.profiles set role = 'empresa', organization_id = :'globex' where id = :'jefe_globex';
+
+create or replace function tests_servidor_c() returns void
+language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+end;
+$$;
 
 create or replace function tests_como(p_uid uuid) returns void
 language plpgsql as $$
@@ -223,6 +231,62 @@ select is(
   (select count(*)::int from public.appointment_attendees where attended is false),
   2,
   'Y que las otras dos faltaron, que es lo que hay que reportarle a la empresa'
+);
+
+-- =============================================================================
+-- 7 · EL PAGO LLEGA TARDE
+--
+-- El caso real: la empresa propone una fecha, el profesional espera el pago, y
+-- cuando entra la fecha ya pasó. Confirmar entonces dejaría una sesión
+-- «confirmada» en el pasado, y las invitaciones convocarían a gente a algo que
+-- ya ocurrió.
+-- =============================================================================
+select tests_servidor_c();
+
+-- Se coloca una solicitud con fecha ya vencida, que es lo que el paso del
+-- tiempo produce por sí solo mientras se espera el pago.
+insert into public.appointments (id, organization_id, professional_id, starts_at, ends_at, status, created_by)
+values ('99999999-0000-4000-8000-000000000099', :'acme', :'doctor',
+        now() - interval '2 days', now() - interval '2 days' + interval '3 hours',
+        'solicitada', :'jefe_acme');
+
+select tests_como(:'doctor');
+
+select throws_ok(
+  'select public.confirmar_cita(''99999999-0000-4000-8000-000000000099'')',
+  'P0001',
+  'Esa fecha ya pasó; no se puede confirmar.',
+  'No se confirma una sesión cuya fecha ya pasó'
+);
+
+-- La salida: acordar una fecha nueva por fuera y registrarla, sin perder la
+-- solicitud ni su historial.
+select lives_ok(
+  'select public.reagendar_solicitud(''99999999-0000-4000-8000-000000000099'', now() + interval ''5 days'', now() + interval ''5 days 3 hours'')',
+  'El profesional reagenda la solicitud a una fecha acordada'
+);
+
+select lives_ok(
+  'select public.confirmar_cita(''99999999-0000-4000-8000-000000000099'')',
+  'Y ahora sí la confirma'
+);
+
+select throws_ok(
+  'select public.reagendar_solicitud(''99999999-0000-4000-8000-000000000099'', now() + interval ''9 days'', now() + interval ''9 days 3 hours'')',
+  'P0001',
+  'Esto es para solicitudes pendientes.',
+  'Reagendar es para solicitudes, no para citas ya confirmadas'
+);
+
+-- La empresa no reagenda por su cuenta: acuerda por fuera y el profesional
+-- registra. Para una cita ya confirmada tiene solicitar_reprogramacion.
+select tests_como(:'jefe_acme');
+
+select throws_ok(
+  'select public.reagendar_solicitud(''99999999-0000-4000-8000-000000000099'', now() + interval ''9 days'', now() + interval ''9 days 3 hours'')',
+  'P0001',
+  'Solo el profesional reagenda una solicitud.',
+  'Una empresa no reagenda su propia solicitud'
 );
 
 select * from finish();

@@ -631,6 +631,14 @@ Tres candados en ese circuito, y ninguno es opcional:
 
 **Nada se publica solo.** El sistema califica en cuanto el empleado envía, pero el informe no existe para nadie hasta que el profesional lo revisa y lo firma.
 
+#### El pago llega tarde y la fecha se pasa
+
+Es el caso normal, no la excepción: la empresa propone el 20, el trámite tarda, el pago entra el 25. **No se confirma una sesión cuya fecha ya pasó** — confirmarla dejaría una sesión «confirmada» en el pasado y las invitaciones convocarían a diez personas a algo que ocurrió la semana anterior.
+
+La salida no es rechazar y pedirle a la empresa que vuelva a empezar, porque eso pierde la solicitud y su historial. El profesional **reagenda la solicitud** a la fecha que acuerde por teléfono o correo —para eso una empresa no existe sin canal de contacto— y confirma después. La solicitud es la misma; solo cambió su fecha, y el cambio queda registrado.
+
+Una solicitud pendiente cuya fecha ya pasó no es un error del sistema: es lo que el paso del tiempo produce solo mientras se espera un pago. La interfaz del profesional debe mostrarla como lo que es —vencida y a la espera de nueva fecha—, no esconderla.
+
 #### Quién ve qué
 
 |                                        | Empleado | Empresa | Profesional |
