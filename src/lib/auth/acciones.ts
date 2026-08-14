@@ -27,6 +27,24 @@ import { inicioSegunRol, tieneConsentimientoVigente, type Rol } from "./perfil";
  */
 const CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos";
 
+/**
+ * ¿Ese destino es el espacio de atención del paciente?
+ *
+ * Es donde vive la relación clínica, y por tanto lo único que el
+ * consentimiento informado cubre. Una invitación a una evaluación no lo es.
+ */
+function esAreaDeAtencion(destino: string) {
+  return [
+    "/panel",
+    "/calendario",
+    "/mis-datos",
+    "/resultados",
+    "/sesiones",
+    "/recursos",
+    "/documentos",
+  ].some((r) => destino === r || destino.startsWith(`${r}/`));
+}
+
 /** Solo se acepta un destino interno, para no convertir el ingreso en un redirector abierto. */
 function destinoSeguro(siguiente: string | null, rol: Rol) {
   if (siguiente?.startsWith("/") && !siguiente.startsWith("//")) {
@@ -84,18 +102,35 @@ export async function ingresar(
    * dice «/panel». Decidir el destino de una vez evita toda esa clase de
    * incoherencias.
    */
-  // Solo al paciente. El consentimiento informado lo OTORGA el paciente al
-  // profesional: pedírselo al profesional es pedirle que se autorice a sí
-  // mismo, y una empresa no puede consentir por la persona a la que manda
-  // evaluar (SPEC §9.2).
-  if (rol === "paciente" && !(await tieneConsentimientoVigente(data.user.id))) {
+  // Entrar por la puerta equivocada NO falla: redirige. Ver SPEC.md §5.1.
+  const destino = destinoSeguro(
+    typeof siguiente === "string" ? siguiente : null,
+    rol,
+  );
+
+  /*
+   * El consentimiento se exige por lo que se va a hacer, no por quién eres.
+   *
+   * Solo al paciente —el profesional lo recibe, no lo otorga— y solo si va a
+   * entrar a su espacio de atención. Quien llega desde una invitación va a
+   * ACTIVAR SU ACCESO a una evaluación que encargó una empresa, y pedirle ahí
+   * un consentimiento de tratamiento psicológico es un error de categoría:
+   * consiente otra cosa, en otro momento y ante otro destinatario.
+   *
+   * Sin esta distinción, el enlace de la invitación desembocaba en un
+   * documento clínico y la persona no podía completar lo único que se le
+   * había pedido.
+   */
+  const exigeConsentimiento = rol === "paciente" && esAreaDeAtencion(destino);
+
+  if (
+    exigeConsentimiento &&
+    !(await tieneConsentimientoVigente(data.user.id))
+  ) {
     redirect("/consentimiento");
   }
 
-  // Entrar por la puerta equivocada NO falla: redirige. Ver SPEC.md §5.1.
-  redirect(
-    destinoSeguro(typeof siguiente === "string" ? siguiente : null, rol),
-  );
+  redirect(destino);
 }
 
 export async function registrar(

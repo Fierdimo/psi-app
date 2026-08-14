@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { redirect } from "next/navigation";
 
-import { exigirProfesional, exigirSesion } from "@/lib/auth/perfil";
+import { exigirProfesional, obtenerPerfil } from "@/lib/auth/perfil";
 import { enviarCorreo } from "@/lib/correo/enviar";
 import { invitacionEvaluacion } from "@/lib/correo/plantillas";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
@@ -148,7 +148,18 @@ export async function aceptarInvitacion(
   _estado: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
-  await exigirSesion();
+  /*
+   * Basta con tener sesión. NO se usa `exigirSesion()`, que además exige el
+   * consentimiento clínico y mandaba a la persona a firmarlo antes de poder
+   * hacer lo único que se le había pedido.
+   *
+   * Es el mismo error de categoría de dos capas más arriba, movido un paso
+   * adentro: activar el acceso a una evaluación que encargó una empresa no
+   * requiere consentir un tratamiento psicológico. Ese consentimiento existe,
+   * es otro, y se firma en la sesión.
+   */
+  const perfil = await obtenerPerfil();
+  if (!perfil) redirect("/ingresar");
 
   const token = String(formData.get("token") ?? "");
   if (!token) return { ok: false, mensaje: "Enlace no válido." };
@@ -164,6 +175,14 @@ export async function aceptarInvitacion(
     return { ok: false, mensaje: pista ? `${limpio} ${pista}` : limpio };
   }
 
-  revalidatePath("/panel");
-  redirect("/panel?invitacion=aceptada");
+  /*
+   * Se vuelve a la propia invitación, no al panel.
+   *
+   * El panel es el espacio de atención y exige el consentimiento clínico, que
+   * es de tratamiento y no de evaluación. Mandar allí a alguien que acaba de
+   * activar su acceso lo estrellaría contra un documento que no le toca
+   * firmar todavía.
+   */
+  revalidatePath(`/invitacion/${token}`);
+  redirect(`/invitacion/${token}?aceptada=1`);
 }

@@ -706,6 +706,14 @@ Por eso la interfaz habla de **personas a evaluar**, y cada una lleva su víncul
 
 Por defecto, **aspirante**: es el caso más frecuente y el error menos dañino de los dos. Tratar a un empleado como candidato produce un informe algo desenfocado; tratar a un candidato como empleado afirma algo falso sobre su vida laboral.
 
+#### El consentimiento se exige por lo que se va a hacer
+
+Un aspirante convocado por una empresa que llega a activar su acceso **no tiene que firmar el consentimiento informado de atención**. Consiente otra cosa, en otro momento y ante otro destinatario: el consentimiento de la evaluación se firma en la sesión, ante el profesional.
+
+Suena obvio y costó tres correcciones encontrarlo, porque el mismo error aparecía en tres capas: en la acción de ingreso, que desviaba antes de honrar el destino; en la propia acción de aceptar, que exigía sesión _con consentimiento_; y en el destino posterior, que era el panel del paciente. En las tres, alguien acababa ante un documento clínico sin poder completar lo único que se le había pedido.
+
+La regla, entonces: **el consentimiento de atención se exige al entrar al espacio de atención**, no al iniciar sesión ni por tener el rol de paciente.
+
 #### La cédula es la identidad; el correo es un canal
 
 **Se pide al crear la cuenta, y es obligatoria.** Antes solo lo era dentro del listado de una empresa, así que quien se registraba por su cuenta nunca la aportaba: la cédula servía para reconocer a alguien entre empresas pero no estaba garantizada en la plataforma. Ahora toda persona queda identificada desde el primer momento.
@@ -822,7 +830,8 @@ La evaluación psicométrica necesita **su propio consentimiento**, distinto del
 - [ ] **Licencia del instrumento.** Los ítems y las tablas de interpretación de una edición comercial suelen estar licenciados, aunque el modelo subyacente sea de dominio público. Aplicarlo por un formulario no es lo mismo que servirlo desde una plataforma propia. **Bloquea cargar el contenido real de la prueba**, no el diseño del motor.
 - [ ] ¿Puede el paciente subir documentos, o el flujo es solo profesional → paciente? Se asume lo segundo mientras no se diga otra cosa.
 - [x] **¿Cómo se reconoce que dos fichas son la misma persona?** Por su **documento de identidad**, que pasa a ser obligatorio en el listado y único por empresa. El correo queda como canal de invitación, no como identidad.
-- [ ] Falta la otra mitad: que quien **ya tiene cuenta** pueda aceptar una invitación **con esa cuenta** en vez de crear otra. Se resuelve al construir las invitaciones.
+- [x] Quien **ya tiene cuenta** acepta la invitación **con esa cuenta**: el enlace la lleva al ingreso y vuelve a la invitación, y la función enlaza su ficha a la cuenta que ya tenía.
+- [x] **¿Se reconoce por cédula a quien ya tiene cuenta al cargarlo?** **No, y a propósito.** Sería cómodo —ahorraría un correo— pero convertiría el listado en un detector: la empresa carga una cédula, ve la insignia «cuenta activa» y averigua que esa persona tiene cuenta en una consulta de psicología. Hoy esa insignia solo se enciende cuando **la persona acepta**, es decir, cuando ella lo revela. Es el mismo detector que se rechazó en el registro.
 - [ ] ¿El informe de resultados se descarga en PDF? Si sí, hay que rehacer su diseño: el actual usa rojo, verde y cian, ajenos a la paleta.
 - [x] **¿Entran pruebas de rendimiento?** Todavía no se aplican, pero **el modelo las contempla desde el primer día**: `assessments.kind` distingue inventario de prueba de rendimiento, y existen `time_limit_seconds` y la clave de corrección del ítem aunque hoy vayan siempre vacíos. Reservar el sitio cuesta tres columnas; añadirlas con el esquema poblado cuesta una migración con datos clínicos dentro.
 - [ ] Duración por defecto de una cita y franja horaria de atención

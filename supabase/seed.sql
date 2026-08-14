@@ -27,6 +27,12 @@ grant select, update on public.profiles to service_role;
 -- el punto de partida antes de cada ejecución.
 grant select, insert, delete on public.appointments to service_role;
 grant delete on public.appointment_changes to service_role;
+-- La prueba del circuito de invitación tiene que fabricar un testigo conocido:
+-- en la aplicación el testigo solo existe en claro el instante del envío, y de
+-- su hash no se vuelve. En producción estas tablas siguen sin escritura por
+-- clave de servicio; toda alta pasa por sus funciones.
+grant insert, delete on public.invitations to service_role;
+grant insert, delete on public.organization_people to service_role;
 
 -- -----------------------------------------------------------------------------
 -- Parámetros de la consulta.

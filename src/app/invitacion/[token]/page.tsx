@@ -28,8 +28,10 @@ export const metadata: Metadata = {
  */
 export default async function InvitacionPage({
   params,
+  searchParams,
 }: PageProps<"/invitacion/[token]">) {
   const { token } = await params;
+  const { aceptada } = await searchParams;
 
   /*
    * Se lee con privilegios de servidor y por el HASH del testigo, nunca por su
@@ -83,10 +85,18 @@ export default async function InvitacionPage({
           Pídele a la empresa que solicite otro.
         </Alert>
       ) : invitacion.accepted_at ? (
-        <Alert tone="info" title="Esta invitación ya fue aceptada">
-          Si fuiste tú, entra con tu cuenta. Si no la reconoces, avísale al
-          profesional.
-        </Alert>
+        aceptada ? (
+          <Alert tone="success" title="Tu acceso está activo">
+            Ya no tienes que hacer nada más hasta el día de la sesión. Allí el
+            profesional te explicará la evaluación, te pedirá tu consentimiento
+            y abrirá el examen.
+          </Alert>
+        ) : (
+          <Alert tone="info" title="Esta invitación ya fue aceptada">
+            Si fuiste tú, entra con tu cuenta. Si no la reconoces, avísale al
+            profesional.
+          </Alert>
+        )
       ) : vencida ? (
         <Alert tone="warning" title="Esta invitación ya venció">
           Los enlaces caducan por seguridad. Pídele a la empresa que solicite
