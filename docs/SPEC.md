@@ -634,6 +634,20 @@ Tres candados en ese circuito, y ninguno es opcional:
 | Informes de sus compañeros             | —        | ✓       | ✓           |
 | Empleados de otra empresa              | —        | —       | ✓           |
 
+#### La misma persona, evaluada por dos empresas
+
+El caso que decide si el modelo sirve, y por el que existe una prueba dedicada:
+
+> Acme evalúa a una persona. Tiempo después, Globex quiere contratar a esa misma persona y encarga su propia evaluación.
+
+Lo correcto es esto, y no admite matices:
+
+- **Globex ve lo que encargó**, y nada de lo que hizo Acme.
+- **Acme no se entera** de que su antiguo evaluado está en un proceso con la competencia. Es la filtración menos obvia y la más dañina para la persona: podría costarle el empleo actual.
+- **La persona ve las dos cosas**, porque las dos son suyas.
+
+Esto funciona porque el acceso de una empresa nace de **la evaluación que encargó** y no de quién es el evaluado. Si la pertenencia viviera en el perfil de la persona —como estuvo escrito un día—, este caso sería irrepresentable: alguien solo puede pertenecer a una empresa a la vez.
+
 **La empresa ve el informe individual completo de cada empleado que contrató evaluar.** Es lo que su consentimiento declara y lo que el negocio requiere. Precisamente por eso el consentimiento debe decirlo con todas las letras antes de la primera pregunta, y por eso el aislamiento entre organizaciones es el punto de RLS más delicado de toda la plataforma: un fallo ahí expone resultados psicológicos de personas identificadas a una empresa que no las contrató.
 
 #### La regla que gobierna el módulo
@@ -711,6 +725,7 @@ La evaluación psicométrica necesita **su propio consentimiento**, distinto del
 - [x] **¿Cuándo se abre el examen?** Lo habilita el profesional durante la sesión presencial. No se abre solo por llegar la fecha.
 - [ ] **Licencia del instrumento.** Los ítems y las tablas de interpretación de una edición comercial suelen estar licenciados, aunque el modelo subyacente sea de dominio público. Aplicarlo por un formulario no es lo mismo que servirlo desde una plataforma propia. **Bloquea cargar el contenido real de la prueba**, no el diseño del motor.
 - [ ] ¿Puede el paciente subir documentos, o el flujo es solo profesional → paciente? Se asume lo segundo mientras no se diga otra cosa.
+- [ ] **¿Cómo se reconoce que dos fichas son la misma persona?** Hoy el listado de cada empresa se identifica por correo. Si Globex carga a alguien con su correo personal y Acme lo había cargado con el corporativo, la invitación crearía una **segunda cuenta** y partiría su historial en dos — justo lo que el modelo pretende evitar. Dos salidas, no excluyentes: usar el documento de identidad como clave fuerte, y permitir que quien ya tiene cuenta acepte la invitación **con esa cuenta** en vez de crear otra. Se decide al construir las invitaciones.
 - [ ] ¿El informe de resultados se descarga en PDF? Si sí, hay que rehacer su diseño: el actual usa rojo, verde y cian, ajenos a la paleta.
 - [x] **¿Entran pruebas de rendimiento?** Todavía no se aplican, pero **el modelo las contempla desde el primer día**: `assessments.kind` distingue inventario de prueba de rendimiento, y existen `time_limit_seconds` y la clave de corrección del ítem aunque hoy vayan siempre vacíos. Reservar el sitio cuesta tres columnas; añadirlas con el esquema poblado cuesta una migración con datos clínicos dentro.
 - [ ] Duración por defecto de una cita y franja horaria de atención

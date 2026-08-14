@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(14);
+select plan(19);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -68,7 +68,10 @@ insert into public.organization_people (id, organization_id, nombre, email, prof
   ('eeee1111-0000-4000-8000-000000000001', :'acme',   'Empleado Acme',   'emp@acme.test',   :'emp_acme'),
   ('eeee2222-0000-4000-8000-000000000002', :'globex', 'Empleado Globex', 'emp@globex.test', :'emp_globex'),
   -- Una persona cargada que todavía no aceptó su invitación: sin cuenta.
-  ('eeee3333-0000-4000-8000-000000000003', :'acme',   'Sin Cuenta Aún',  'futuro@acme.test', null);
+  ('eeee3333-0000-4000-8000-000000000003', :'acme',   'Sin Cuenta Aún',  'futuro@acme.test', null),
+  -- EL CASO QUE IMPORTA: la misma persona que ya evaluó Acme, ahora cargada
+  -- por Globex porque quiere contratarla. Mismo `profile_id`, otra empresa.
+  ('eeee4444-0000-4000-8000-000000000004', :'globex', 'Empleado Acme',   'emp@acme.test',   :'emp_acme');
 
 -- Una cita de evaluación por empresa, y una individual del paciente.
 insert into public.appointments (id, organization_id, professional_id, starts_at, ends_at, status, created_by)
@@ -83,7 +86,8 @@ insert into public.appointment_attendees (appointment_id, person_id) values
   ('11111111-0000-4000-8000-000000000001', 'eeee1111-0000-4000-8000-000000000001'),
   -- Se puede convocar a quien aún no tiene cuenta: ese es el punto del listado.
   ('11111111-0000-4000-8000-000000000001', 'eeee3333-0000-4000-8000-000000000003'),
-  ('22222222-0000-4000-8000-000000000002', 'eeee2222-0000-4000-8000-000000000002');
+  ('22222222-0000-4000-8000-000000000002', 'eeee2222-0000-4000-8000-000000000002'),
+  ('22222222-0000-4000-8000-000000000002', 'eeee4444-0000-4000-8000-000000000004');
 
 create or replace function tests_como(p_uid uuid) returns void
 language plpgsql as $$
@@ -158,34 +162,77 @@ select throws_ok(
 );
 
 -- =============================================================================
--- EL EMPLEADO
+-- LA MISMA PERSONA, EVALUADA POR DOS EMPRESAS
+--
+-- El caso que decide si el modelo sirve: Acme evaluó a alguien; tiempo después
+-- Globex quiere contratar a esa misma persona y encarga su propia evaluación.
+--
+-- Globex debe ver LO QUE ENCARGÓ, y nada de lo anterior. Y Acme no debe
+-- enterarse de que su antiguo evaluado está en un proceso con la competencia,
+-- que es la filtración menos obvia y la más dañina para la persona.
+-- =============================================================================
+select tests_como(:'jefe_globex');
+
+select is(
+  (select count(*)::int from public.appointments),
+  1,
+  'Globex ve solo la cita que encargó, aunque la persona ya fuera evaluada antes'
+);
+
+select is(
+  (select count(*)::int from public.organization_people where organization_id = :'acme'),
+  0,
+  'Globex NO ve la ficha que Acme tiene de esa misma persona'
+);
+
+select is(
+  (select count(*)::int from public.appointment_attendees),
+  2,
+  'Globex ve a los convocados de SU sesión, y solo esos'
+);
+
+-- La otra dirección, que es la que protege a la persona.
+select tests_como(:'jefe_acme');
+
+select is(
+  (select count(*)::int from public.appointments where organization_id = :'globex'),
+  0,
+  'Acme NO se entera de que su evaluado está en un proceso con Globex'
+);
+
+select is(
+  (select count(*)::int from public.organization_people where organization_id = :'globex'),
+  0,
+  'Acme NO ve la ficha que Globex creó de esa misma persona'
+);
+
+-- =============================================================================
+-- LA PERSONA, QUE ES LA ÚNICA QUE VE TODO LO SUYO
 -- =============================================================================
 select tests_como(:'emp_acme');
 
 select is(
   (select count(*)::int from public.appointments),
-  1,
-  'El empleado ve la cita a la que fue convocado'
-);
-
-select is(
-  (select count(*)::int from public.appointments where organization_id = :'globex'),
-  0,
-  'El empleado NO ve las citas de otra empresa'
-);
-
--- Ve su propia convocatoria, pero no la lista de sus compañeros: eso es cosa
--- de la empresa y del profesional.
-select is(
-  (select count(*)::int from public.appointment_attendees),
-  1,
-  'El evaluado solo se ve a sí mismo en la lista de convocados'
+  2,
+  'La persona ve sus dos citas: la de Acme y la de Globex'
 );
 
 select is(
   (select count(*)::int from public.organization_people),
-  1,
-  'El evaluado no ve el listado de personal de la empresa, solo su propia fila'
+  2,
+  'La persona ve las dos fichas que existen de ella, una por empresa'
+);
+
+select is(
+  (select count(*)::int from public.appointment_attendees),
+  2,
+  'La persona se ve a sí misma en las dos convocatorias, y a nadie más'
+);
+
+select is(
+  (select count(*)::int from public.organization_people where profile_id is null),
+  0,
+  'La persona no ve fichas de terceros, ni de quienes aún no tienen cuenta'
 );
 
 -- =============================================================================
