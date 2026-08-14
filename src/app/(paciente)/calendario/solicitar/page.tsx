@@ -50,8 +50,21 @@ export default async function SolicitarCitaPage() {
   // Ya tener una solicitud pendiente impide crear otra (índice parcial en la
   // base). Se avisa antes de que rellene el formulario, no después de enviarlo.
   const { data: pendiente } = await supabase
+    /*
+     * `organization_id is null` no es un filtro de más.
+     *
+     * Desde que existen las sesiones de evaluación, RLS le deja ver a esta
+     * persona también las citas a las que su empresa la convocó. Sin acotar,
+     * una sesión corporativa en estado «solicitada» hacía creer a la
+     * plataforma que ya tenía una solicitud propia pendiente, y le bloqueaba
+     * pedir cita — por algo que ni siquiera pidió ella.
+     *
+     * Regla general: en el área del paciente, «mis citas» son las que no
+     * tienen organización detrás.
+     */
     .from("appointments")
     .select("id")
+    .is("organization_id", null)
     .in("status", ["solicitada", "reprogramacion_solicitada"])
     .maybeSingle();
 

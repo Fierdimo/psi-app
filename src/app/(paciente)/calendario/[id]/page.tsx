@@ -74,6 +74,7 @@ export default async function DetalleCitaPage({
   const { data } = await supabase
     .from("appointments")
     .select("*")
+    .is("organization_id", null)
     .eq("id", id)
     .maybeSingle();
 

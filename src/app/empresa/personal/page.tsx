@@ -5,6 +5,7 @@ import {
   EncabezadoPagina,
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
+import { FormularioPersona } from "@/components/empresa/formulario-persona";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
@@ -35,12 +36,13 @@ export default async function PersonalPage() {
         descripcion="Las personas que quieres evaluar. Se identifican por su documento, no por su correo: así se les reconoce aunque cambien de trabajo o de dirección."
       />
 
+      <FormularioPersona />
+
       {!personas || personas.length === 0 ? (
         <EstadoVacio
           icono={Users}
           titulo="Todavía no has cargado a nadie"
-          descripcion="Carga a las personas que quieras evaluar con su documento y su correo. Podrás convocarlas a una sesión aunque todavía no tengan cuenta: la crean cuando reciben su invitación."
-          proximamente
+          descripcion="Usa el formulario de arriba. Podrás convocarlas a una sesión aunque todavía no tengan cuenta: la crean cuando reciben su invitación."
         />
       ) : (
         <div className="border-line bg-panel overflow-x-auto rounded-lg border">
@@ -93,8 +95,9 @@ export default async function PersonalPage() {
       )}
 
       <p className="text-text-muted text-sm">
-        La carga masiva desde un archivo todavía no está construida. Mientras
-        tanto, el profesional puede cargar tu listado por ti.
+        La carga masiva desde un archivo todavía no está construida: por ahora
+        se añaden de una en una. El sistema acepta la lista completa de golpe,
+        así que si son muchas, pásasela al profesional.
       </p>
     </Pantalla>
   );

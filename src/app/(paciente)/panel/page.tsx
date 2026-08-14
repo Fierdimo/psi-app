@@ -39,6 +39,7 @@ export default async function PanelPage() {
     supabase
       .from("appointments")
       .select("*")
+      .is("organization_id", null)
       .gte("starts_at", ahoraISO)
       .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
       .order("starts_at")
@@ -46,6 +47,7 @@ export default async function PanelPage() {
     supabase
       .from("appointments")
       .select("*")
+      .is("organization_id", null)
       .in("status", ["solicitada", "reprogramacion_solicitada"])
       .order("starts_at"),
   ]);

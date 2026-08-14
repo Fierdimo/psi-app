@@ -5,10 +5,14 @@ import {
   EncabezadoPagina,
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
+import {
+  FormularioSesion,
+  type PersonaConvocable,
+} from "@/components/empresa/formulario-sesion";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
-import { fechaLarga, rangoHorario } from "@/lib/fechas/formato";
+import { ahoraEn, fechaLarga, rangoHorario } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sesiones" };
@@ -37,12 +41,28 @@ export default async function SesionesPage() {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
-  const { data: sesiones } = await supabase
-    .from("appointments")
-    .select("id, starts_at, ends_at, status, patient_note")
-    .order("starts_at", { ascending: false });
+  const [{ data: sesiones }, { data: gente }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("id, starts_at, ends_at, status, patient_note")
+      .order("starts_at", { ascending: false }),
+    supabase
+      .from("organization_people")
+      .select("id, nombre, apellidos, documento")
+      .order("nombre"),
+  ]);
 
   const zona = perfil.timezone;
+
+  const personas: PersonaConvocable[] = (gente ?? []).map((p) => ({
+    id: p.id,
+    nombre: [p.nombre, p.apellidos].filter(Boolean).join(" "),
+    documento: p.documento,
+  }));
+
+  // Mañana. El margen exacto lo impone la base; esto solo evita ofrecer un día
+  // que se va a rechazar.
+  const fechaMinima = ahoraEn(zona).plus({ days: 1 }).toISODate() ?? "";
 
   return (
     <Pantalla>
@@ -51,12 +71,13 @@ export default async function SesionesPage() {
         descripcion="Una sesión reúne a varias personas de tu listado. La solicitas tú; el profesional la confirma cuando el trámite está resuelto."
       />
 
+      <FormularioSesion personas={personas} fechaMinima={fechaMinima} />
+
       {!sesiones || sesiones.length === 0 ? (
         <EstadoVacio
           icono={CalendarDays}
           titulo="Todavía no has solicitado ninguna sesión"
-          descripcion="Carga primero a tu personal y después propone día y hora. La sesión no queda en firme hasta que el profesional la confirma, y él te contacta para resolver el trámite."
-          proximamente
+          descripcion="Cuando solicites una, aparecerá aquí con su estado. No queda en firme hasta que el profesional la confirma."
           enlace={{ href: "/empresa/personal", texto: "Ir a mi personal" }}
         />
       ) : (
@@ -90,11 +111,6 @@ export default async function SesionesPage() {
           })}
         </ul>
       )}
-
-      <p className="text-text-muted text-sm">
-        El formulario para solicitar una sesión desde aquí todavía no está
-        construido. Mientras tanto, acuérdala con el profesional y él la agenda.
-      </p>
     </Pantalla>
   );
 }

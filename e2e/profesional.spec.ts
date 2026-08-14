@@ -80,7 +80,20 @@ test.describe.serial("El circuito completo", () => {
     });
     await expect(bandeja).toBeVisible();
 
-    await page.getByRole("button", { name: "Confirmar" }).first().click();
+    /*
+     * Se confirma LA SOLICITUD DE ESTE PACIENTE, no la primera que aparezca.
+     *
+     * Desde que existen las sesiones de evaluación, la bandeja mezcla
+     * solicitudes individuales con corporativas y `.first()` confirmaba la que
+     * tocara según el orden. Apuntar a la fila de Beto hace que la prueba diga
+     * lo que cree estar diciendo.
+     */
+    const solicitudDeBeto = page
+      .getByRole("listitem")
+      .filter({ hasText: /Beto/i })
+      .first();
+
+    await solicitudDeBeto.getByRole("button", { name: "Confirmar" }).click();
     await expect(page.getByText(/cita confirmada/i).first()).toBeVisible();
 
     await cerrarSesion(page);

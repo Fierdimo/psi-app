@@ -63,12 +63,14 @@ export default async function CalendarioPage({
     supabase
       .from("appointments")
       .select("*")
+      .is("organization_id", null)
       .gte("starts_at", intervalo.start!.toUTC().toISO()!)
       .lte("starts_at", intervalo.end!.toUTC().toISO()!)
       .order("starts_at"),
     supabase
       .from("appointments")
       .select("*")
+      .is("organization_id", null)
       .gte("starts_at", ahoraEn(zona).toUTC().toISO()!)
       .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
       .order("starts_at")
