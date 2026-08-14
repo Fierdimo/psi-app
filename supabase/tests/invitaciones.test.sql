@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(13);
+select plan(15);
 
 delete from public.appointment_changes;
 delete from public.invitations;
@@ -95,6 +95,25 @@ select throws_ok(
 select public.confirmar_cita(
   (select id from public.appointments where organization_id = :'acme')
 );
+
+-- =============================================================================
+-- CONFIRMAR NO INVITA
+--
+-- Son dos actos del profesional, no uno. Confirmar dice «acepto la sesión»;
+-- emitir dice «ya pueden empezar». Entre los dos suele haber un trámite, y
+-- nadie debe recibir un correo por el simple hecho de que se aceptara la
+-- fecha. Esto se afirma aquí para que nunca se conviertan en uno solo por
+-- comodidad.
+-- =============================================================================
+select tests_servidor();
+
+select is(
+  (select count(*)::int from public.invitations),
+  0,
+  'Confirmar la sesión NO envía ninguna invitación por sí solo'
+);
+
+select tests_como(:'doctor');
 
 -- =============================================================================
 -- EL TESTIGO SE ENTREGA UNA VEZ Y SE GUARDA CIFRADO
@@ -223,6 +242,26 @@ select is(
    from public.organization_people where documento = '555'),
   1,
   'Las dos fichas apuntan a la MISMA cuenta: el historial no se parte'
+);
+
+-- =============================================================================
+-- LOS RECORDATORIOS NO ALCANZAN A LAS SESIONES DE GRUPO
+--
+-- El trabajo de recordatorios une `appointments` con `profiles` por
+-- `patient_id`. En una sesión corporativa esa columna es nula, así que el JOIN
+-- las descarta. Hoy eso PROTEGE —nadie recibe un correo inesperado— pero es
+-- una protección accidental, no diseñada, y el día que se quiera recordar a
+-- los convocados hay que escribirlo aparte.
+--
+-- Se fija aquí para que, si alguien cambia ese JOIN, se entere de que está
+-- abriendo un envío masivo a personas convocadas por una empresa.
+-- =============================================================================
+select tests_servidor();
+
+select is(
+  (select count(*)::int from public.citas_para_recordar()),
+  0,
+  'Ninguna sesión de grupo entra en la cola de recordatorios'
 );
 
 select * from finish();

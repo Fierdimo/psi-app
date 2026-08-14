@@ -278,6 +278,12 @@ Los dos huecos que dejó —que no eran fallos de seguridad sino funciones que f
 - `solicitar_reprogramacion` entiende ahora las dos clases de cita, con el mismo cuidado de `cancelar_cita` para que ninguna comparación evalúe a NULL. Una empresa puede mover su sesión; otra empresa no.
 - `cerrar_cita_evaluacion(cita, asistieron)` registra la asistencia **persona por persona**, y `cerrar_cita` pasa a rechazar las citas de grupo en vez de cerrarlas en bloque y perder quién faltó.
 
+#### Los recordatorios no alcanzan a las sesiones de grupo
+
+El trabajo de recordatorios une `appointments` con `profiles` por `patient_id`. En una sesión corporativa esa columna es nula, así que el JOIN interno las descarta y **nadie recibe un recordatorio**.
+
+Hoy eso protege —ningún convocado recibe un correo inesperado— pero conviene ser exacto: es una protección **accidental**, no diseñada. El día que se quiera recordar a los convocados hay que escribirlo aparte, sabiendo que un cambio en ese JOIN abre un envío masivo a personas que una empresa convocó. Hay una prueba que lo fija.
+
 #### Las escrituras corporativas
 
 | Función                                                    | Quién             | Efecto                                                |

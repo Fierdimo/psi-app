@@ -610,12 +610,13 @@ Toda hora se almacena en `timestamptz` (UTC) y se presenta en la zona horaria de
 1. La empresa se registra y da de alta a sus empleados
 2. Solicita una cita de evaluación para varios de ellos
 3. El profesional resuelve el trámite —pago u otro— POR FUERA de la plataforma
-4. Confirma la cita → cada convocado recibe su invitación por correo
-5. El empleado crea su cuenta y acepta SU consentimiento
-6. El día de la cita: parte presencial, y el profesional abre el examen en línea
-7. El empleado responde; el sistema califica
-8. El profesional revisa, redacta y publica
-9. El informe queda disponible para el empleado Y para la empresa
+4. Confirma la cita — y por sí solo eso NO envía nada
+5. Emite las invitaciones cuando decide que ya pueden empezar
+6. El empleado crea su cuenta y acepta SU consentimiento
+7. El día de la cita: parte presencial, y el profesional abre el examen en línea
+8. El empleado responde; el sistema califica
+9. El profesional revisa, redacta y publica
+10. El informe queda disponible para el empleado Y para la empresa
 ```
 
 Tres candados en ese circuito, y ninguno es opcional:
@@ -623,6 +624,8 @@ Tres candados en ese circuito, y ninguno es opcional:
 **El consentimiento lo firma el empleado, no su empresa.** Sin aceptación registrada no se abre el examen. El titular del dato es quien lo acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
 
 **El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
+
+**Nada sale de la plataforma sin que el profesional lo mande.** Son tres actos suyos y distintos, y no se funden en uno por comodidad: **confirmar** dice «acepto la sesión»; **emitir las invitaciones** dice «ya pueden crear su cuenta»; y **abrir el examen**, durante la sesión presencial, dice «pueden empezar a responder». Confirmar una fecha no debe hacer que a nadie le llegue un correo, porque entre una cosa y otra suele faltar el trámite. Hay una prueba que lo afirma: tras confirmar, la tabla de invitaciones sigue vacía.
 
 **Una solicitud corporativa no se confirma sola.** Entre que la empresa pide y el profesional confirma hay un trámite —el pago, normalmente— que ocurre fuera de la plataforma. Por eso una empresa **no existe sin un canal de contacto**: se le exige un correo o un teléfono al registrarse, porque sin él su solicitud se queda muerta en la bandeja y nadie puede resolverla.
 
