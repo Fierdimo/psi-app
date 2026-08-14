@@ -273,10 +273,24 @@ invitations              alta por correo de una persona del listado, con testigo
 
 Tras el agujero de `cancelar_cita` se revisaron las siete funciones de citas contra el caso corporativo. `confirmar_cita`, `rechazar_cita`, `cerrar_cita` y `agendar_cita` comprueban el rol de profesional antes de nada y no usan `patient_id` en ninguna condición: seguras. `solicitar_reprogramacion` filtra dentro de un `WHERE`, donde NULL no coincide con nada, así que falla cerrado. `solicitar_cita` ganó una comprobación de rol en 0011.
 
-Quedan dos huecos que **no son fallos de seguridad sino funciones que faltan**, y conviene tenerlos a la vista antes de montar interfaz encima:
+Los dos huecos que dejó —que no eran fallos de seguridad sino funciones que faltaban— se cerraron en 0012:
 
-- **Una empresa no puede pedir que le cambien la fecha.** `solicitar_reprogramacion` solo entiende citas individuales. Con cien personas convocadas, mover una sesión es justo lo que más va a pasar.
-- **Cerrar una cita de grupo es todo o nada.** `cerrar_cita(cita, asistio)` recibe un único booleano, y en una sesión de quince personas la asistencia es de cada una. Cerrar así perdería quién faltó, que es precisamente lo que hay que reportarle a la empresa.
+- `solicitar_reprogramacion` entiende ahora las dos clases de cita, con el mismo cuidado de `cancelar_cita` para que ninguna comparación evalúe a NULL. Una empresa puede mover su sesión; otra empresa no.
+- `cerrar_cita_evaluacion(cita, asistieron)` registra la asistencia **persona por persona**, y `cerrar_cita` pasa a rechazar las citas de grupo en vez de cerrarlas en bloque y perder quién faltó.
+
+#### Las escrituras corporativas
+
+| Función                                                    | Quién             | Efecto                                                |
+| ---------------------------------------------------------- | ----------------- | ----------------------------------------------------- |
+| `registrar_empresa(nombre, nit, contacto…)`                | cualquiera        | Crea la organización y convierte la cuenta en empresa |
+| `cargar_personas(jsonb)`                                   | empresa           | Carga o actualiza su listado en bloque                |
+| `solicitar_cita_evaluacion(inicio, fin, personas[], nota)` | empresa           | Crea la sesión en `solicitada` y convoca              |
+| `solicitar_reprogramacion(cita, inicio, fin)`              | empresa / persona | Pide mover la fecha                                   |
+| `cerrar_cita_evaluacion(cita, asistieron[])`               | profesional       | Cierra registrando asistencia individual              |
+
+`cargar_personas` recibe la lista entera en un `jsonb` y no una persona por llamada: el caso real son cien, y cien llamadas serían cien viajes de red y cien transacciones para lo que es un solo acto. Al repetir una cédula **actualiza** en vez de fallar, porque una empresa que sube su nómina corregida no debería tener que borrar nada primero.
+
+`solicitar_cita_evaluacion` comprueba que todas las personas convocadas sean del listado de quien llama, contando las que no lo son en vez de confiar en el cliente. Y una empresa **sí** puede tener varias solicitudes abiertas: el índice de «una solicitud pendiente» se pensó para que una persona no sature la bandeja, no para una empresa que agenda tandas.
 
 #### El aislamiento entre empresas es el riesgo mayor del proyecto
 
