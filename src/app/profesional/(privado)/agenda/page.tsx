@@ -26,9 +26,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Trae las citas con el nombre del paciente en una sola consulta. */
-const SELECT_CON_PACIENTE =
-  "*, paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)";
+/*
+ * Trae la cita con todo lo que la bandeja necesita, en una sola consulta.
+ *
+ * Para una cita individual importa el paciente; para una sesión de evaluación
+ * importan la empresa que la encargó y a quiénes convocó. Traer ambas cosas
+ * siempre evita una segunda consulta por fila, que con quince sesiones en
+ * pantalla serían quince viajes.
+ */
+const SELECT_CON_PACIENTE = [
+  "*",
+  "paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
+  "organizacion:organizations(nombre)",
+  "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo))",
+].join(", ");
 
 export default async function AgendaPage({
   searchParams,

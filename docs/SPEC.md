@@ -669,6 +669,14 @@ La salida no es rechazar y pedirle a la empresa que vuelva a empezar, porque eso
 
 Una solicitud pendiente cuya fecha ya pasó no es un error del sistema: es lo que el paso del tiempo produce solo mientras se espera un pago. La interfaz del profesional debe mostrarla como lo que es —vencida y a la espera de nueva fecha—, no esconderla.
 
+#### La sesión es la unidad, no la persona
+
+En la bandeja del profesional una solicitud corporativa aparece **una sola vez, a nombre de la empresa**, con las personas convocadas dentro de ella. No se listan quince solicitudes ni se encabeza con el nombre de uno de los convocados.
+
+No es una preferencia de presentación: una sesión es **un solo compromiso** —una fecha, una sala, una confirmación— y partirla obligaría a aceptar quince veces lo mismo, además de perder la única pregunta que el profesional tiene que responder: ¿acepto esta sesión?
+
+De ahí se sigue cómo funcionará la asignación de la prueba: **un acto sobre la sesión que alcanza a todos los convocados**, con el mismo instrumento para todos, y no quince asignaciones idénticas hechas a mano. Lo que sí es de cada persona es lo que viene después: sus respuestas, su resultado y su informe.
+
 #### Quién ve qué
 
 |                                        | Empleado | Empresa | Profesional |

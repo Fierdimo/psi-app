@@ -1,10 +1,13 @@
-import { Inbox } from "lucide-react";
+import { Building2, Inbox } from "lucide-react";
 
 import { AccionesSolicitud } from "./acciones-solicitud";
+import { Convocados } from "./convocados";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
+  esDeEmpresa,
   MODALIDAD,
-  nombrePaciente,
+  titularDeCita,
   type CitaConPaciente,
 } from "@/lib/citas/estados";
 import {
@@ -48,6 +51,14 @@ export function BandejaSolicitudes({
         {solicitudes.map((cita) => {
           const esCambio = cita.status === "reprogramacion_solicitada";
           const propuesta = cita.proposed_starts_at;
+          const deEmpresa = esDeEmpresa(cita);
+
+          // Una sesión de evaluación se pide para varias personas a la vez. Se
+          // muestran dentro de la solicitud de su empresa, no como entradas
+          // sueltas: es un solo compromiso y se acepta o se rechaza entero.
+          const convocados = (cita.convocados ?? [])
+            .map((c) => c.persona)
+            .filter((p) => p !== null);
 
           return (
             <li key={cita.id}>
@@ -56,9 +67,20 @@ export function BandejaSolicitudes({
                 accent
                 className="flex flex-wrap items-start justify-between gap-4"
               >
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className="text-text-strong text-base font-semibold">
-                    {nombrePaciente(cita)}
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="flex flex-wrap items-center gap-2">
+                    {deEmpresa && (
+                      <Building2
+                        aria-hidden="true"
+                        className="text-accent size-4.5 shrink-0"
+                      />
+                    )}
+                    <span className="text-text-strong text-base font-semibold">
+                      {titularDeCita(cita)}
+                    </span>
+                    {deEmpresa && (
+                      <Badge tone="accent">Sesión de evaluación</Badge>
+                    )}
                   </span>
 
                   <span className="text-text-body tabular">
@@ -89,6 +111,12 @@ export function BandejaSolicitudes({
                     <p className="bg-sunken text-text-body mt-1 rounded-md p-2.5 text-sm">
                       «{cita.patient_note}»
                     </p>
+                  )}
+
+                  {deEmpresa && (
+                    <div className="pt-1">
+                      <Convocados personas={convocados} />
+                    </div>
                   )}
                 </div>
 

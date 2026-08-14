@@ -11,7 +11,13 @@ export type Modalidad = "presencial" | "virtual";
 
 export type Cita = {
   id: string;
-  patient_id: string;
+  /*
+   * Nulo en una sesión de evaluación: esa cita no es de una persona sino de la
+   * empresa que la encargó. La restricción `destinatario_coherente` de la base
+   * garantiza que siempre hay exactamente uno de los dos.
+   */
+  patient_id: string | null;
+  organization_id: string | null;
   professional_id: string;
   starts_at: string;
   ends_at: string;
@@ -32,8 +38,19 @@ export type Cita = {
  * todas son suyas. Por eso el nombre es opcional en los componentes de
  * calendario en vez de existir un segundo juego de vistas.
  */
+/** Una persona convocada a una sesión de evaluación. */
+export type PersonaConvocada = {
+  nombre: string | null;
+  apellidos: string | null;
+  documento: string;
+  cargo: string | null;
+  vinculo: "aspirante" | "empleado";
+};
+
 export type CitaConPaciente = Cita & {
   paciente: { nombre: string | null; apellidos: string | null } | null;
+  organizacion?: { nombre: string } | null;
+  convocados?: { persona: PersonaConvocada | null }[] | null;
 };
 
 /** «Ana Restrepo», o un texto neutro si el perfil aún no tiene nombre. */
@@ -42,6 +59,32 @@ export function nombrePaciente(cita: CitaConPaciente) {
     Boolean,
   );
   return partes.length > 0 ? partes.join(" ") : "Paciente sin nombre";
+}
+
+/** ¿Es una sesión que encargó una empresa? */
+export function esDeEmpresa(cita: CitaConPaciente) {
+  return cita.organization_id !== null;
+}
+
+/**
+ * Quién pide la cita.
+ *
+ * En una sesión de evaluación quien pide es la EMPRESA, no cada persona
+ * convocada. Encabezar la solicitud con el nombre de una de ellas —o peor,
+ * partirla en quince solicitudes— desdibujaría que es un solo compromiso, con
+ * una sola fecha, que se acepta o se rechaza entero.
+ */
+export function titularDeCita(cita: CitaConPaciente) {
+  if (esDeEmpresa(cita)) {
+    return cita.organizacion?.nombre ?? "Empresa sin nombre";
+  }
+  return nombrePaciente(cita);
+}
+
+/** Nombre legible de una persona convocada. */
+export function nombreConvocado(p: PersonaConvocada) {
+  const partes = [p.nombre, p.apellidos].filter(Boolean);
+  return partes.length > 0 ? partes.join(" ") : "Sin nombre";
 }
 
 /**
