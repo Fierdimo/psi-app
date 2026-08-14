@@ -78,7 +78,7 @@ export default async function SesionesPage() {
           icono={CalendarDays}
           titulo="Todavía no has solicitado ninguna sesión"
           descripcion="Cuando solicites una, aparecerá aquí con su estado. No queda en firme hasta que el profesional la confirma."
-          enlace={{ href: "/empresa/personal", texto: "Ir a mi personal" }}
+          enlace={{ href: "/empresa/personas", texto: "Ir a mis personas" }}
         />
       ) : (
         <ul className="flex flex-col gap-3">

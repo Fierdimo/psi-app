@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
 import { cargarPersona } from "@/lib/empresa/acciones";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
@@ -22,10 +23,21 @@ export function FormularioPersona() {
   const [estado, accion, enviando] = useActionState(cargarPersona, INICIAL);
   const formulario = useRef<HTMLFormElement>(null);
 
+  /*
+   * El vínculo cambia la etiqueta del cargo, y no es un detalle: «cargo» y
+   * «cargo al que aspira» son cosas distintas, y el informe del profesional
+   * las titula distinto. Se preselecciona aspirante porque es el caso más
+   * frecuente.
+   */
+  const [vinculo, setVinculo] = useState("aspirante");
+
   // Tras un alta correcta se vacía, porque lo normal es cargar a varias
   // seguidas y tener que borrar los campos a mano cansa a la tercera.
   useEffect(() => {
-    if (estado.ok) formulario.current?.reset();
+    if (estado.ok) {
+      formulario.current?.reset();
+      setVinculo("aspirante");
+    }
   }, [estado.ok]);
 
   return (
@@ -38,8 +50,9 @@ export function FormularioPersona() {
       <div className="flex flex-col gap-1">
         <h2 className="text-h4">Cargar una persona</h2>
         <p className="text-text-muted text-sm">
-          Podrás convocarla a una sesión aunque todavía no tenga cuenta: la crea
-          cuando reciba su invitación.
+          Un aspirante a un puesto o alguien que ya trabaja contigo. Podrás
+          convocarla aunque todavía no tenga cuenta: la crea cuando reciba su
+          invitación.
         </p>
       </div>
 
@@ -82,10 +95,22 @@ export function FormularioPersona() {
           autoComplete="off"
           error={estado.errores?.apellidos}
         />
+        <Select
+          id="vinculo"
+          name="vinculo"
+          label="Vínculo con la empresa"
+          opciones={[
+            { valor: "aspirante", etiqueta: "Aspirante a un puesto" },
+            { valor: "empleado", etiqueta: "Ya trabaja aquí" },
+          ]}
+          value={vinculo}
+          onChange={(e) => setVinculo(e.target.value)}
+          error={estado.errores?.vinculo}
+        />
         <Field
           id="cargo"
           name="cargo"
-          label="Cargo"
+          label={vinculo === "empleado" ? "Cargo" : "Cargo al que aspira"}
           autoComplete="off"
           error={estado.errores?.cargo}
         />

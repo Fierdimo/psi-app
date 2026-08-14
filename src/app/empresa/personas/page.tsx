@@ -11,10 +11,14 @@ import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Personal" };
+export const metadata: Metadata = { title: "Personas" };
 
 /**
- * El listado de personas de la empresa.
+ * El listado de personas a evaluar.
+ *
+ * «Personas» y no «personal»: buena parte de las evaluaciones son para
+ * candidatos a un puesto, que no trabajan en la empresa y puede que nunca lo
+ * hagan. Llamarles personal sería afirmar un vínculo laboral inexistente.
  *
  * La columna que importa es la última: si la persona ya tiene cuenta o sigue
  * pendiente de aceptar su invitación. Es lo que determina si podrá responder
@@ -26,14 +30,16 @@ export default async function PersonalPage() {
 
   const { data: personas } = await supabase
     .from("organization_people")
-    .select("id, documento, nombre, apellidos, email, cargo, profile_id")
+    .select(
+      "id, documento, nombre, apellidos, email, cargo, vinculo, profile_id",
+    )
     .order("nombre");
 
   return (
     <Pantalla>
       <EncabezadoPagina
-        titulo="Personal"
-        descripcion="Las personas que quieres evaluar. Se identifican por su documento, no por su correo: así se les reconoce aunque cambien de trabajo o de dirección."
+        titulo="Personas a evaluar"
+        descripcion="Aspirantes a un puesto o gente que ya trabaja contigo. Se identifican por su documento y no por su correo: así se les reconoce aunque cambien de trabajo o de dirección."
       />
 
       <FormularioPersona />
@@ -57,6 +63,9 @@ export default async function PersonalPage() {
                   Nombre
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
+                  Vínculo
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
                   Cargo
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
@@ -75,6 +84,13 @@ export default async function PersonalPage() {
                   </td>
                   <td className="text-text-strong px-4 py-3 font-medium">
                     {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      tone={p.vinculo === "empleado" ? "accent" : "neutral"}
+                    >
+                      {p.vinculo === "empleado" ? "Empleado" : "Aspirante"}
+                    </Badge>
                   </td>
                   <td className="text-text-muted px-4 py-3">
                     {p.cargo ?? "—"}

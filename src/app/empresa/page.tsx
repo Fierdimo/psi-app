@@ -78,13 +78,11 @@ export default async function InicioEmpresaPage() {
           <span className="bg-accent-soft text-accent grid size-10 place-items-center rounded-md">
             <Users aria-hidden="true" className="size-5" />
           </span>
-          <h2 className="text-h4">Personal cargado</h2>
+          <h2 className="text-h4">Personas cargadas</h2>
           <p className="text-text-body">
             <span className="text-h2 tabular">{personas ?? 0}</span>
             <br />
-            {personas === 1
-              ? "persona en tu listado"
-              : "personas en tu listado"}
+            {personas === 1 ? "persona a evaluar" : "personas a evaluar"}
           </p>
         </article>
 
@@ -118,11 +116,11 @@ export default async function InicioEmpresaPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/empresa/personal"
+          href="/empresa/personas"
           className={buttonVariants({ variant: "secondary" })}
         >
           <UserPlus aria-hidden="true" className="size-4" />
-          Cargar personal
+          Cargar personas
         </Link>
         <Link href="/empresa/sesiones" className={buttonVariants()}>
           Solicitar una sesión

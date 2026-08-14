@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
  */
 const SECCIONES = [
   { href: "/empresa", etiqueta: "Inicio", icono: Home, exacta: true },
-  { href: "/empresa/personal", etiqueta: "Personal", icono: Users },
+  { href: "/empresa/personas", etiqueta: "Personas", icono: Users },
   { href: "/empresa/sesiones", etiqueta: "Sesiones", icono: CalendarDays },
   {
     href: "/empresa/informes",

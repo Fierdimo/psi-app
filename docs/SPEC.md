@@ -678,6 +678,26 @@ Una solicitud pendiente cuya fecha ya pasó no es un error del sistema: es lo qu
 | Informes de sus compañeros             | —        | ✓       | ✓           |
 | Empleados de otra empresa              | —        | —       | ✓           |
 
+#### Lo que este módulo NO es
+
+La plataforma **no le da a una empresa un espacio para buscar, gestionar o hacer seguimiento de su gente**. No es un sistema de recursos humanos, ni una base de talento, ni un embudo de selección. Es una consulta de psicología que aplica evaluaciones.
+
+El listado de personas existe con un único propósito instrumental: **poder convocar a alguien a una sesión**. Que persista entre sesiones es comodidad —volver a cargar cien personas cada vez sería absurdo—, no una invitación a usarlo como registro de personal. De ahí que no haya ni filtros, ni estados de proceso, ni historial de contrataciones, ni nada que convierta la lista en una herramienta de gestión. Si algún día se pide, la respuesta es que eso es otro producto.
+
+Es un límite de los que se cruzan solos, una función pequeña cada vez.
+
+#### Aspirantes, no solo empleados
+
+Buena parte de las evaluaciones **no son para gente que trabaja en la empresa**, sino para candidatos a un puesto. Llamarles «personal» sería afirmar un vínculo laboral que no existe y puede que nunca exista.
+
+Por eso la interfaz habla de **personas a evaluar**, y cada una lleva su vínculo —aspirante o empleado—, que no está ahí para gestionar plantillas sino porque cambia tres cosas concretas:
+
+- **El consentimiento.** Uno para un proceso de selección dice cosas que no valen para una evaluación de desarrollo interno.
+- **El encabezado del informe.** El del propio profesional titula «cargo al que aspira», que no es el cargo que alguien ocupa.
+- **La lectura del resultado.** Se interpreta distinto si la persona opta a un puesto o si lleva tres años en él.
+
+Por defecto, **aspirante**: es el caso más frecuente y el error menos dañino de los dos. Tratar a un empleado como candidato produce un informe algo desenfocado; tratar a un candidato como empleado afirma algo falso sobre su vida laboral.
+
 #### La cédula es la identidad; el correo es un canal
 
 **Se pide al crear la cuenta, y es obligatoria.** Antes solo lo era dentro del listado de una empresa, así que quien se registraba por su cuenta nunca la aportaba: la cédula servía para reconocer a alguien entre empresas pero no estaba garantizada en la plataforma. Ahora toda persona queda identificada desde el primer momento.

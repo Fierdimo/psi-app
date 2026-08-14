@@ -38,6 +38,9 @@ const esquemaPersona = z.object({
     .max(120)
     .transform((v) => (v === "" ? null : v))
     .nullable(),
+  vinculo: z.enum(["aspirante", "empleado"], {
+    message: "Indica si aspira al puesto o ya trabaja allí",
+  }),
 });
 
 const esquemaSesion = z.object({
@@ -64,7 +67,7 @@ function mensajeDeError(error: { message: string; hint?: string | null }) {
 
 function refrescar() {
   revalidatePath("/empresa");
-  revalidatePath("/empresa/personal");
+  revalidatePath("/empresa/personas");
   revalidatePath("/empresa/sesiones");
   // El profesional ve la solicitud entrar en su bandeja.
   revalidatePath("/profesional/agenda");
@@ -83,6 +86,7 @@ export async function cargarPersona(
     apellidos: formData.get("apellidos"),
     email: formData.get("email"),
     cargo: formData.get("cargo"),
+    vinculo: formData.get("vinculo"),
   });
 
   if (!datos.success) {

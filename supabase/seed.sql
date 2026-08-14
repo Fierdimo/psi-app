@@ -187,16 +187,19 @@ update public.profiles set documento = '1032118844' where id = '22222222-2222-22
 update public.profiles set documento = '1075229933' where id = '44444444-4444-4444-4444-444444444444';
 update public.profiles set documento = '73115577'   where id = '33333333-3333-3333-3333-333333333333';
 
+-- Los dos casos que conviven: quien ya trabaja allí y quien solo aspira a un
+-- puesto. La mayoría de las evaluaciones son de la segunda clase.
 insert into public.organization_people
-  (id, organization_id, documento, nombre, apellidos, email, cargo, profile_id)
+  (id, organization_id, documento, nombre, apellidos, email, cargo, vinculo, profile_id)
 values
   ('88888888-0000-4000-8000-000000000001',
    '77777777-7777-7777-7777-777777777777',
    '1047373301', 'Ana María', 'Restrepo', 'ana@psi.test', 'Auxiliar de bodega',
-   '11111111-1111-1111-1111-111111111111'),
+   'empleado', '11111111-1111-1111-1111-111111111111'),
   ('88888888-0000-4000-8000-000000000002',
    '77777777-7777-7777-7777-777777777777',
-   '1099887766', 'Jorge', 'Salas', 'jorge@distribuciones.test', 'Conductor', null)
+   '1099887766', 'Jorge', 'Salas', 'jorge@distribuciones.test', 'Conductor',
+   'aspirante', null)
 on conflict (id) do nothing;
 
 -- Una sesión de evaluación solicitada, a la espera de que el profesional

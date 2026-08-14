@@ -55,7 +55,7 @@ export function FormularioSesion({
 
   if (personas.length === 0) {
     return (
-      <Alert tone="info" title="Primero carga a tu personal">
+      <Alert tone="info" title="Primero carga a las personas">
         Una sesión convoca a personas de tu listado. Añade al menos a una y
         vuelve aquí.
       </Alert>

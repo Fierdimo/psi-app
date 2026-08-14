@@ -24,7 +24,9 @@ export default async function EmpresasPage() {
 
   const { data: empresas } = await supabase
     .from("organizations")
-    .select("id, nombre, nit, contacto_nombre, contacto_email, contacto_telefono")
+    .select(
+      "id, nombre, nit, contacto_nombre, contacto_email, contacto_telefono",
+    )
     .order("nombre");
 
   const { data: personas } = await supabase
@@ -47,7 +49,7 @@ export default async function EmpresasPage() {
         <EstadoVacio
           icono={Building2}
           titulo="Todavía no hay empresas"
-          descripcion="Aparecerán aquí cuando una organización se registre. Desde su cuenta carga a su personal y solicita sesiones de evaluación, que llegan a tu bandeja como cualquier otra solicitud."
+          descripcion="Aparecerán aquí cuando una organización se registre. Desde su cuenta carga a las personas que quiere evaluar —aspirantes o empleados— y solicita sesiones, que llegan a tu bandeja como cualquier otra solicitud."
           proximamente
           enlace={{ href: "/profesional/agenda", texto: "Ver la agenda" }}
         />
@@ -65,8 +67,8 @@ export default async function EmpresasPage() {
               <p className="text-text-body text-sm">
                 {cuantas.get(e.id) ?? 0}{" "}
                 {cuantas.get(e.id) === 1
-                  ? "persona en su listado"
-                  : "personas en su listado"}
+                  ? "persona a evaluar"
+                  : "personas a evaluar"}
               </p>
               <div className="border-line mt-2 flex flex-col gap-1 border-t pt-3 text-sm">
                 {e.contacto_nombre && (
@@ -81,7 +83,10 @@ export default async function EmpresasPage() {
                   </a>
                 )}
                 {e.contacto_email && (
-                  <a href={`mailto:${e.contacto_email}`} className="text-accent">
+                  <a
+                    href={`mailto:${e.contacto_email}`}
+                    className="text-accent"
+                  >
                     {e.contacto_email}
                   </a>
                 )}
