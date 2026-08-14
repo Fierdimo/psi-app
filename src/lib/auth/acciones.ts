@@ -119,11 +119,21 @@ export async function registrar(
   const origen =
     encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
 
+  // El destino viaja dentro del enlace de verificación para que quien se
+  // registra desde una invitación vuelva a ella y no a su panel.
+  const siguiente = formData.get("siguiente");
+  const retorno =
+    typeof siguiente === "string" &&
+    siguiente.startsWith("/") &&
+    !siguiente.startsWith("//")
+      ? `?siguiente=${encodeURIComponent(siguiente)}`
+      : "";
+
   const { error } = await supabase.auth.signUp({
     email: datos.data.correo,
     password: datos.data.contrasena,
     options: {
-      emailRedirectTo: `${origen}/auth/callback`,
+      emailRedirectTo: `${origen}/auth/callback${retorno}`,
       data: {
         nombre: datos.data.nombre,
         apellidos: datos.data.apellidos,

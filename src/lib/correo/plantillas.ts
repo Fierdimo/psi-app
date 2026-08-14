@@ -141,3 +141,52 @@ export function nuevaSolicitud(
     ),
   };
 }
+
+/**
+ * Invitación a una sesión de evaluación encargada por una empresa.
+ *
+ * Aquí la regla de confidencialidad se aplica al revés que en el resto: la
+ * empresa que encarga la evaluación SÍ se nombra, porque quien recibe este
+ * correo tiene derecho a saber quién pidió evaluarle antes de aceptar nada.
+ * Ocultarlo sería pedirle que se presente a algo sin decirle de parte de quién.
+ *
+ * Lo que sigue sin aparecer es qué se va a evaluar: ni el instrumento, ni el
+ * cargo, ni nada que en la pantalla de bloqueo de un teléfono revele que la
+ * persona está en un proceso de selección. Eso puede costarle el empleo que
+ * tiene, y es exactamente el daño que estas plantillas existen para evitar.
+ */
+export function invitacionEvaluacion(
+  cita: DatosCita,
+  datos: { nombre: string | null; empresa: string; enlace: string },
+): Correo {
+  const saludo = datos.nombre ? `Hola ${datos.nombre}: ` : "";
+  const cuerpo =
+    `${saludo}${datos.empresa} te ha convocado a una sesión con el profesional. ` +
+    `Antes de la fecha necesitas activar tu acceso, leer las condiciones y dar tu consentimiento.`;
+
+  const texto = [
+    cuerpo,
+    "",
+    bloqueDeCita(cita),
+    "",
+    "Activa tu acceso aquí:",
+    datos.enlace,
+    "",
+    "Si no reconoces esta convocatoria, no hagas nada: sin tu consentimiento no se te evalúa.",
+  ].join("\n");
+
+  const html = envolver(
+    "Te han convocado a una sesión",
+    `${cuerpo}<br><br>
+     <a href="${datos.enlace}" style="display:inline-block;background:#2F49D4;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:500">Activar mi acceso</a>
+     <br><br>
+     <span style="color:#64748B;font-size:13px">Si no reconoces esta convocatoria, no hagas nada: sin tu consentimiento no se te evalúa.</span>`,
+    cita,
+  );
+
+  return {
+    asunto: `Te han convocado a una sesión · ${datos.empresa}`,
+    texto,
+    html,
+  };
+}

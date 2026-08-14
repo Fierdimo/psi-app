@@ -86,11 +86,16 @@ export function FormularioIngreso({
   );
 }
 
-export function FormularioRegistro() {
+export function FormularioRegistro({ siguiente }: { siguiente?: string }) {
   const [estado, accion, enviando] = useActionState(registrar, INICIAL);
 
   return (
     <form action={accion} className="flex flex-col gap-5" noValidate>
+      {/* Sobrevive al rodeo de la verificación de correo: se manda a Supabase
+          dentro del enlace de vuelta, y el callback lo respeta. Sin esto, quien
+          llega desde una invitación acaba en su panel y pierde el enlace. */}
+      {siguiente && <input type="hidden" name="siguiente" value={siguiente} />}
+
       <ErrorGeneral estado={estado} />
 
       <div className="grid gap-5 sm:grid-cols-2">

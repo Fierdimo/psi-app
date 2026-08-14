@@ -6,7 +6,13 @@ import { FormularioRegistro } from "@/components/auth/formularios";
 
 export const metadata: Metadata = { title: "Crear cuenta" };
 
-export default function RegistroPage() {
+export default async function RegistroPage({
+  searchParams,
+}: PageProps<"/registro">) {
+  const params = await searchParams;
+  const siguiente =
+    typeof params.siguiente === "string" ? params.siguiente : undefined;
+
   return (
     <ArmazonAuth
       titulo="Crear cuenta"
@@ -14,13 +20,20 @@ export default function RegistroPage() {
       pie={
         <p>
           ¿Ya tienes cuenta?{" "}
-          <Link href="/ingresar" className="text-accent font-medium">
+          <Link
+            href={
+              siguiente
+                ? `/ingresar?siguiente=${encodeURIComponent(siguiente)}`
+                : "/ingresar"
+            }
+            className="text-accent font-medium"
+          >
             Entrar
           </Link>
         </p>
       }
     >
-      <FormularioRegistro />
+      <FormularioRegistro siguiente={siguiente} />
     </ArmazonAuth>
   );
 }

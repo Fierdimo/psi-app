@@ -7,6 +7,8 @@ import {
   AccionesCierre,
   AccionesSolicitud,
 } from "@/components/profesional/acciones-solicitud";
+import { BotonInvitaciones } from "@/components/profesional/boton-invitaciones";
+import { Convocados } from "@/components/profesional/convocados";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -14,8 +16,10 @@ import { exigirProfesional } from "@/lib/auth/perfil";
 import {
   ASPECTO,
   MODALIDAD,
+  esDeEmpresa,
   esPendiente,
   nombrePaciente,
+  titularDeCita,
   type CitaConPaciente,
 } from "@/lib/citas/estados";
 import {
@@ -63,7 +67,12 @@ export default async function CitaProfesionalPage({
   const { data } = await supabase
     .from("appointments")
     .select(
-      "*, paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
+      [
+        "*",
+        "paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
+        "organizacion:organizations(nombre)",
+        "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo, profile_id))",
+      ].join(", "),
     )
     .eq("id", id)
     .maybeSingle();
@@ -74,6 +83,16 @@ export default async function CitaProfesionalPage({
   const aspecto = ASPECTO[cita.status];
   const ahoraISO = ahoraEn(zona).toUTC().toISO()!;
   const porCerrar = cita.status === "confirmada" && cita.ends_at < ahoraISO;
+
+  const deEmpresa = esDeEmpresa(cita);
+  const convocados = (cita.convocados ?? [])
+    .map((c) => c.persona)
+    .filter((p) => p !== null);
+
+  // Quien todavía no tiene cuenta es a quien hay que invitar.
+  const sinCuenta = convocados.filter(
+    (p) => (p as { profile_id?: string | null }).profile_id == null,
+  ).length;
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-4 py-8 sm:px-6">
@@ -95,12 +114,18 @@ export default async function CitaProfesionalPage({
 
         <div className="flex flex-col gap-3">
           <Dato icono={User}>
-            <Link
-              href={`/profesional/pacientes/${cita.patient_id}`}
-              className="text-accent font-medium"
-            >
-              {nombrePaciente(cita)}
-            </Link>
+            {deEmpresa ? (
+              <span className="text-text-strong font-medium">
+                {titularDeCita(cita)}
+              </span>
+            ) : (
+              <Link
+                href={`/profesional/pacientes/${cita.patient_id}`}
+                className="text-accent font-medium"
+              >
+                {nombrePaciente(cita)}
+              </Link>
+            )}
           </Dato>
 
           <Dato icono={Clock}>
@@ -131,15 +156,37 @@ export default async function CitaProfesionalPage({
         {cita.patient_note && (
           <div className="bg-sunken flex flex-col gap-1 rounded-md p-3.5">
             <span className="text-text-muted text-micro font-semibold tracking-[0.06em] uppercase">
-              Mensaje del paciente
+              {deEmpresa ? "Mensaje de la empresa" : "Mensaje del paciente"}
             </span>
             <p className="text-text-body text-sm">{cita.patient_note}</p>
+          </div>
+        )}
+
+        {deEmpresa && (
+          <div className="border-line flex flex-col gap-3 border-t pt-5">
+            <h2 className="text-h4">Convocados</h2>
+            <Convocados personas={convocados} compacto />
           </div>
         )}
 
         {esPendiente(cita.status) && (
           <div className="border-line border-t pt-5">
             <AccionesSolicitud citaId={cita.id} />
+          </div>
+        )}
+
+        {/* Solo con la sesión ya confirmada: invitar a algo sin confirmar sería
+            convocar a lo que todavía no existe. */}
+        {deEmpresa && cita.status === "confirmada" && (
+          <div className="border-line flex flex-col gap-3 border-t pt-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-h4">Acceso de los convocados</h2>
+              <p className="text-text-muted text-sm">
+                Cada persona recibe un enlace para crear su cuenta y aceptar su
+                consentimiento. Quien ya tenga cuenta no necesita nada.
+              </p>
+            </div>
+            <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
           </div>
         )}
 
