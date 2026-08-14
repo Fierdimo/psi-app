@@ -41,6 +41,20 @@ export const esquemaIngreso = z.object({
 export const esquemaRegistro = z.object({
   nombre: z.string().trim().min(1, "Escribe tu nombre"),
   apellidos: z.string().trim().min(1, "Escribe tus apellidos"),
+  /*
+   * Campo libre a propósito: acepta cédula, tarjeta de identidad, cédula de
+   * extranjería, pasaporte o permiso. Un desplegable de tipos dejaría fuera a
+   * quien no encaje en la lista, y quien evalúa a personal operativo se topa
+   * con todas esas variantes.
+   *
+   * Es la identidad de la persona en la plataforma: lo que permite reconocer
+   * que quien acepta la invitación de una empresa es quien ya tenía cuenta.
+   */
+  documento: z
+    .string()
+    .trim()
+    .min(4, "El documento es demasiado corto")
+    .max(30, "El documento es demasiado largo"),
   correo,
   contrasena,
 });

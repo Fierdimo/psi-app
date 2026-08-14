@@ -96,6 +96,59 @@ test.describe("Acceso público", () => {
   });
 });
 
+test.describe("Registro", () => {
+  /*
+   * El documento identifica a la persona en toda la plataforma: es lo que
+   * permite reconocer que quien acepta la invitación de una empresa ya tenía
+   * cuenta, en vez de crearle una segunda y partirle el historial.
+   */
+  test("el registro exige documento de identidad", async ({ page }) => {
+    await page.goto("/registro");
+
+    await page.getByLabel("Nombre").fill("Sin");
+    await page.getByLabel("Apellidos").fill("Documento");
+    await page.getByLabel("Correo electrónico").fill("sin.doc@ejemplo.test");
+    await page.getByLabel("Contraseña", { exact: true }).fill("psi-local-2026");
+    await page.getByRole("button", { name: /crear cuenta/i }).click();
+
+    await expect(page.getByText(/documento es demasiado corto/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/registro/);
+  });
+
+  /*
+   * Un documento ya registrado NO se confirma como tal. Las cédulas son
+   * enumerables: decir «ya existe una cuenta con ese documento» convertiría el
+   * registro en un detector de pacientes de una consulta de psicología. Misma
+   * razón por la que el ingreso da un único mensaje para dos fallos distintos.
+   */
+  test("un documento ya registrado no se revela", async ({ page }) => {
+    await page.goto("/registro");
+
+    await page.getByLabel("Nombre").fill("Otra");
+    await page.getByLabel("Apellidos").fill("Persona");
+    // La cédula de Ana, que ya tiene cuenta en la siembra.
+    await page.getByLabel("Documento de identidad").fill("1047373301");
+    await page
+      .getByLabel("Correo electrónico")
+      .fill("otra.persona@ejemplo.test");
+    await page.getByLabel("Contraseña", { exact: true }).fill("psi-local-2026");
+    await page.getByRole("button", { name: /crear cuenta/i }).click();
+
+    await expect(
+      page.getByText(/no pudimos crear la cuenta con esos datos/i),
+    ).toBeVisible();
+
+    // El mensaje ofrece salida en vez de dejar a la persona atascada.
+    await expect(
+      page.getByText(/entra o recupera tu contraseña/i),
+    ).toBeVisible();
+
+    // Ni una palabra sobre cuál de los dos datos chocó.
+    await expect(page.getByText(/documento de identidad ya/i)).toHaveCount(0);
+    await expect(page.getByText(/ya existe una cuenta/i)).toHaveCount(0);
+  });
+});
+
 test.describe("Credenciales", () => {
   test("un correo que no existe y una contraseña mala dan el MISMO mensaje", async ({
     page,

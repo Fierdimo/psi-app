@@ -175,6 +175,18 @@ update public.profiles
 set role = 'empresa', organization_id = '77777777-7777-7777-7777-777777777777'
 where id = '55555555-5555-5555-5555-555555555555';
 
+-- Documentos de identidad de las cuentas personales.
+--
+-- No es adorno: la cédula es lo que identifica a una persona entre empresas y
+-- lo que enlaza su ficha con su cuenta. Sin ella, la siembra producía un
+-- estado que la aplicación NO PUEDE crear —una ficha enlazada a una cuenta sin
+-- documento—, porque el único camino que las enlaza es `aceptar_invitacion`, y
+-- esa función siempre lo escribe. Datos locales que mienten esconden fallos.
+update public.profiles set documento = '1047373301' where id = '11111111-1111-1111-1111-111111111111';
+update public.profiles set documento = '1032118844' where id = '22222222-2222-2222-2222-222222222222';
+update public.profiles set documento = '1075229933' where id = '44444444-4444-4444-4444-444444444444';
+update public.profiles set documento = '73115577'   where id = '33333333-3333-3333-3333-333333333333';
+
 insert into public.organization_people
   (id, organization_id, documento, nombre, apellidos, email, cargo, profile_id)
 values

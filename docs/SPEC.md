@@ -680,6 +680,12 @@ Una solicitud pendiente cuya fecha ya pasó no es un error del sistema: es lo qu
 
 #### La cédula es la identidad; el correo es un canal
 
+**Se pide al crear la cuenta, y es obligatoria.** Antes solo lo era dentro del listado de una empresa, así que quien se registraba por su cuenta nunca la aportaba: la cédula servía para reconocer a alguien entre empresas pero no estaba garantizada en la plataforma. Ahora toda persona queda identificada desde el primer momento.
+
+Es un campo de texto libre —cédula, tarjeta de identidad, cédula de extranjería, pasaporte, permiso— y no un desplegable de tipos, que dejaría fuera a quien no encaje en la lista. Quien evalúa personal operativo se topa con todas esas variantes.
+
+**Un documento ya registrado no se confirma.** La tentación es decir «ya existe una cuenta con ese documento» para que la persona entienda qué pasa, y se rechaza por la misma razón que el ingreso da un único mensaje ante un correo inexistente y ante una contraseña mala: las cédulas son enumerables, y confirmarlo convertiría el registro en un detector de pacientes de una consulta de psicología. El mensaje ofrece la salida —entrar o recuperar la contraseña— sin decir qué dato chocó.
+
 Una persona se identifica por su **documento de identidad**, y por eso es obligatorio al cargarla. El correo no sirve para reconocerla: una empresa la carga con el corporativo y otra con el personal, y sin un dato estable el sistema vería dos personas donde hay una. Al invitarla se le crearía una segunda cuenta y su historial quedaría partido en dos.
 
 Una misma cédula **no puede repetirse dentro de una empresa** —aunque cambie el correo— y **sí puede aparecer en dos empresas distintas**, porque esa es exactamente la persona evaluada por las dos.

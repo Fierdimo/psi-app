@@ -105,6 +105,7 @@ export async function registrar(
   const datos = esquemaRegistro.safeParse({
     nombre: formData.get("nombre"),
     apellidos: formData.get("apellidos"),
+    documento: formData.get("documento"),
     correo: formData.get("correo"),
     contrasena: formData.get("contrasena"),
   });
@@ -123,14 +124,38 @@ export async function registrar(
     password: datos.data.contrasena,
     options: {
       emailRedirectTo: `${origen}/auth/callback`,
-      data: { nombre: datos.data.nombre, apellidos: datos.data.apellidos },
+      data: {
+        nombre: datos.data.nombre,
+        apellidos: datos.data.apellidos,
+        documento: datos.data.documento,
+      },
     },
   });
 
   if (error) {
+    /*
+     * Un solo mensaje, y no por pereza: por dos razones que se refuerzan.
+     *
+     * La primera es de privacidad. El documento es único en toda la
+     * plataforma, pero un choque NO se confirma. Las cédulas son enumerables,
+     * así que decir «ya existe una cuenta con ese documento» convertiría el
+     * registro en un detector de pacientes de una consulta de psicología. Es
+     * la misma razón por la que el ingreso da un único mensaje ante un correo
+     * inexistente y ante una contraseña equivocada.
+     *
+     * La segunda es que NO SE PUEDE distinguir aunque se quisiera. El servidor
+     * de autenticación traga el error de Postgres y devuelve siempre
+     * «Database error saving new user», sin el nombre de la restricción — se
+     * comprobó registrando una cédula repetida y leyendo lo que llega. Una
+     * cédula duplicada y una base caída son indistinguibles desde aquí.
+     *
+     * De ahí el texto: cubre los dos casos y, sobre todo, no deja a nadie en
+     * un callejón sin salida.
+     */
     return {
       ok: false,
-      mensaje: "No pudimos crear la cuenta. Inténtalo de nuevo en un momento.",
+      mensaje:
+        "No pudimos crear la cuenta con esos datos. Si ya tienes una, entra o recupera tu contraseña; si no, inténtalo de nuevo en un momento.",
     };
   }
 

@@ -114,6 +114,16 @@ export function FormularioRegistro() {
       </div>
 
       <Field
+        id="documento"
+        name="documento"
+        label="Documento de identidad"
+        help="Cédula, pasaporte o el documento con el que te identificas."
+        autoComplete="off"
+        required
+        error={estado.errores?.documento}
+      />
+
+      <Field
         id="correo"
         name="correo"
         type="email"
