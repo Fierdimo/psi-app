@@ -298,7 +298,37 @@ Cuatro secciones existen en la navegación, con su ruta, su encabezado y un esta
 10. **Recursos y tareas**
 11. **Documentos y consentimientos**
 
-### 4.4 Área del profesional — mínima
+### 4.3.1 Las dos áreas nuevas son espacios de trabajo, no bandejas
+
+Ni la empresa ni el profesional entran a «aprobar cosas». Entran a trabajar, y su área tiene que parecerlo desde el primer día: el mapa completo a la vista, con las secciones que aún no existen **atenuadas y explicadas**, igual que ya se hace con el paciente (§7.6).
+
+Enseñar el mapa entero desde el principio genera más confianza que revelarlo por partes. Quien entra entiende hacia dónde va la plataforma y no se pregunta si le falta algo que otros sí tienen. Lo que **no** se hace nunca es simular: un placeholder dice qué vivirá ahí y por qué todavía no está, sin fechas y sin botones que no hacen nada.
+
+#### Área de la empresa (`/empresa`)
+
+| Sección     | Ruta                   | Estado    | Qué hace                                                             |
+| ----------- | ---------------------- | --------- | -------------------------------------------------------------------- |
+| Inicio      | `/empresa`             | real      | Próxima sesión, personal cargado, solicitudes a la espera            |
+| Personal    | `/empresa/personal`    | real      | Su listado de personas: cargar, corregir, ver quién ya tiene cuenta  |
+| Sesiones    | `/empresa/sesiones`    | real      | Solicitar evaluación, ver estado y historial                         |
+| Informes    | `/empresa/informes`    | pendiente | Los resultados que el profesional publique de su gente               |
+| Facturación | `/empresa/facturacion` | pendiente | Comprobantes de lo pagado. El pago se acuerda fuera de la plataforma |
+| Datos       | `/empresa/datos`       | real      | Nombre, NIT y canal de contacto por donde se tramita                 |
+
+#### Área del profesional (`/profesional`)
+
+Crece de dos secciones a seis. Las dos que existían siguen siendo el centro del día a día.
+
+| Sección      | Ruta                        | Estado    | Qué hace                                                        |
+| ------------ | --------------------------- | --------- | --------------------------------------------------------------- |
+| Agenda       | `/profesional/agenda`       | real      | Calendario y bandeja de solicitudes, individuales y de empresa  |
+| Pacientes    | `/profesional/pacientes`    | real      | Personas atendidas individualmente                              |
+| Empresas     | `/profesional/empresas`     | real      | Organizaciones cliente, su gente y sus sesiones                 |
+| Evaluaciones | `/profesional/evaluaciones` | pendiente | Instrumentos, asignaciones y revisión de resultados             |
+| Documentos   | `/profesional/documentos`   | pendiente | Certificados e informes emitidos                                |
+| La consulta  | `/profesional/consulta`     | real      | Horario de atención, duración por defecto y anticipación mínima |
+
+### 4.4 Área del profesional — v1 mínima
 
 12. **Agenda** — vista de todas las citas, confirmar/rechazar solicitudes, crear cita, reprogramar
 13. **Pacientes** — listado con datos de contacto y próxima cita

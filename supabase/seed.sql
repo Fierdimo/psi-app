@@ -76,7 +76,10 @@ from (
     -- Reservada para la prueba de que el consentimiento bloquea. Ninguna otra
     -- prueba la usa, así que su estado no depende del orden de ejecución.
     ('44444444-4444-4444-4444-444444444444'::uuid, 'carmen@psi.test',
-     '{"nombre":"Carmen","apellidos":"Ibáñez"}'::jsonb)
+     '{"nombre":"Carmen","apellidos":"Ibáñez"}'::jsonb),
+    -- Cuenta de empresa, para poder recorrer su área en local.
+    ('55555555-5555-5555-5555-555555555555'::uuid, 'empresa@psi.test',
+     '{"nombre":"Marta","apellidos":"Ochoa"}'::jsonb)
 ) as u (id, email, meta)
 on conflict (id) do nothing;
 
@@ -148,3 +151,60 @@ values
     'virtual', null, 'solicitada',
     '22222222-2222-2222-2222-222222222222'
   );
+
+
+-- =============================================================================
+-- Una empresa cliente, con su gente cargada.
+--
+-- Sirve para recorrer el área de empresa sin tener que registrarla a mano cada
+-- vez que se resetea la base. Dos personas: una que ya aceptó su invitación y
+-- otra que todavía no, que son los dos estados que la pantalla distingue.
+-- =============================================================================
+insert into public.organizations (id, nombre, nit, contacto_nombre, contacto_email, contacto_telefono)
+values (
+  '77777777-7777-7777-7777-777777777777',
+  'Distribuciones del Caribe S.A.S',
+  '900123456-7',
+  'Marta Ochoa',
+  'marta@distribuciones.test',
+  '3005559911'
+)
+on conflict (id) do nothing;
+
+update public.profiles
+set role = 'empresa', organization_id = '77777777-7777-7777-7777-777777777777'
+where id = '55555555-5555-5555-5555-555555555555';
+
+insert into public.organization_people
+  (id, organization_id, documento, nombre, apellidos, email, cargo, profile_id)
+values
+  ('88888888-0000-4000-8000-000000000001',
+   '77777777-7777-7777-7777-777777777777',
+   '1047373301', 'Ana María', 'Restrepo', 'ana@psi.test', 'Auxiliar de bodega',
+   '11111111-1111-1111-1111-111111111111'),
+  ('88888888-0000-4000-8000-000000000002',
+   '77777777-7777-7777-7777-777777777777',
+   '1099887766', 'Jorge', 'Salas', 'jorge@distribuciones.test', 'Conductor', null)
+on conflict (id) do nothing;
+
+-- Una sesión de evaluación solicitada, a la espera de que el profesional
+-- resuelva el trámite y la confirme.
+insert into public.appointments
+  (id, organization_id, professional_id, starts_at, ends_at, modality, status, patient_note, created_by)
+values (
+  '88888888-0000-4000-8000-0000000000aa',
+  '77777777-7777-7777-7777-777777777777',
+  '33333333-3333-3333-3333-333333333333',
+  date_trunc('hour', now()) + interval '9 days',
+  date_trunc('hour', now()) + interval '9 days 3 hours',
+  'presencial', 'solicitada',
+  'Evaluación de ingreso para dos cargos operativos.',
+  '55555555-5555-5555-5555-555555555555'
+)
+on conflict (id) do nothing;
+
+insert into public.appointment_attendees (appointment_id, person_id)
+values
+  ('88888888-0000-4000-8000-0000000000aa', '88888888-0000-4000-8000-000000000001'),
+  ('88888888-0000-4000-8000-0000000000aa', '88888888-0000-4000-8000-000000000002')
+on conflict do nothing;

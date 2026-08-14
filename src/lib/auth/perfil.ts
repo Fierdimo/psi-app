@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export type Rol = "paciente" | "profesional";
+export type Rol = "paciente" | "profesional" | "empresa";
 
 export type Perfil = {
   id: string;
@@ -14,6 +14,8 @@ export type Perfil = {
   apellidos: string | null;
   telefono: string | null;
   timezone: string;
+  /** Solo para el rol `empresa`: la organización que administra. */
+  organization_id: string | null;
 };
 
 /** Perfil de la sesión actual, o `null` si no hay sesión. */
@@ -28,7 +30,7 @@ export async function obtenerPerfil(): Promise<Perfil | null> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, role, nombre, apellidos, telefono, timezone")
+    .select("id, role, nombre, apellidos, telefono, timezone, organization_id")
     .eq("id", user.id)
     .single();
 
@@ -37,7 +39,9 @@ export async function obtenerPerfil(): Promise<Perfil | null> {
 
 /** Ruta de inicio de cada rol. Un solo lugar donde vive esta correspondencia. */
 export function inicioSegunRol(rol: Rol) {
-  return rol === "profesional" ? "/profesional/agenda" : "/panel";
+  if (rol === "profesional") return "/profesional/agenda";
+  if (rol === "empresa") return "/empresa";
+  return "/panel";
 }
 
 /** ¿Aceptó esta persona la versión vigente del consentimiento? */
@@ -89,6 +93,28 @@ export async function exigirSesion(): Promise<Perfil> {
  */
 export async function exigirProfesional(): Promise<Perfil> {
   const perfil = await exigirSesion();
-  if (perfil.role !== "profesional") redirect("/panel");
+  // A su sitio, no a un error: decir «no tienes permiso» convertiría la ruta
+  // en un detector de cuentas privilegiadas.
+  if (perfil.role !== "profesional") redirect(inicioSegunRol(perfil.role));
   return perfil;
+}
+
+/**
+ * Exige que quien mira administre una empresa.
+ *
+ * Devuelve también su organización, que es lo que toda pantalla del área va a
+ * necesitar de inmediato. Una cuenta de empresa sin organización no debería
+ * existir —`registrar_empresa()` las crea juntas— pero si ocurriera, se la
+ * trata como a cualquiera que no tiene nada que hacer aquí.
+ */
+export async function exigirEmpresa(): Promise<
+  Perfil & { organization_id: string }
+> {
+  const perfil = await exigirSesion();
+
+  if (perfil.role !== "empresa" || !perfil.organization_id) {
+    redirect(inicioSegunRol(perfil.role));
+  }
+
+  return perfil as Perfil & { organization_id: string };
 }

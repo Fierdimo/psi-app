@@ -142,6 +142,17 @@ test.describe("Derechos sobre los datos", () => {
     for (const cita of datos.citas) {
       expect(cita.patient_id).toBe(datos.cuenta.id);
     }
+
+    /*
+     * Las sesiones de evaluación van en su propia lista y NO llevan paciente:
+     * a ellas se la convocó su empresa. Son suyas —por eso se exportan— pero
+     * mezclarlas con sus citas haría creer que pidió una consulta.
+     */
+    expect(Array.isArray(datos.sesiones_de_evaluacion)).toBe(true);
+    for (const sesion of datos.sesiones_de_evaluacion) {
+      expect(sesion.patient_id).toBeNull();
+      expect(sesion.organization_id).not.toBeNull();
+    }
   });
 
   test("la solicitud de eliminación se registra y no se puede repetir", async ({

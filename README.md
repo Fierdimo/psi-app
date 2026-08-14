@@ -133,6 +133,7 @@ Contraseña de todas: `psi-local-2026`
 | Correo                 | Rol         | Para qué sirve                                                      |
 | ---------------------- | ----------- | ------------------------------------------------------------------- |
 | `profesional@psi.test` | Profesional | Jesús Banquez Ramírez. Entra por `/profesional`                     |
+| `empresa@psi.test`     | Empresa     | Distribuciones del Caribe. Entra por `/ingresar` y aterriza en `/empresa` |
 | `ana@psi.test`         | Paciente    | Tiene una cita confirmada y una realizada. Zona: Bogotá             |
 | `beto@psi.test`        | Paciente    | Sin citas. Zona: **Ciudad de México**, para ver el aviso de desfase |
 | `carmen@psi.test`      | Paciente    | Reservada a la prueba del consentimiento; no la uses a mano         |

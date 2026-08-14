@@ -18,6 +18,9 @@ const RUTAS_PACIENTE = [
 /** Rutas privadas del profesional. Su entrada, `/profesional` a secas, es pública. */
 const RUTA_PROFESIONAL = "/profesional/";
 
+/** Área de la empresa. Toda ella privada, incluida su raíz. */
+const RUTA_EMPRESA = "/empresa";
+
 /** Pantallas de entrada. Con sesión activa no tiene sentido volver a ellas. */
 const RUTAS_DE_ENTRADA = ["/ingresar", "/registro", "/profesional"];
 
@@ -25,7 +28,10 @@ export function esRutaPrivada(pathname: string) {
   return (
     RUTAS_PACIENTE.some(
       (r) => pathname === r || pathname.startsWith(`${r}/`),
-    ) || pathname.startsWith(RUTA_PROFESIONAL)
+    ) ||
+    pathname.startsWith(RUTA_PROFESIONAL) ||
+    pathname === RUTA_EMPRESA ||
+    pathname.startsWith(`${RUTA_EMPRESA}/`)
   );
 }
 

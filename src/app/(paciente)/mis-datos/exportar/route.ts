@@ -40,7 +40,15 @@ export async function GET() {
       ultimo_ingreso: user.last_sign_in_at ?? null,
     },
     perfil: perfil.data ?? null,
-    citas: citas.data ?? [],
+    // Las dos clases se separan a propósito. RLS devuelve tanto las citas
+    // propias como las sesiones de evaluación a las que una empresa convocó a
+    // esta persona: las dos son suyas y las dos deben aparecer, pero
+    // mezclarlas en una sola lista haría creer que pidió una consulta cuando
+    // en realidad la mandó evaluar su empresa.
+    citas: (citas.data ?? []).filter((c) => c.organization_id === null),
+    sesiones_de_evaluacion: (citas.data ?? []).filter(
+      (c) => c.organization_id !== null,
+    ),
     historial_de_citas: cambios.data ?? [],
     consentimientos: consentimientos.data ?? [],
   };
