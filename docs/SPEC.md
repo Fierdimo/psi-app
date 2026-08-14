@@ -609,12 +609,13 @@ Toda hora se almacena en `timestamptz` (UTC) y se presenta en la zona horaria de
 ```
 1. La empresa se registra y da de alta a sus empleados
 2. Solicita una cita de evaluación para varios de ellos
-3. El profesional la confirma → cada empleado recibe su invitación por correo
-4. El empleado crea su cuenta y acepta SU consentimiento
-5. El día de la cita: parte presencial, y el profesional abre el examen en línea
-6. El empleado responde; el sistema califica
-7. El profesional revisa, redacta y publica
-8. El informe queda disponible para el empleado Y para la empresa
+3. El profesional resuelve el trámite —pago u otro— POR FUERA de la plataforma
+4. Confirma la cita → cada convocado recibe su invitación por correo
+5. El empleado crea su cuenta y acepta SU consentimiento
+6. El día de la cita: parte presencial, y el profesional abre el examen en línea
+7. El empleado responde; el sistema califica
+8. El profesional revisa, redacta y publica
+9. El informe queda disponible para el empleado Y para la empresa
 ```
 
 Tres candados en ese circuito, y ninguno es opcional:
@@ -622,6 +623,8 @@ Tres candados en ese circuito, y ninguno es opcional:
 **El consentimiento lo firma el empleado, no su empresa.** Sin aceptación registrada no se abre el examen. El titular del dato es quien lo acepta, y tiene que poder negarse: la opción de rechazar existe y no es decorativa.
 
 **El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
+
+**Una solicitud corporativa no se confirma sola.** Entre que la empresa pide y el profesional confirma hay un trámite —el pago, normalmente— que ocurre fuera de la plataforma. Por eso una empresa **no existe sin un canal de contacto**: se le exige un correo o un teléfono al registrarse, porque sin él su solicitud se queda muerta en la bandeja y nadie puede resolverla.
 
 **Nada se publica solo.** El sistema califica en cuanto el empleado envía, pero el informe no existe para nadie hasta que el profesional lo revisa y lo firma.
 
@@ -633,6 +636,24 @@ Tres candados en ese circuito, y ninguno es opcional:
 | Su informe completo, una vez publicado | ✓        | ✓       | ✓           |
 | Informes de sus compañeros             | —        | ✓       | ✓           |
 | Empleados de otra empresa              | —        | —       | ✓           |
+
+#### La cédula es la identidad; el correo es un canal
+
+Una persona se identifica por su **documento de identidad**, y por eso es obligatorio al cargarla. El correo no sirve para reconocerla: una empresa la carga con el corporativo y otra con el personal, y sin un dato estable el sistema vería dos personas donde hay una. Al invitarla se le crearía una segunda cuenta y su historial quedaría partido en dos.
+
+Una misma cédula **no puede repetirse dentro de una empresa** —aunque cambie el correo— y **sí puede aparecer en dos empresas distintas**, porque esa es exactamente la persona evaluada por las dos.
+
+#### Cancelar una cita no retira lo ya evaluado
+
+La evaluación se paga antes de aplicarse: no hay forma de llegar a la sesión sin que el trámite esté resuelto. En consecuencia, si una empresa cancela a mitad de camino y alguien ya respondió, **su informe se produce y se entrega igual**. Lo contrario dejaría a la persona sin el resultado de una prueba que sí hizo, y a la empresa sin aquello por lo que ya pagó.
+
+La cancelación afecta a lo que no ha ocurrido, nunca a lo que ya ocurrió.
+
+#### El informe no caduca con el empleo
+
+Lo que una empresa encargó sigue siendo suyo aunque la persona deje de trabajar allí. No es una concesión: la plataforma **no sabe ni sabrá** si alguien sigue vinculado a una empresa, y fingir que lo controla sería peor que no hacerlo. La evaluación la pagó esa empresa y su acceso no se revoca por un cambio de trabajo que nadie nos comunica.
+
+Distinto sería que la empresa pidiera **borrar** ese informe, que es una petición sobre el dato y no sobre el vínculo.
 
 #### La misma persona, evaluada por dos empresas
 
@@ -725,7 +746,8 @@ La evaluación psicométrica necesita **su propio consentimiento**, distinto del
 - [x] **¿Cuándo se abre el examen?** Lo habilita el profesional durante la sesión presencial. No se abre solo por llegar la fecha.
 - [ ] **Licencia del instrumento.** Los ítems y las tablas de interpretación de una edición comercial suelen estar licenciados, aunque el modelo subyacente sea de dominio público. Aplicarlo por un formulario no es lo mismo que servirlo desde una plataforma propia. **Bloquea cargar el contenido real de la prueba**, no el diseño del motor.
 - [ ] ¿Puede el paciente subir documentos, o el flujo es solo profesional → paciente? Se asume lo segundo mientras no se diga otra cosa.
-- [ ] **¿Cómo se reconoce que dos fichas son la misma persona?** Hoy el listado de cada empresa se identifica por correo. Si Globex carga a alguien con su correo personal y Acme lo había cargado con el corporativo, la invitación crearía una **segunda cuenta** y partiría su historial en dos — justo lo que el modelo pretende evitar. Dos salidas, no excluyentes: usar el documento de identidad como clave fuerte, y permitir que quien ya tiene cuenta acepte la invitación **con esa cuenta** en vez de crear otra. Se decide al construir las invitaciones.
+- [x] **¿Cómo se reconoce que dos fichas son la misma persona?** Por su **documento de identidad**, que pasa a ser obligatorio en el listado y único por empresa. El correo queda como canal de invitación, no como identidad.
+- [ ] Falta la otra mitad: que quien **ya tiene cuenta** pueda aceptar una invitación **con esa cuenta** en vez de crear otra. Se resuelve al construir las invitaciones.
 - [ ] ¿El informe de resultados se descarga en PDF? Si sí, hay que rehacer su diseño: el actual usa rojo, verde y cian, ajenos a la paleta.
 - [x] **¿Entran pruebas de rendimiento?** Todavía no se aplican, pero **el modelo las contempla desde el primer día**: `assessments.kind` distingue inventario de prueba de rendimiento, y existen `time_limit_seconds` y la clave de corrección del ítem aunque hoy vayan siempre vacíos. Reservar el sitio cuesta tres columnas; añadirlas con el esquema poblado cuesta una migración con datos clínicos dentro.
 - [ ] Duración por defecto de una cita y franja horaria de atención

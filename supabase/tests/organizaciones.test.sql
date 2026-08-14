@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(19);
+select plan(22);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -64,14 +64,15 @@ update public.profiles set role = 'empresa', organization_id = :'globex' where i
 
 -- Los evaluados NO cambian de rol ni «pertenecen» a nadie: siguen siendo
 -- personas con cuenta propia. Su vínculo con la empresa es la fila del listado.
-insert into public.organization_people (id, organization_id, nombre, email, profile_id) values
-  ('eeee1111-0000-4000-8000-000000000001', :'acme',   'Empleado Acme',   'emp@acme.test',   :'emp_acme'),
-  ('eeee2222-0000-4000-8000-000000000002', :'globex', 'Empleado Globex', 'emp@globex.test', :'emp_globex'),
+insert into public.organization_people (id, organization_id, nombre, documento, email, profile_id) values
+  ('eeee1111-0000-4000-8000-000000000001', :'acme',   'Empleado Acme',   '1047373301', 'emp@acme.test',    :'emp_acme'),
+  ('eeee2222-0000-4000-8000-000000000002', :'globex', 'Empleado Globex', '1047462262', 'emp@globex.test',  :'emp_globex'),
   -- Una persona cargada que todavía no aceptó su invitación: sin cuenta.
-  ('eeee3333-0000-4000-8000-000000000003', :'acme',   'Sin Cuenta Aún',  'futuro@acme.test', null),
+  ('eeee3333-0000-4000-8000-000000000003', :'acme',   'Sin Cuenta Aún',  '1099887766', 'futuro@acme.test', null),
   -- EL CASO QUE IMPORTA: la misma persona que ya evaluó Acme, ahora cargada
-  -- por Globex porque quiere contratarla. Mismo `profile_id`, otra empresa.
-  ('eeee4444-0000-4000-8000-000000000004', :'globex', 'Empleado Acme',   'emp@acme.test',   :'emp_acme');
+  -- por Globex porque quiere contratarla. MISMA CÉDULA, otro correo —el
+  -- personal en vez del corporativo—, que es justo como ocurre en la vida real.
+  ('eeee4444-0000-4000-8000-000000000004', :'globex', 'Empleado Acme',   '1047373301', 'personal@gmail.test', :'emp_acme');
 
 -- Una cita de evaluación por empresa, y una individual del paciente.
 insert into public.appointments (id, organization_id, professional_id, starts_at, ends_at, status, created_by)
@@ -88,6 +89,29 @@ insert into public.appointment_attendees (appointment_id, person_id) values
   ('11111111-0000-4000-8000-000000000001', 'eeee3333-0000-4000-8000-000000000003'),
   ('22222222-0000-4000-8000-000000000002', 'eeee2222-0000-4000-8000-000000000002'),
   ('22222222-0000-4000-8000-000000000002', 'eeee4444-0000-4000-8000-000000000004');
+
+-- La cédula, y no el correo, es lo que impide duplicar a una persona dentro de
+-- una misma empresa: con otro correo pasaría desapercibida. Se comprueba aquí,
+-- durante el montaje, porque más abajo ya no hay privilegios de escritura.
+select throws_ok(
+  format(
+    'insert into public.organization_people (organization_id, nombre, documento, email)
+     values (%L, ''Duplicado'', ''1047373301'', ''otro@acme.test'')', :'acme'
+  ),
+  '23505',
+  null,
+  'No se puede cargar dos veces la misma cédula en una empresa, aunque cambie el correo'
+);
+
+-- Pero la misma cédula SÍ puede estar en dos empresas distintas: es la misma
+-- persona, evaluada por las dos.
+select lives_ok(
+  format(
+    'insert into public.organization_people (organization_id, nombre, documento, email)
+     values (%L, ''Mismo'', ''1099887766'', ''otro@globex.test'')', :'globex'
+  ),
+  'La misma cédula sí puede aparecer en dos empresas distintas'
+);
 
 create or replace function tests_como(p_uid uuid) returns void
 language plpgsql as $$
@@ -139,6 +163,18 @@ select is(
   (select count(*)::int from public.appointments where patient_id is not null),
   0,
   'Una empresa NO ve las citas individuales de los pacientes'
+);
+
+-- Las escrituras pasan por funciones, siempre. Ni siquiera sobre su propio
+-- listado puede una empresa insertar a mano.
+select throws_ok(
+  format(
+    'insert into public.organization_people (organization_id, nombre, documento, email)
+     values (%L, ''A Mano'', ''123'', ''amano@acme.test'')', :'acme'
+  ),
+  '42501',
+  null,
+  'Una empresa no puede escribir directamente en su listado'
 );
 
 -- =============================================================================

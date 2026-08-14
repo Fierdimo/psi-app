@@ -90,6 +90,7 @@ create or replace function public.registrar_empresa(
   p_nombre            text,
   p_nit               text default null,
   p_contacto_nombre   text default null,
+  p_contacto_email    text default null,
   p_contacto_telefono text default null
 )
 returns uuid
@@ -110,6 +111,16 @@ begin
     raise exception 'La empresa necesita un nombre.';
   end if;
 
+  -- Una cita corporativa no se confirma sola: el profesional espera un pago o
+  -- un trámite que ocurre FUERA de la plataforma. Sin una vía para hablar con
+  -- la empresa, esa solicitud se queda muerta en la bandeja. Por eso el canal
+  -- de contacto se exige al registrarse y no se deja para después.
+  if coalesce(btrim(p_contacto_email), '') = ''
+     and coalesce(btrim(p_contacto_telefono), '') = '' then
+    raise exception
+      'Hace falta un correo o un teléfono de contacto para tramitar el pago.';
+  end if;
+
   select role, organization_id into v_rol, v_org
   from public.profiles where id = v_uid;
 
@@ -122,8 +133,9 @@ begin
     raise exception 'La cuenta del profesional no puede registrar una empresa.';
   end if;
 
-  insert into public.organizations (nombre, nit, contacto_nombre, contacto_telefono)
-  values (btrim(p_nombre), nullif(btrim(p_nit), ''), p_contacto_nombre, p_contacto_telefono)
+  insert into public.organizations (nombre, nit, contacto_nombre, contacto_email, contacto_telefono)
+  values (btrim(p_nombre), nullif(btrim(p_nit), ''), p_contacto_nombre,
+          nullif(btrim(p_contacto_email), ''), nullif(btrim(p_contacto_telefono), ''))
   returning id into v_org;
 
   update public.profiles
@@ -138,8 +150,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.registrar_empresa(text, text, text, text) from public;
-grant  execute on function public.registrar_empresa(text, text, text, text) to authenticated;
+revoke execute on function public.registrar_empresa(text, text, text, text, text) from public;
+grant  execute on function public.registrar_empresa(text, text, text, text, text) to authenticated;
 
 -- =============================================================================
 -- Citas de grupo
@@ -196,22 +208,39 @@ create table public.organization_people (
   organization_id uuid not null references public.organizations (id) on delete cascade,
   nombre          text not null,
   apellidos       text,
+  -- Documento de identidad. Es la IDENTIDAD de la persona, y por eso es
+  -- obligatorio: el correo no sirve para reconocerla. Una empresa puede
+  -- cargarla con su correo corporativo y otra con el personal, y sin un dato
+  -- estable las dos fichas serían dos personas distintas para el sistema: al
+  -- invitarla se le crearía una segunda cuenta y su historial quedaría partido.
+  documento       text not null,
+  -- Correo al que se envía la invitación. Puede cambiar entre empresas y entre
+  -- épocas; es un canal, no una identidad.
   email           text not null,
-  documento       text,
   cargo           text,
   -- Nulo hasta que la persona acepta la invitación y crea su cuenta.
   profile_id      uuid references public.profiles (id) on delete set null,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
 
+  constraint documento_no_vacio check (btrim(documento) <> ''),
+
   -- La misma persona no se carga dos veces en la misma empresa. En dos
-  -- empresas distintas sí: puede haber sido evaluada por las dos.
-  constraint una_vez_por_empresa unique (organization_id, email)
+  -- empresas distintas sí: puede haber sido evaluada por las dos, y ese caso
+  -- está probado en organizaciones.test.sql.
+  constraint una_vez_por_empresa unique (organization_id, documento)
 );
 
 create trigger organization_people_touch_updated_at
   before update on public.organization_people
   for each row execute function public.touch_updated_at();
+
+-- La misma cédula no puede corresponder a dos cuentas. Es lo que permite
+-- reconocer que quien acepta una invitación de Globex es la misma persona que
+-- ya evaluó Acme, y enlazarla a la cuenta que ya tiene en vez de crearle otra.
+create unique index profiles_documento_unico
+  on public.profiles (documento)
+  where documento is not null and btrim(documento) <> '';
 
 create index organization_people_org_idx     on public.organization_people (organization_id);
 create index organization_people_profile_idx on public.organization_people (profile_id)
