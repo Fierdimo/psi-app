@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(22);
+select plan(24);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -269,6 +269,36 @@ select is(
   (select count(*)::int from public.organization_people where profile_id is null),
   0,
   'La persona no ve fichas de terceros, ni de quienes aún no tienen cuenta'
+);
+
+-- =============================================================================
+-- QUIÉN PUEDE CANCELAR UNA CITA CORPORATIVA
+--
+-- Al volver `patient_id` nulable apareció un agujero silencioso en
+-- `cancelar_cita`: comprobaba la propiedad con `patient_id = auth.uid()`, que
+-- en una cita corporativa da NULL. Y `not NULL and not is_professional()` es
+-- NULL, así que el IF no se cumplía, la excepción no se lanzaba y la
+-- cancelación seguía adelante. Cualquier usuario con sesión podía cancelar la
+-- evaluación de una empresa que no conoce.
+--
+-- Comparar con NULL nunca es falso: es NULL, y eso no detiene a nadie.
+-- =============================================================================
+select tests_como(:'paciente');
+
+select throws_ok(
+  'select public.cancelar_cita(''11111111-0000-4000-8000-000000000001'')',
+  'P0001',
+  'No puedes cancelar una cita que no es tuya.',
+  'Un desconocido NO puede cancelar la cita corporativa de una empresa'
+);
+
+select tests_como(:'jefe_globex');
+
+select throws_ok(
+  'select public.cancelar_cita(''11111111-0000-4000-8000-000000000001'')',
+  'P0001',
+  'No puedes cancelar una cita que no es tuya.',
+  'Una empresa NO puede cancelar la cita que encargó otra'
 );
 
 -- =============================================================================
