@@ -142,6 +142,39 @@ test("reproduce el perfil del informe de muestra: 3264, Especialista", () => {
   assert.equal(valor(valores, "D")?.sugerido, "Asertividad Situacional Baja.");
 });
 
+test("el patrón casa aunque la hoja lo escriba en otra caja", () => {
+  /*
+   * La hoja guarda «Patron del Especialista» en la tabla de segmentos y
+   * «PATRON DEL ESPECIALISTA» en la de textos. BUSCARV las casaba; una
+   * comparación estricta no, y el informe salía sin sus nueve apartados con
+   * todo lo demás correcto.
+   */
+  const valores = discDominancia.calificar({
+    items: bloques(),
+    respuestas: respuestasDISC(
+      { D: 3, I: 2, S: 7, C: 3 },
+      { D: 4, I: 6, S: 2, C: 2 },
+    ),
+    textos: [
+      {
+        parameter_key: "patron",
+        nivel: "3264",
+        cuerpo: "Patron del Especialista",
+      },
+      {
+        parameter_key: "teme",
+        nivel: "PATRON DEL ESPECIALISTA",
+        cuerpo: "Los cambios; la desorganización.",
+      },
+    ],
+  });
+
+  assert.equal(
+    valor(valores, "teme")?.sugerido,
+    "Los cambios; la desorganización.",
+  );
+});
+
 test("cada escala cuenta sus 28 bloques UNA vez", () => {
   // La hoja original suma K47 dos veces en D y K46 dos veces en I. Si eso se
   // hubiera copiado, marcar «más» en D en los 28 bloques daría 29.

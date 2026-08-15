@@ -4,7 +4,37 @@ import { revalidatePath } from "next/cache";
 
 import { exigirProfesional } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { motorDe } from "@/lib/evaluaciones/motores";
+import type { Item, Respuesta, Texto } from "@/lib/evaluaciones/motor";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
+
+/**
+ * Lee una tabla entera, por páginas.
+ *
+ * PostgREST devuelve 1000 filas como MÁXIMO DEL SERVIDOR, y `.range()` NO
+ * sube ese tope: pedir 0..49999 sigue devolviendo 1000. Se descubrió porque el
+ * DISC tiene 2701 textos —2401 solo de la tabla de segmentos— y llegaba un
+ * trozo: unos apartados del informe salían y otros no, según dónde cayera su
+ * fila. Un informe verosímil y equivocado, que es la peor clase de fallo que
+ * puede tener esta pantalla porque no se ve.
+ *
+ * Calificar ocurre una vez por persona, así que tres viajes no son problema.
+ */
+async function leerTodo<T>(
+  consulta: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null }>,
+): Promise<T[]> {
+  const PAGINA = 1000;
+  const todo: T[] = [];
+
+  for (let desde = 0; ; desde += PAGINA) {
+    const { data } = await consulta(desde, desde + PAGINA - 1);
+    if (!data || data.length === 0) break;
+    todo.push(...data);
+    if (data.length < PAGINA) break;
+  }
+
+  return todo;
+}
 
 /** Limpia el prefijo que PostgREST antepone a los mensajes de la base. */
 function limpiar(error: { message: string; hint?: string | null }) {
@@ -99,4 +129,159 @@ export async function habilitarExamen(
   revalidatePath("/profesional/evaluaciones");
 
   return { ok: true, mensaje: "Examen abierto. Ya puede empezar." };
+}
+
+/**
+ * Calificar: aquí se enchufa el motor.
+ *
+ * La puntuación NO la hace la base. Se leen los ítems, las respuestas y los
+ * textos, se llama al motor del instrumento y se guarda lo que devuelve. Así
+ * la baremación vive en TypeScript, con pruebas, en vez de en SQL.
+ *
+ * Y calificar no publica. Deja la evaluación lista para que el profesional la
+ * lea, corrija lo que haga falta y la firme.
+ */
+export async function calificarEvaluacion(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirProfesional();
+
+  const asignacion = String(formData.get("asignacion") ?? "");
+  const supabase = await crearClienteServidor();
+
+  const { data: datos, error: errorDatos } = await supabase
+    .from("assignments")
+    .select("assessment_id, assessment:assessments(motor)")
+    .eq("id", asignacion)
+    .maybeSingle();
+
+  if (errorDatos || !datos) {
+    return { ok: false, mensaje: "No encontramos esa evaluación." };
+  }
+
+  const embebida = datos.assessment as
+    { motor: string } | { motor: string }[] | null;
+  const clave = (Array.isArray(embebida) ? embebida[0] : embebida)?.motor;
+
+  if (!clave) {
+    return { ok: false, mensaje: "Ese instrumento no declara ningún motor." };
+  }
+
+  const [{ data: items }, { data: respuestas }, { data: textos }] =
+    await Promise.all([
+      supabase
+        .from("assessment_items")
+        .select("id, posicion, tipo, enunciado, escala, opciones")
+        .eq("assessment_id", datos.assessment_id)
+        .order("posicion"),
+      supabase
+        .from("responses")
+        .select("item_id, valor")
+        .eq("assignment_id", asignacion),
+      leerTodo<Texto>((desde, hasta) =>
+        supabase
+          .from("assessment_texts")
+          .select("parameter_key, nivel, cuerpo")
+          .eq("assessment_id", datos.assessment_id)
+          .order("parameter_key")
+          .order("nivel", { nullsFirst: true })
+          .range(desde, hasta),
+      ).then((data) => ({ data })),
+    ]);
+
+  let valores;
+  try {
+    valores = motorDe(clave).calificar({
+      items: (items ?? []) as Item[],
+      respuestas: (respuestas ?? []) as Respuesta[],
+      textos: (textos ?? []) as Texto[],
+    });
+  } catch (fallo) {
+    /*
+     * Un motor que revienta se dice tal cual.
+     *
+     * La alternativa —guardar un informe a medias— es peor: quedaría
+     * `calificada` y con apariencia de correcto, y el fallo aparecería mucho
+     * más tarde, en el informe de una persona.
+     */
+    return {
+      ok: false,
+      mensaje:
+        fallo instanceof Error ? fallo.message : "El motor no pudo calificar.",
+    };
+  }
+
+  const { error } = await supabase.rpc("calificar_evaluacion", {
+    p_assignment_id: asignacion,
+    p_valores: valores,
+  });
+
+  if (error) return { ok: false, mensaje: limpiar(error) };
+
+  revalidatePath(`/profesional/evaluaciones/${asignacion}`);
+  revalidatePath("/profesional/evaluaciones");
+
+  return {
+    ok: true,
+    mensaje:
+      "Calificada. Revisa lo que propone el motor antes de publicarla: todavía no la ve nadie.",
+  };
+}
+
+/** Lo que el profesional escribe encima de lo que propuso el motor. */
+export async function redactarResultado(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirProfesional();
+
+  const asignacion = String(formData.get("asignacion") ?? "");
+  const parametro = String(formData.get("parametro") ?? "");
+  const nota = String(formData.get("nota") ?? "");
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("redactar_resultado", {
+    p_assignment_id: asignacion,
+    p_parameter_key: parametro,
+    p_nota: nota.trim() === "" ? null : nota,
+  });
+
+  if (error) return { ok: false, mensaje: limpiar(error) };
+
+  revalidatePath(`/profesional/evaluaciones/${asignacion}`);
+  return { ok: true, mensaje: "Guardado." };
+}
+
+/**
+ * Publicar: el acto que hace existir el informe.
+ *
+ * Hasta aquí nadie —ni la persona ni la empresa— ha visto una sola línea. Es
+ * deliberadamente un botón aparte del de calificar.
+ */
+export async function publicarResultado(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirProfesional();
+
+  const asignacion = String(formData.get("asignacion") ?? "");
+  const nota = String(formData.get("nota_global") ?? "");
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("publicar_resultado", {
+    p_assignment_id: asignacion,
+    p_nota_global: nota.trim() === "" ? null : nota,
+  });
+
+  if (error) return { ok: false, mensaje: limpiar(error) };
+
+  revalidatePath(`/profesional/evaluaciones/${asignacion}`);
+  revalidatePath("/profesional/evaluaciones");
+
+  return {
+    ok: true,
+    mensaje:
+      "Publicado. Ya está disponible para la persona y para la empresa que lo encargó.",
+  };
 }

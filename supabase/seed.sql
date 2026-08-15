@@ -33,6 +33,14 @@ grant delete on public.appointment_changes to service_role;
 -- clave de servicio; toda alta pasa por sus funciones.
 grant insert, delete on public.invitations to service_role;
 grant insert, delete on public.organization_people to service_role;
+-- Lectura del instrumento fuera de la aplicación, para poder comprobar la
+-- calificación con los datos REALES en vez de con un instrumento inventado.
+-- Sirvió para encontrar el recorte de 1000 filas de PostgREST: la pantalla
+-- daba un informe verosímil y la única forma de verlo era correr el motor
+-- aparte, con los mismos textos que recibe.
+grant select on public.assessments        to service_role;
+grant select on public.assessment_items   to service_role;
+grant select on public.assessment_texts   to service_role;
 
 -- -----------------------------------------------------------------------------
 -- Parámetros de la consulta.

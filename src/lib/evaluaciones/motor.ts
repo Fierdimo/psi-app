@@ -94,14 +94,29 @@ export function motorDe(clave: string): MotorDePrueba {
   return motor;
 }
 
-/** Busca un texto por parámetro y nivel. Ausente devuelve `undefined`. */
+/**
+ * Busca un texto por parámetro y nivel. Ausente devuelve `undefined`.
+ *
+ * El nivel se compara SIN distinguir mayúsculas, y no es un capricho: en la
+ * hoja de la consulta el patrón se guarda como «Patron del Especialista» en la
+ * tabla de segmentos y como «PATRON DEL ESPECIALISTA» en la de textos. Excel
+ * las casaba porque su BUSCARV ignora las mayúsculas; una comparación estricta
+ * no, y el informe salía sin sus nueve apartados —con el resto correcto, que
+ * es lo que lo hacía difícil de ver—.
+ */
 export function texto(
   textos: Texto[],
   parameter_key: string,
   nivel?: string | number | null,
 ): string | undefined {
-  const buscado = nivel === undefined || nivel === null ? null : String(nivel);
+  const buscado =
+    nivel === undefined || nivel === null ? null : String(nivel).toLowerCase();
+
   return textos.find(
-    (t) => t.parameter_key === parameter_key && (t.nivel ?? null) === buscado,
+    (t) =>
+      t.parameter_key === parameter_key &&
+      (t.nivel === null || t.nivel === undefined
+        ? null
+        : t.nivel.toLowerCase()) === buscado,
   )?.cuerpo;
 }
