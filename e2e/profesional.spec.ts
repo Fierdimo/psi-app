@@ -277,4 +277,56 @@ test.describe.serial("Sesiones de empresa", () => {
       timeout: 15000,
     });
   });
+
+  test("abre el examen desde la evaluación, y solo con consentimiento", async ({
+    page,
+  }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    );
+
+    const { data: asignada } = await db
+      .from("assignments")
+      .select("id, person_id")
+      .eq("appointment_id", SESION_DE_EMPRESA)
+      .limit(1)
+      .single();
+
+    await entrarComo(page, CUENTAS.profesional);
+    await page.goto(`/profesional/evaluaciones/${asignada!.id}`);
+
+    /*
+     * Sin consentimiento NO se ofrece abrir, y se dice por qué. Un botón que
+     * siempre falla enseña a ignorar los errores.
+     */
+    await expect(page.getByText(/esperando su consentimiento/i)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /abrir el examen/i }),
+    ).toHaveCount(0);
+
+    // La persona acepta desde su cuenta.
+    const { data: persona } = await db
+      .from("organization_people")
+      .select("profile_id")
+      .eq("id", asignada!.person_id)
+      .single();
+
+    await db.from("consents").insert({
+      user_id: persona!.profile_id,
+      document_key: "consentimiento_evaluacion",
+      version: "1",
+      decision: "aceptado",
+      assignment_id: asignada!.id,
+    });
+
+    await page.reload();
+    await page.getByRole("button", { name: /abrir el examen/i }).click();
+
+    await expect(page.getByText(/el examen está abierto/i)).toBeVisible({
+      timeout: 15000,
+    });
+  });
 });

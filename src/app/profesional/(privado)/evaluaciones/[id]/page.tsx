@@ -34,7 +34,7 @@ export default async function RevisarEvaluacionPage({
   const { data: asignacion } = await supabase
     .from("assignments")
     .select(
-      "id, status, assessment_id, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos, documento), organizacion:organizations(nombre)",
+      "id, status, assessment_id, habilitado_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos, documento), organizacion:organizations(nombre)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -102,7 +102,10 @@ export default async function RevisarEvaluacionPage({
           .join(" · ")}
       />
 
-      {(decision as string | null) !== "aceptado" ? (
+      {/* Solo cuando ya hay algo que publicar: antes de eso lo dice la propia
+          pantalla de abrir el examen, y repetirlo sería ruido. */}
+      {(decision as string | null) !== "aceptado" &&
+      !["asignada", "en_curso"].includes(asignacion.status) ? (
         <Alert tone="warning" title="Sin consentimiento vigente">
           Esta persona no tiene un consentimiento aceptado para esta evaluación.
           Puedes revisarla, pero no se podrá publicar mientras siga así.
@@ -116,6 +119,8 @@ export default async function RevisarEvaluacionPage({
         valores={valores ?? []}
         notaGlobal={resultado?.nota_global ?? null}
         publicado={resultado?.released_at ?? null}
+        consentimiento={(decision as string | null) ?? null}
+        habilitada={asignacion.habilitado_at !== null}
       />
     </Pantalla>
   );

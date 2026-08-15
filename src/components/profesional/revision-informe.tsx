@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   calificarEvaluacion,
+  habilitarExamen,
   publicarResultado,
   redactarResultado,
 } from "@/lib/evaluaciones/acciones-profesional";
@@ -45,6 +46,8 @@ export function RevisionInforme({
   valores,
   notaGlobal,
   publicado,
+  consentimiento,
+  habilitada,
 }: {
   asignacion: string;
   status: string;
@@ -52,6 +55,8 @@ export function RevisionInforme({
   valores: Valor[];
   notaGlobal: string | null;
   publicado: string | null;
+  consentimiento: string | null;
+  habilitada: boolean;
 }) {
   const [estadoCal, calificar, calificando] = useActionState(
     calificarEvaluacion,
@@ -70,12 +75,28 @@ export function RevisionInforme({
 
   const secciones = [...new Set(parametros.map((p) => p.seccion ?? "otros"))];
 
-  if (["asignada", "en_curso"].includes(status)) {
+  /*
+   * Abrir el examen se hace desde AQUÍ además de desde la sesión.
+   *
+   * Estaba solo en el detalle de la cita, que es donde se asigna, pero no es
+   * donde se mira cuando llega el momento: con la persona delante uno abre su
+   * evaluación, no la agenda. Un botón que existe en un sitio al que no vas es
+   * un botón que no existe.
+   */
+  if (status === "asignada") {
     return (
-      <Alert tone="info" title="Todavía no hay nada que revisar">
-        {status === "asignada"
-          ? "La persona aún no ha empezado la prueba."
-          : "La persona está respondiendo. Cuando envíe, podrás calificarla."}
+      <Abrir
+        asignacion={asignacion}
+        consentimiento={consentimiento}
+        habilitada={habilitada}
+      />
+    );
+  }
+
+  if (status === "en_curso") {
+    return (
+      <Alert tone="info" title="La persona está respondiendo">
+        Cuando envíe sus respuestas podrás calificarlas desde aquí.
       </Alert>
     );
   }
@@ -270,4 +291,75 @@ function titulo(seccion: string) {
   if (seccion === "disc") return "Perfil DISC";
   if (seccion === "dominancia") return "Dominancia cerebral";
   return "Otros apartados";
+}
+
+/**
+ * El paso que va entre el consentimiento y la prueba.
+ *
+ * Nunca ofrece abrir cuando la base lo va a rechazar: sin consentimiento
+ * aceptado dice por qué y no pinta el botón. Un botón que siempre falla enseña
+ * a ignorar los errores, y el error que aquí no hay que ignorar es justo ese.
+ */
+function Abrir({
+  asignacion,
+  consentimiento,
+  habilitada,
+}: {
+  asignacion: string;
+  consentimiento: string | null;
+  habilitada: boolean;
+}) {
+  const [estado, accion, enviando] = useActionState(habilitarExamen, INICIAL);
+
+  if (habilitada) {
+    return (
+      <Alert tone="success" title="El examen está abierto">
+        La persona ya puede empezar desde su cuenta. Cuando envíe sus
+        respuestas, podrás calificarlas aquí.
+      </Alert>
+    );
+  }
+
+  if (consentimiento !== "aceptado") {
+    return (
+      <Alert
+        tone="warning"
+        title={
+          consentimiento === "rechazado"
+            ? "Esta persona se negó a ser evaluada"
+            : "Esperando su consentimiento"
+        }
+      >
+        {consentimiento === "rechazado"
+          ? "Puede cambiar de idea desde su cuenta cuando quiera. Hasta entonces el examen no se abre."
+          : "Todavía no ha respondido al consentimiento. El examen no se abre sin él."}
+      </Alert>
+    );
+  }
+
+  return (
+    <form action={accion} className="flex flex-col gap-3">
+      <input type="hidden" name="asignacion" value={asignacion} />
+
+      <Alert tone="info" title="Consentimiento aceptado">
+        Puedes abrir el examen. Se abre en la sesión, con la persona delante, y
+        a partir de ese momento ella puede responder desde su cuenta.
+      </Alert>
+
+      {estado.mensaje ? (
+        <Alert
+          tone={estado.ok ? "success" : "danger"}
+          title={estado.ok ? "Abierto" : "No se pudo abrir"}
+        >
+          {estado.mensaje}
+        </Alert>
+      ) : null}
+
+      <div>
+        <Button type="submit" disabled={enviando}>
+          {enviando ? "Abriendo…" : "Abrir el examen"}
+        </Button>
+      </div>
+    </form>
+  );
 }
