@@ -50,3 +50,15 @@ next-env.d.ts
 CLAUDE.md
 AGENTS.md
 .claude/
+
+# Herramientas de agente, no del proyecto.
+#
+# Entraron al repositorio por un `git add -A` mío y se quedaron: 321 archivos
+# que no describen esta aplicación ni la hacen funcionar. Se quedan en disco,
+# fuera del historial.
+.agents/
+.codex/
+.github/skills/
+.github/agents/
+.github/hooks/
+skills-lock.json

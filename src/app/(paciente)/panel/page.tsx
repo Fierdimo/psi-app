@@ -35,22 +35,36 @@ export default async function PanelPage() {
   const supabase = await crearClienteServidor();
   const ahoraISO = ahoraEn(zona).toUTC().toISO()!;
 
-  const [{ data: proximas }, { data: pendientes }] = await Promise.all([
-    supabase
-      .from("appointments")
-      .select("*")
-      .is("organization_id", null)
-      .gte("starts_at", ahoraISO)
-      .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
-      .order("starts_at")
-      .limit(1),
-    supabase
-      .from("appointments")
-      .select("*")
-      .is("organization_id", null)
-      .in("status", ["solicitada", "reprogramacion_solicitada"])
-      .order("starts_at"),
-  ]);
+  const [{ data: proximas }, { data: pendientes }, { data: evaluaciones }] =
+    await Promise.all([
+      supabase
+        .from("appointments")
+        .select("*")
+        .is("organization_id", null)
+        .gte("starts_at", ahoraISO)
+        .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
+        .order("starts_at")
+        .limit(1),
+      supabase
+        .from("appointments")
+        .select("*")
+        .is("organization_id", null)
+        .in("status", ["solicitada", "reprogramacion_solicitada"])
+        .order("starts_at"),
+      /*
+       * Las evaluaciones que esperan a la persona.
+       *
+       * Van ARRIBA del todo y no en el mapa de secciones: es lo único de esta
+       * pantalla donde alguien está esperando por ella, y hasta ahora no
+       * aparecía en ningún sitio —la prueba se asignaba y la persona no tenía
+       * cómo llegar—.
+       */
+      supabase
+        .from("assignments")
+        .select("id, status, assessment:assessments(nombre)")
+        .in("status", ["asignada", "en_curso"])
+        .order("assigned_at"),
+    ]);
 
   const proxima = ((proximas ?? []) as Cita[])[0] ?? null;
   const enEspera = (pendientes ?? []) as Cita[];
@@ -62,6 +76,35 @@ export default async function PanelPage() {
         titulo={`Hola, ${perfil.nombre ?? "bienvenido"}`}
         descripcion="Este es tu espacio privado. Solo tú y tu profesional pueden ver lo que hay aquí."
       />
+
+      {(evaluaciones ?? []).length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-h3">Tienes una evaluación pendiente</h2>
+          <ul className="border-line divide-line bg-panel divide-y rounded-lg border">
+            {(evaluaciones ?? []).map((e) => {
+              const prueba = Array.isArray(e.assessment)
+                ? e.assessment[0]
+                : e.assessment;
+
+              return (
+                <li key={e.id}>
+                  <Link
+                    href={`/evaluacion/${e.id}`}
+                    className="hover:bg-accent-soft ease-psi flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150"
+                  >
+                    <span className="text-text-strong flex-1 font-medium">
+                      {prueba?.nombre ?? "Evaluación"}
+                    </span>
+                    <Badge tone="warning">
+                      {e.status === "en_curso" ? "A medias" : "Sin empezar"}
+                    </Badge>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <TarjetaProximaCita cita={proxima} zona={zona} />
 

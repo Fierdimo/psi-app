@@ -151,3 +151,59 @@ test.describe.serial("Invitación a una evaluación", () => {
     expect(invitacion!.accepted_at).not.toBeNull();
   });
 });
+
+test.describe("Mis evaluaciones", () => {
+  /*
+   * La prueba asignada tiene que PODER ENCONTRARSE.
+   *
+   * Lo encontró el cliente: la evaluación se asignaba y en la cuenta de la
+   * persona no aparecía por ningún lado. Existía la pantalla de UNA evaluación
+   * pero nada enlazaba a ella. Una prueba que nadie encuentra es una prueba
+   * que nadie hace.
+   */
+  test("la persona ve su evaluación pendiente y quién la pidió", async ({
+    page,
+  }) => {
+    const db = admin();
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+
+    const { data: persona } = await db
+      .from("organization_people")
+      .select("id, organization_id")
+      .eq("documento", "1047373301")
+      .single();
+
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    await db.from("assignments").insert({
+      assessment_id: prueba!.id,
+      person_id: persona!.id,
+      organization_id: persona!.organization_id,
+      assigned_by: doctor!.id,
+      status: "asignada",
+    });
+
+    await page.goto("/ingresar");
+    await rellenarIngreso(page, CUENTAS.paciente);
+    // Ana es paciente sin consentimiento firmado, así que el ingreso la lleva
+    // al documento clínico. Da igual: sus evaluaciones NO están detrás de él.
+    await page.waitForURL(/consentimiento|panel/, { timeout: 20000 });
+    await page.goto("/evaluacion");
+
+    await expect(
+      page.getByText(/Perfil DISC y dominancia cerebral/i),
+    ).toBeVisible();
+
+    // Quien va a ser evaluado tiene derecho a saber de parte de quién.
+    await expect(page.getByText(/Distribuciones del Caribe/i)).toBeVisible();
+  });
+});

@@ -41,6 +41,9 @@ grant insert, delete on public.organization_people to service_role;
 grant select on public.assessments        to service_role;
 grant select on public.assessment_items   to service_role;
 grant select on public.assessment_texts   to service_role;
+-- La preparación de las pruebas necesita crear una asignación: es lo que
+-- permite comprobar que la persona la encuentra en su cuenta.
+grant select, insert, delete on public.assignments to service_role;
 
 -- -----------------------------------------------------------------------------
 -- Parámetros de la consulta.

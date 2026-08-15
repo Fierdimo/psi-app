@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(16);
+select plan(19);
 
 delete from public.consents;
 delete from public.result_values;
@@ -159,10 +159,34 @@ select is(
 );
 
 select is(
+  (select nombre from public.organizations),
+  'Acme S.A.S',
+  'El evaluado SÍ ve qué empresa pidió evaluarle: tiene derecho a saberlo'
+);
+
+select is(
+  (select count(*)::int from public.assessments),
+  1,
+  'Pero SÍ ve el instrumento que le asignaron: saber a qué te sometes es lo mínimo'
+);
+
+select tests_como(:'ajeno');
+
+select is(
   (select count(*)::int from public.assessments),
   0,
-  'El catálogo de instrumentos no es asunto de quien responde'
+  'Quien no tiene ninguna asignación no ve el catálogo'
 );
+
+select tests_como(:'jefe_globex');
+
+select is(
+  (select count(*)::int from public.assessments),
+  0,
+  'Ni una empresa que no encargó nada con ese instrumento'
+);
+
+select tests_como(:'evaluado');
 
 -- Solo mientras responde.
 select tests_servidor_e();
