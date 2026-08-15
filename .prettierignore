@@ -3,3 +3,8 @@ node_modules
 pnpm-lock.yaml
 docs/design-system.html
 supabase/migrations
+
+# Caché de una herramienta de agente, no código nuestro.
+.impeccable
+.agents
+.codex

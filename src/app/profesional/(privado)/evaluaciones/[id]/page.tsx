@@ -54,24 +54,28 @@ export default async function RevisarEvaluacionPage({
   const quien =
     uno<Persona>(asignacion.persona) ?? uno<Persona>(asignacion.paciente);
 
-  const [{ data: parametros }, { data: valores }, { data: resultado }, { data: decision }] =
-    await Promise.all([
-      supabase
-        .from("assessment_parameters")
-        .select("clave, etiqueta, kind, seccion, computed, admite_nota, posicion")
-        .eq("assessment_id", asignacion.assessment_id)
-        .order("posicion"),
-      supabase
-        .from("result_values")
-        .select("parameter_key, valor, sugerido, nota")
-        .eq("assignment_id", id),
-      supabase
-        .from("results")
-        .select("nota_global, released_at")
-        .eq("assignment_id", id)
-        .maybeSingle(),
-      supabase.rpc("consentimiento_de", { p_assignment: id }),
-    ]);
+  const [
+    { data: parametros },
+    { data: valores },
+    { data: resultado },
+    { data: decision },
+  ] = await Promise.all([
+    supabase
+      .from("assessment_parameters")
+      .select("clave, etiqueta, kind, seccion, computed, admite_nota, posicion")
+      .eq("assessment_id", asignacion.assessment_id)
+      .order("posicion"),
+    supabase
+      .from("result_values")
+      .select("parameter_key, valor, sugerido, nota")
+      .eq("assignment_id", id),
+    supabase
+      .from("results")
+      .select("nota_global, released_at")
+      .eq("assignment_id", id)
+      .maybeSingle(),
+    supabase.rpc("consentimiento_de", { p_assignment: id }),
+  ]);
 
   const nombre = quien
     ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")

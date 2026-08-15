@@ -22,14 +22,16 @@ const ORDEN: Record<string, number> = {
   publicada: 4,
 };
 
-const ETIQUETA: Record<string, { texto: string; tono: "success" | "warning" | "neutral" }> =
-  {
-    enviada: { texto: "Por calificar", tono: "warning" },
-    calificada: { texto: "Por publicar", tono: "warning" },
-    en_curso: { texto: "Respondiendo", tono: "neutral" },
-    asignada: { texto: "Asignada", tono: "neutral" },
-    publicada: { texto: "Publicada", tono: "success" },
-  };
+const ETIQUETA: Record<
+  string,
+  { texto: string; tono: "success" | "warning" | "neutral" }
+> = {
+  enviada: { texto: "Por calificar", tono: "warning" },
+  calificada: { texto: "Por publicar", tono: "warning" },
+  en_curso: { texto: "Respondiendo", tono: "neutral" },
+  asignada: { texto: "Asignada", tono: "neutral" },
+  publicada: { texto: "Publicada", tono: "success" },
+};
 
 export default async function EvaluacionesPage() {
   await exigirProfesional();
