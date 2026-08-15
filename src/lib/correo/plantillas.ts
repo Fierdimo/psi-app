@@ -126,6 +126,68 @@ export function recordatorio(cita: DatosCita, nombre: string | null): Correo {
   };
 }
 
+/*
+ * Avisos a una EMPRESA sobre la sesión que encargó.
+ *
+ * No valen los de arriba: hablan de «tu cita» y de «tu espacio privado», y
+ * quien recibe esto no viene a que le atiendan — manda a varias personas a que
+ * las evalúen. Tampoco se nombra a ninguna de ellas: la empresa ya sabe a
+ * quién convocó, y un asunto con nombres propios acaba reenviado.
+ */
+export function sesionConfirmada(
+  cita: DatosCita,
+  contacto: string | null,
+  cuantos: number,
+): Correo {
+  const saludo = contacto ? `Hola ${contacto}: ` : "";
+  const gente = cuantos === 1 ? "1 persona" : `${cuantos} personas`;
+  return {
+    asunto: `Sesión de evaluación confirmada para el ${fechaLarga(cita.inicioISO, cita.zona)}`,
+    texto: `${saludo}la sesión de evaluación que solicitaron quedó confirmada para ${gente}.\n\n${bloqueDeCita(cita)}\n\nCada persona convocada recibirá su propio enlace para activar su acceso.`,
+    html: envolver(
+      "Sesión de evaluación confirmada",
+      `${saludo}la sesión quedó confirmada para ${gente}. Cada persona convocada recibirá su propio enlace.`,
+      cita,
+    ),
+  };
+}
+
+export function sesionRechazada(
+  cita: DatosCita,
+  contacto: string | null,
+  motivo: string | null,
+): Correo {
+  const saludo = contacto ? `Hola ${contacto}: ` : "";
+  const explicacion = motivo
+    ? `Motivo: ${motivo}`
+    : "Pueden proponer otro horario cuando quieran.";
+  return {
+    asunto: "No pudimos confirmar el horario de la sesión",
+    texto: `${saludo}el horario propuesto para la sesión de evaluación no quedó disponible.\n\n${bloqueDeCita(cita)}\n\n${explicacion}`,
+    html: envolver(
+      "No pudimos confirmar ese horario",
+      `${saludo}el horario propuesto no quedó disponible. ${explicacion}`,
+      cita,
+    ),
+  };
+}
+
+export function sesionCancelada(
+  cita: DatosCita,
+  contacto: string | null,
+): Correo {
+  const saludo = contacto ? `Hola ${contacto}: ` : "";
+  return {
+    asunto: `Se canceló la sesión del ${fechaLarga(cita.inicioISO, cita.zona)}`,
+    texto: `${saludo}la sesión de evaluación quedó cancelada.\n\n${bloqueDeCita(cita)}`,
+    html: envolver(
+      "La sesión fue cancelada",
+      `${saludo}la sesión de evaluación quedó cancelada.`,
+      cita,
+    ),
+  };
+}
+
 /** Aviso al profesional. Aquí sí puede ir el nombre: es su propia agenda. */
 export function nuevaSolicitud(
   cita: DatosCita,

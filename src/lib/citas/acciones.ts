@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirSesion } from "@/lib/auth/perfil";
-import { avisarAlPaciente, avisarAlProfesional } from "@/lib/correo/avisos";
+import { avisarAlTitular, avisarAlProfesional } from "@/lib/correo/avisos";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { erroresDeZod, type EstadoFormulario } from "@/lib/validacion/auth";
 import {
@@ -176,7 +176,7 @@ export async function cancelarCita(
     return { ok: false, mensaje: mensajeDeError(error) };
   }
 
-  await avisarAlPaciente(datos.data.cita, { tipo: "cancelada" });
+  await avisarAlTitular(datos.data.cita, { tipo: "cancelada" });
 
   revalidatePath("/calendario");
   revalidatePath("/panel");

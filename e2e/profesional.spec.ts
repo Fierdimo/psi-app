@@ -201,3 +201,41 @@ test.describe("Pacientes", () => {
     await expect(page.getByText(/notas clínicas no se guardan/i)).toBeVisible();
   });
 });
+
+test.describe("Sesiones de empresa", () => {
+  /*
+   * Confirmar una sesión corporativa reventaba.
+   *
+   * Al hacer `patient_id` opcional para las empresas no se revisó el aviso por
+   * correo, así que el nulo viajaba hasta `getUserById`, que exige un UUID. Lo
+   * encontró el cliente, no las pruebas: las de base no ven el TypeScript y
+   * ninguna e2e confirmaba una sesión de empresa.
+   *
+   * Esta sí. Y comprueba lo que el fallo tapaba: que la empresa recibe aviso.
+   */
+  test("el profesional confirma una sesión de empresa sin que reviente", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.profesional);
+    await page.goto("/profesional/agenda");
+
+    const solicitud = page
+      .locator("article, li")
+      .filter({ hasText: /Distribuciones del Caribe/i })
+      .first();
+
+    await expect(solicitud).toBeVisible();
+    await solicitud.getByRole("button", { name: /confirmar/i }).click();
+
+    // Que no aparezca la pantalla de error de Next, que es lo que veía el
+    // cliente.
+    await expect(page.getByText(/Expected parameter to be UUID/i)).toHaveCount(
+      0,
+    );
+    await expect(page.getByText(/Runtime Error/i)).toHaveCount(0);
+
+    await expect(page.getByText(/confirmad|confirmó/i).first()).toBeVisible({
+      timeout: 15000,
+    });
+  });
+});

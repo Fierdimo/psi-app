@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { avisarAlPaciente } from "@/lib/correo/avisos";
+import { avisarAlTitular } from "@/lib/correo/avisos";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   let enviados = 0;
 
   for (const fila of (pendientes ?? []) as { appointment_id: string }[]) {
-    await avisarAlPaciente(fila.appointment_id, { tipo: "recordatorio" });
+    await avisarAlTitular(fila.appointment_id, { tipo: "recordatorio" });
     // Se marca después de enviar: si algo falla, el siguiente pase reintenta.
     await admin.rpc("marcar_recordatorio_enviado", {
       p_appointment_id: fila.appointment_id,
