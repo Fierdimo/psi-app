@@ -7,6 +7,7 @@ import {
   AccionesCierre,
   AccionesSolicitud,
 } from "@/components/profesional/acciones-solicitud";
+import { AsignarEvaluacion } from "@/components/profesional/asignar-evaluacion";
 import { BotonInvitaciones } from "@/components/profesional/boton-invitaciones";
 import { Convocados } from "@/components/profesional/convocados";
 import { Alert } from "@/components/ui/alert";
@@ -83,6 +84,58 @@ export default async function CitaProfesionalPage({
   const aspecto = ASPECTO[cita.status];
   const ahoraISO = ahoraEn(zona).toUTC().toISO()!;
   const porCerrar = cita.status === "confirmada" && cita.ends_at < ahoraISO;
+
+  /*
+   * Las evaluaciones de la sesión, con el consentimiento de cada persona.
+   *
+   * El consentimiento se pide por asignación y no en bloque porque es lo que
+   * decide si el examen puede abrirse: mostrarlo aquí evita ofrecer un botón
+   * que la base va a rechazar.
+   */
+  const [{ data: instrumentos }, { data: asignadas }] = await Promise.all([
+    supabase
+      .from("assessments")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre"),
+    supabase
+      .from("assignments")
+      .select(
+        "id, status, habilitado_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos)",
+      )
+      .eq("appointment_id", id),
+  ]);
+
+  const asignaciones = await Promise.all(
+    (asignadas ?? []).map(async (a) => {
+      const { data: decision } = await supabase.rpc("consentimiento_de", {
+        p_assignment: a.id,
+      });
+
+      /*
+       * PostgREST devuelve las relaciones embebidas como arreglo aunque sean
+       * de uno. Se normaliza en vez de forzar el tipo: forzarlo compila y
+       * luego da `undefined` en tiempo de ejecución, que es peor que un error.
+       */
+      const uno = <T,>(v: unknown): T | null =>
+        Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
+
+      type Nombre = { nombre: string; apellidos: string | null };
+
+      const quien = uno<Nombre>(a.persona) ?? uno<Nombre>(a.paciente);
+
+      return {
+        id: a.id,
+        status: a.status,
+        habilitado_at: a.habilitado_at,
+        consentimiento: (decision as string | null) ?? null,
+        quien: quien
+          ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")
+          : "Sin nombre",
+        instrumento: uno<{ nombre: string }>(a.assessment)?.nombre ?? "",
+      };
+    }),
+  );
 
   const deEmpresa = esDeEmpresa(cita);
   const convocados = (cita.convocados ?? [])
@@ -187,6 +240,16 @@ export default async function CitaProfesionalPage({
               </p>
             </div>
             <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
+          </div>
+        )}
+
+        {cita.status === "confirmada" && (
+          <div className="border-line border-t pt-5">
+            <AsignarEvaluacion
+              citaId={cita.id}
+              instrumentos={instrumentos ?? []}
+              asignaciones={asignaciones}
+            />
           </div>
         )}
 

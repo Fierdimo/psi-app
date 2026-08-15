@@ -202,7 +202,10 @@ test.describe("Pacientes", () => {
   });
 });
 
-test.describe("Sesiones de empresa", () => {
+/** La sesión corporativa de la siembra. */
+const SESION_DE_EMPRESA = "88888888-0000-4000-8000-0000000000aa";
+
+test.describe.serial("Sesiones de empresa", () => {
   /*
    * Confirmar una sesión corporativa reventaba.
    *
@@ -235,6 +238,42 @@ test.describe("Sesiones de empresa", () => {
     await expect(page.getByText(/Runtime Error/i)).toHaveCount(0);
 
     await expect(page.getByText(/confirmad|confirmó/i).first()).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test("asigna una evaluación una vez y alcanza a todos los convocados", async ({
+    page,
+  }) => {
+    // La prueba anterior de este bloque `serial` ya la confirmó: asignar solo
+    // tiene sentido sobre una sesión que va a ocurrir.
+    await entrarComo(page, CUENTAS.profesional);
+    await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
+
+    await page
+      .getByRole("button", { name: /asignar a los convocados/i })
+      .click();
+
+    // Un acto, dos personas: es el punto entero de asignar por sesión.
+    await expect(page.getByText(/asignada a 2 personas/i)).toBeVisible({
+      timeout: 15000,
+    });
+
+    for (const nombre of ["Ana María Restrepo", "Jorge Salas"]) {
+      await expect(page.getByText(nombre).last()).toBeVisible();
+    }
+
+    // Nadie ha consentido todavía, así que NO se ofrece abrir el examen. Un
+    // botón que siempre falla enseña a ignorar los errores.
+    await expect(
+      page.getByRole("button", { name: /abrir el examen/i }),
+    ).toHaveCount(0);
+
+    // Repetir no duplica.
+    await page
+      .getByRole("button", { name: /asignar a los convocados/i })
+      .click();
+    await expect(page.getByText(/no se duplicó ninguna/i)).toBeVisible({
       timeout: 15000,
     });
   });
