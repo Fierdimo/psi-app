@@ -4,6 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
 
 /** Rutas privadas del paciente. Prefijos. */
+/*
+ * Exige sesión pero NO el consentimiento de atención.
+ *
+ * Quien responde una evaluación que encargó una empresa no está en
+ * tratamiento con nadie: pedirle un documento clínico para entrar sería el
+ * mismo error de categoría que ya costó tres capas (SPEC §9.2).
+ */
+const RUTAS_CON_SESION = ["/evaluacion"];
+
 const RUTAS_PACIENTE = [
   "/panel",
   "/calendario",
@@ -24,8 +33,12 @@ const RUTA_EMPRESA = "/empresa";
 /** Pantallas de entrada. Con sesión activa no tiene sentido volver a ellas. */
 const RUTAS_DE_ENTRADA = ["/ingresar", "/registro", "/profesional"];
 
+const empiezaPor = (pathname: string, rutas: string[]) =>
+  rutas.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
 export function esRutaPrivada(pathname: string) {
   return (
+    empiezaPor(pathname, RUTAS_CON_SESION) ||
     RUTAS_PACIENTE.some(
       (r) => pathname === r || pathname.startsWith(`${r}/`),
     ) ||
@@ -115,7 +128,17 @@ export async function actualizarSesion(request: NextRequest) {
   //
   // Va por rol y no por ruta porque es el rol quien determina si la persona
   // está en posición de otorgarlo.
-  if (user && esRutaPrivada(pathname) && pathname !== "/consentimiento") {
+  /*
+   * El consentimiento de atención se exige al entrar al ESPACIO DE ATENCIÓN,
+   * no por tener sesión. Responder una evaluación encargada por una empresa no
+   * lo es (SPEC §9.2).
+   */
+  const exigeConsentimiento =
+    esRutaPrivada(pathname) &&
+    pathname !== "/consentimiento" &&
+    !empiezaPor(pathname, RUTAS_CON_SESION);
+
+  if (user && exigeConsentimiento) {
     const { data: perfil } = await supabase
       .from("profiles")
       .select("role")

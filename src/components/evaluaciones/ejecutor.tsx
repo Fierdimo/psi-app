@@ -1,0 +1,282 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+
+import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import type { Item } from "@/lib/evaluaciones/motor";
+
+/**
+ * El ejecutor: donde la persona responde.
+ *
+ * Un solo componente dibuja cualquier instrumento, porque los ítems son datos.
+ * Añadir una prueba nueva no debería tocar este archivo salvo que traiga un
+ * TIPO de ítem que no existía.
+ *
+ * Se avanza bloque a bloque y no con las 68 preguntas en una página larga: en
+ * una elección forzada hay que comparar cuatro palabras entre sí, y con seis
+ * bloques a la vista la gente compara con el de al lado.
+ */
+
+interface Props {
+  asignacion: string;
+  items: Item[];
+  respuestas: Record<string, unknown>;
+}
+
+interface Marca {
+  mas?: string;
+  menos?: string;
+}
+
+export function Ejecutor({ asignacion, items, respuestas }: Props) {
+  const [valores, setValores] = useState<Record<string, unknown>>(respuestas);
+  const [indice, setIndice] = useState(() => {
+    // Se retoma donde se quedó. Si hubo una caída, volver a empezar sería
+    // castigar a la persona por un fallo nuestro.
+    const primeraSin = items.findIndex((i) => respuestas[i.id] === undefined);
+    return primeraSin === -1 ? items.length - 1 : primeraSin;
+  });
+  const [fallo, setFallo] = useState<string | null>(null);
+  const [enviando, iniciarEnvio] = useTransition();
+
+  const item = items[indice];
+
+  const respondidos = useMemo(
+    () => items.filter((i) => valores[i.id] !== undefined).length,
+    [items, valores],
+  );
+
+  const completo = respondidos === items.length;
+
+  function guardar(valor: unknown) {
+    setValores((previos) => ({ ...previos, [item.id]: valor }));
+    setFallo(null);
+
+    // Se guarda en cuanto se marca. La pantalla no espera al servidor: si algo
+    // falla se avisa, pero la persona no se queda mirando un reloj en cada
+    // una de las 68 preguntas.
+    responder(asignacion, item.id, valor).then((r) => {
+      if (!r.ok) {
+        setFallo(
+          r.mensaje ??
+            "No pudimos guardar esa respuesta. Revisa tu conexión y vuelve a marcarla.",
+        );
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Progreso hechos={respondidos} total={items.length} />
+
+      {fallo ? (
+        <Alert tone="danger" title="No se guardó tu última respuesta">
+          {fallo}
+        </Alert>
+      ) : null}
+
+      <div className="border-border bg-surface rounded-xl border p-6">
+        <p className="text-muted text-sm">
+          {indice + 1} de {items.length}
+        </p>
+        <h2 className="text-fg mt-1 text-lg font-semibold">{item.enunciado}</h2>
+
+        <div className="mt-5">
+          {item.tipo === "forced_choice" ? (
+            <EleccionForzada
+              item={item}
+              valor={(valores[item.id] ?? {}) as Marca}
+              onCambio={guardar}
+            />
+          ) : item.tipo === "likert" ? (
+            <Likert
+              item={item}
+              valor={valores[item.id] as number | undefined}
+              onCambio={guardar}
+            />
+          ) : (
+            <Alert
+              tone="warning"
+              title="Este tipo de pregunta aún no se dibuja"
+            >
+              Avísale al profesional: la prueba tiene un ítem de tipo «
+              {item.tipo}» que esta pantalla no sabe mostrar.
+            </Alert>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          variant="secondary"
+          disabled={indice === 0}
+          onClick={() => setIndice((n) => Math.max(0, n - 1))}
+        >
+          Anterior
+        </Button>
+
+        {indice < items.length - 1 ? (
+          <Button onClick={() => setIndice((n) => n + 1)}>Siguiente</Button>
+        ) : (
+          <form
+            action={(formData) =>
+              iniciarEnvio(
+                () =>
+                  enviarPrueba({ ok: false, mensaje: "" }, formData) as never,
+              )
+            }
+          >
+            <input type="hidden" name="asignacion" value={asignacion} />
+            <Button type="submit" disabled={!completo || enviando}>
+              {enviando ? "Enviando…" : "Terminar y enviar"}
+            </Button>
+          </form>
+        )}
+      </div>
+
+      {!completo && indice === items.length - 1 ? (
+        <Alert tone="info" title="Te faltan respuestas">
+          Has respondido {respondidos} de {items.length}. Usa «Anterior» para
+          volver a las que quedaron en blanco; el botón de enviar se activa
+          cuando estén todas.
+        </Alert>
+      ) : null}
+    </div>
+  );
+}
+
+function Progreso({ hechos, total }: { hechos: number; total: number }) {
+  const porcentaje = Math.round((hechos / total) * 100);
+  return (
+    <div>
+      <div className="text-muted flex justify-between text-sm">
+        <span>
+          {hechos} de {total} respondidas
+        </span>
+        <span>{porcentaje}%</span>
+      </div>
+      <div
+        className="bg-border mt-2 h-2 overflow-hidden rounded-full"
+        role="progressbar"
+        aria-valuenow={porcentaje}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Progreso de la prueba"
+      >
+        <div
+          className="bg-primary h-full transition-all"
+          style={{ width: `${porcentaje}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Elegir la que MÁS y la que MENOS describe.
+ *
+ * La misma opción no puede ser las dos cosas: marcar «más» donde ya estaba
+ * «menos» libera la otra en vez de dejar un estado imposible que la persona
+ * tendría que deshacer a mano.
+ */
+function EleccionForzada({
+  item,
+  valor,
+  onCambio,
+}: {
+  item: Item;
+  valor: Marca;
+  onCambio: (v: Marca) => void;
+}) {
+  function marcar(columna: "mas" | "menos", id: string) {
+    const otra = columna === "mas" ? "menos" : "mas";
+    const siguiente: Marca = { ...valor, [columna]: id };
+    if (siguiente[otra] === id) delete siguiente[otra];
+    onCambio(siguiente);
+  }
+
+  return (
+    <>
+      {/*
+        La instrucción va en cada bloque, no una vez al principio.
+        Son 28 pantallas iguales: quien llegue a la novena no va a recordar
+        una frase que leyó al empezar, y equivocarse de columna le cambia el
+        perfil.
+      */}
+      <p className="text-muted mb-4 text-sm">
+        De estas cuatro, marca la que <strong className="text-fg">más</strong>{" "}
+        te describe y la que <strong className="text-fg">menos</strong>. No hay
+        respuestas buenas ni malas.
+      </p>
+
+      <table className="w-full">
+        <thead>
+          <tr className="text-muted text-sm">
+            <th className="pb-2 text-left font-medium">Opción</th>
+            <th className="w-20 pb-2 font-medium">Más</th>
+            <th className="w-20 pb-2 font-medium">Menos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {item.opciones.map((opcion) => (
+            <tr key={opcion.id} className="border-border border-t">
+              <td className="text-fg py-3">{opcion.texto}</td>
+              {(["mas", "menos"] as const).map((columna) => (
+                <td key={columna} className="py-3 text-center">
+                  <input
+                    type="radio"
+                    name={`${item.id}-${columna}`}
+                    checked={valor[columna] === opcion.id}
+                    onChange={() => marcar(columna, opcion.id)}
+                    aria-label={`${opcion.texto}: la que ${columna === "mas" ? "más" : "menos"} me describe`}
+                    className="accent-primary size-5"
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+function Likert({
+  item,
+  valor,
+  onCambio,
+}: {
+  item: Item;
+  valor: number | undefined;
+  onCambio: (v: number) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="text-muted mb-3 text-sm">
+        1 es «no me describe» y 5 es «me describe del todo».
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <label
+            key={n}
+            className={`border-border flex size-12 cursor-pointer items-center justify-center rounded-lg border text-base font-medium ${
+              valor === n ? "bg-primary text-on-primary" : "bg-surface text-fg"
+            }`}
+          >
+            <input
+              type="radio"
+              name={item.id}
+              value={n}
+              checked={valor === n}
+              onChange={() => onCambio(n)}
+              className="sr-only"
+            />
+            {n}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
