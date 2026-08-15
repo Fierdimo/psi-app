@@ -6,6 +6,9 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Node ejecuta las pruebas del motor sin empaquetador y exige la
+    // extensión explícita en el import. Con `noEmit` no hay conflicto.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
