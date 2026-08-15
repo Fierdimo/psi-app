@@ -1,12 +1,4 @@
-import Link from "next/link";
-
-import { Brand } from "@/components/marca/brand";
-import {
-  BarraInferior,
-  BarraLateral,
-} from "@/components/navegacion/nav-privada";
-import { Button } from "@/components/ui/button";
-import { cerrarSesion } from "@/lib/auth/acciones";
+import { ArmazonPrivado } from "@/components/navegacion/armazon-privado";
 import { exigirSesion } from "@/lib/auth/perfil";
 
 /**
@@ -16,42 +8,16 @@ import { exigirSesion } from "@/lib/auth/perfil";
  * barrera: la primera es el proxy, que además garantiza que la URL coincida con
  * lo que se ve.
  *
- * Barra lateral en escritorio, barra inferior en móvil. Densidad baja y una
- * cosa a la vez: quien entra aquí no es un operador de un panel de control.
+ * El armazón vive aparte porque `/evaluacion` lo necesita igual pero NO puede
+ * exigir el consentimiento de atención: quien responde una prueba que encargó
+ * una empresa no está en tratamiento con nadie.
  */
 export default async function LayoutPaciente({ children }: LayoutProps<"/">) {
   const perfil = await exigirSesion();
-  const nombreCorto = perfil.nombre ?? "Tu espacio";
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="border-line bg-panel sticky top-0 z-20 h-[var(--alto-cabecera)] border-b">
-        <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/panel" className="rounded-md">
-            <Brand size="sm" />
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <span className="text-text-muted hidden text-sm sm:inline">
-              {nombreCorto}
-            </span>
-            <form action={cerrarSesion}>
-              <Button type="submit" variant="ghost" size="sm">
-                Cerrar sesión
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto flex w-full max-w-[1280px] flex-1">
-        <BarraLateral />
-        <main id="contenido" className="min-w-0 flex-1">
-          {children}
-        </main>
-      </div>
-
-      <BarraInferior />
-    </div>
+    <ArmazonPrivado nombre={perfil.nombre ?? "Tu espacio"}>
+      {children}
+    </ArmazonPrivado>
   );
 }

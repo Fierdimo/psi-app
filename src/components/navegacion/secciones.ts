@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   Home,
@@ -34,6 +35,16 @@ export const SECCIONES: readonly Seccion[] = [
     etiqueta: "Calendario",
     icono: CalendarDays,
     principal: true,
+  },
+  /*
+   * Va antes que «Resultados» a propósito: primero lo que hay que hacer,
+   * después lo que hay que leer. Y no lleva `placeholder` porque, a diferencia
+   * de las de abajo, esta sección ya funciona.
+   */
+  {
+    href: "/evaluacion",
+    etiqueta: "Mis evaluaciones",
+    icono: ClipboardCheck,
   },
   {
     href: "/resultados",
