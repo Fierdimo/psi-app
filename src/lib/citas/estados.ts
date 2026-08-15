@@ -62,6 +62,21 @@ export function nombrePaciente(cita: CitaConPaciente) {
 }
 
 /** ¿Es una sesión que encargó una empresa? */
+/**
+ * Todo lo que una cita necesita para dibujarse, en una sola consulta.
+ *
+ * Para una cita individual importa el paciente; para una sesión de evaluación
+ * importan la empresa que la encargó y a quiénes convocó. Traer ambas cosas
+ * siempre evita una segunda consulta por fila, que con quince sesiones en
+ * pantalla serían quince viajes.
+ */
+export const SELECT_DE_CITA = [
+  "*",
+  "paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
+  "organizacion:organizations(nombre)",
+  "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo))",
+].join(", ");
+
 export function esDeEmpresa(cita: CitaConPaciente) {
   return cita.organization_id !== null;
 }

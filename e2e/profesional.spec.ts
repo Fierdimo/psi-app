@@ -220,7 +220,9 @@ test.describe.serial("Sesiones de empresa", () => {
     page,
   }) => {
     await entrarComo(page, CUENTAS.profesional);
-    await page.goto("/profesional/agenda");
+
+    // Desde su propia entrada del menú, no rebuscando en el calendario.
+    await page.goto("/profesional/solicitudes");
 
     const solicitud = page
       .locator("article, li")
@@ -228,6 +230,11 @@ test.describe.serial("Sesiones de empresa", () => {
       .first();
 
     await expect(solicitud).toBeVisible();
+
+    // Una sesión de empresa se encabeza con la EMPRESA. Antes salía como un
+    // paciente sin nombre, porque el calendario usaba el ayudante equivocado.
+    await expect(page.getByText(/Sin nombre/i)).toHaveCount(0);
+
     await solicitud.getByRole("button", { name: /confirmar/i }).click();
 
     // Que no aparezca la pantalla de error de Next, que es lo que veía el

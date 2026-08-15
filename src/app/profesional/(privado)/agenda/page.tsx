@@ -10,7 +10,11 @@ import { BandejaSolicitudes } from "@/components/profesional/bandeja-solicitudes
 import { Alert } from "@/components/ui/alert";
 import { buttonVariants } from "@/components/ui/button";
 import { exigirProfesional } from "@/lib/auth/perfil";
-import { nombrePaciente, type CitaConPaciente } from "@/lib/citas/estados";
+import {
+  SELECT_DE_CITA,
+  titularDeCita,
+  type CitaConPaciente,
+} from "@/lib/citas/estados";
 import {
   ahoraEn,
   esVista,
@@ -25,21 +29,6 @@ export const metadata: Metadata = {
   title: "Agenda",
   robots: { index: false, follow: false },
 };
-
-/*
- * Trae la cita con todo lo que la bandeja necesita, en una sola consulta.
- *
- * Para una cita individual importa el paciente; para una sesión de evaluación
- * importan la empresa que la encargó y a quiénes convocó. Traer ambas cosas
- * siempre evita una segunda consulta por fila, que con quince sesiones en
- * pantalla serían quince viajes.
- */
-const SELECT_CON_PACIENTE = [
-  "*",
-  "paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
-  "organizacion:organizations(nombre)",
-  "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo))",
-].join(", ");
 
 export default async function AgendaPage({
   searchParams,
@@ -63,13 +52,13 @@ export default async function AgendaPage({
   const [{ data: delPeriodo }, { data: pendientes }] = await Promise.all([
     supabase
       .from("appointments")
-      .select(SELECT_CON_PACIENTE)
+      .select(SELECT_DE_CITA)
       .gte("starts_at", intervalo.start!.toUTC().toISO()!)
       .lte("starts_at", intervalo.end!.toUTC().toISO()!)
       .order("starts_at"),
     supabase
       .from("appointments")
-      .select(SELECT_CON_PACIENTE)
+      .select(SELECT_DE_CITA)
       .in("status", ["solicitada", "reprogramacion_solicitada"])
       .order("starts_at"),
   ]);
@@ -137,7 +126,7 @@ export default async function AgendaPage({
                   referencia={referencia}
                   citas={citas}
                   zona={zona}
-                  etiquetaDeCita={nombrePaciente}
+                  etiquetaDeCita={titularDeCita}
                   base="/profesional/citas"
                   rutaVista="/profesional/agenda"
                 />
@@ -154,7 +143,7 @@ export default async function AgendaPage({
             referencia={referencia}
             citas={citas}
             zona={zona}
-            etiquetaDeCita={nombrePaciente}
+            etiquetaDeCita={titularDeCita}
             base="/profesional/citas"
           />
         )}
@@ -166,7 +155,7 @@ export default async function AgendaPage({
               citas={citas}
               zona={zona}
               dias={1}
-              etiquetaDeCita={nombrePaciente}
+              etiquetaDeCita={titularDeCita}
               base="/profesional/citas"
             />
             <AgendaLista citas={citas} zona={zona} ahoraISO={ahoraISO} />

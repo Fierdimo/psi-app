@@ -28,9 +28,12 @@ import {
 export function BandejaSolicitudes({
   solicitudes,
   zona,
+  /** En su propia pantalla el título ya lo pone el encabezado de la página. */
+  sinEncabezado = false,
 }: {
   solicitudes: CitaConPaciente[];
   zona: string;
+  sinEncabezado?: boolean;
 }) {
   if (solicitudes.length === 0) {
     return (
@@ -45,7 +48,11 @@ export function BandejaSolicitudes({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-h3">Solicitudes pendientes ({solicitudes.length})</h2>
+      {sinEncabezado ? null : (
+        <h2 className="text-h3">
+          Solicitudes pendientes ({solicitudes.length})
+        </h2>
+      )}
 
       <ul className="flex flex-col gap-3">
         {solicitudes.map((cita) => {

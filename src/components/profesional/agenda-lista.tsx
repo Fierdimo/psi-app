@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ASPECTO,
   MODALIDAD,
-  nombrePaciente,
+  titularDeCita,
   type CitaConPaciente,
 } from "@/lib/citas/estados";
 import { capitalizar, enZona, rangoHorario } from "@/lib/fechas/formato";
@@ -14,7 +14,8 @@ import { capitalizar, enZona, rangoHorario } from "@/lib/fechas/formato";
  * Lista de la agenda, agrupada por día.
  *
  * Más densa que la agenda del paciente —es una herramienta de trabajo— y con
- * el nombre del paciente como dato principal: el profesional sabe la hora, lo
+ * el nombre de QUIEN PIDIÓ la cita como dato principal —la persona, o la
+ * empresa si la sesión es suya—: el profesional sabe la hora, lo
  * que necesita saber es con quién.
  *
  * Las citas confirmadas ya pasadas muestran el cierre en línea. Obligar a
@@ -73,7 +74,7 @@ export function AgendaLista({
                     href={`/profesional/pacientes/${cita.patient_id}`}
                     className="text-text-strong hover:text-accent min-w-0 flex-1 truncate font-medium"
                   >
-                    {nombrePaciente(cita)}
+                    {titularDeCita(cita)}
                   </Link>
 
                   <span className="text-text-muted text-sm">

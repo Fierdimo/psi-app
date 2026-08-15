@@ -3,6 +3,7 @@
 import {
   Building2,
   CalendarDays,
+  Inbox,
   ClipboardList,
   FileText,
   Settings,
@@ -27,6 +28,18 @@ import { cn } from "@/lib/utils";
  */
 const SECCIONES = [
   { href: "/profesional/agenda", etiqueta: "Agenda", icono: CalendarDays },
+  /*
+   * Lo que espera una decisión, en su propia entrada.
+   *
+   * Estaba dentro de la agenda, debajo del calendario. Confirmar la solicitud
+   * de una empresa obligaba a entrar a una pantalla de otra cosa y buscar: es
+   * la acción más frecuente del día y estaba a dos saltos de distancia.
+   */
+  {
+    href: "/profesional/solicitudes",
+    etiqueta: "Solicitudes",
+    icono: Inbox,
+  },
   { href: "/profesional/pacientes", etiqueta: "Pacientes", icono: Users },
   { href: "/profesional/empresas", etiqueta: "Empresas", icono: Building2 },
   {
