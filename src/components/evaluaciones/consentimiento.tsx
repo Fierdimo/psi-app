@@ -63,7 +63,13 @@ export function Consentimiento({
           <p>
             <strong className="text-fg">Tu participación es voluntaria.</strong>{" "}
             Puedes negarte ahora, o aceptar ahora y retirar tu consentimiento
-            más adelante. Si lo retiras, tu informe no se publica.
+            más adelante. Si lo retiras, tu informe no se publica. Y si vuelves
+            a cambiar de idea, puedes aceptar otra vez: esta decisión no se
+            agota.
+          </p>
+          <p>
+            También puedes cerrar esta página sin responder y volver cuando
+            quieras. No pasa nada y nadie recibe aviso.
           </p>
         </div>
 

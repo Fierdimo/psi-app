@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -80,6 +81,20 @@ export default async function EvaluacionPage({
 
   return (
     <Pantalla>
+      {/*
+        Una salida, siempre visible.
+        La pantalla ocupaba la ventana entera sin forma de volver, y eso en una
+        página que pide consentimiento no es un descuido de diseño: quien se
+        siente encerrado firma por salir. Poder irse es parte de que la
+        decisión sea libre.
+      */}
+      <Link
+        href="/evaluacion"
+        className="text-text-muted hover:text-text-strong text-sm"
+      >
+        ← Volver a mis evaluaciones
+      </Link>
+
       <EncabezadoPagina
         titulo={prueba?.nombre ?? "Tu evaluación"}
         descripcion={prueba?.descripcion ?? undefined}

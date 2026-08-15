@@ -13,7 +13,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(23);
+select plan(26);
 
 delete from public.consents;
 delete from public.result_values;
@@ -178,6 +178,29 @@ select is(
   (select count(*)::int from public.consents),
   2,
   'Y el rechazo se conserva: que constara que pudo negarse es lo que hace válido que aceptara'
+);
+
+-- =============================================================================
+-- Y OTRA VEZ, LAS QUE HAGA FALTA
+--
+-- Lo encontró el cliente: aceptar, retirar y volver a aceptar reventaba con
+-- «duplicate key value violates consents_aceptacion_unica». La persona podía
+-- retirar su consentimiento UNA vez y quedarse sin poder volver atrás.
+-- =============================================================================
+select lives_ok(
+  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''rechazado'')',
+  'Retira su consentimiento por segunda vez'
+);
+
+select lives_ok(
+  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''aceptado'')',
+  'Y vuelve a aceptar: negarse nunca cierra la puerta'
+);
+
+select is(
+  public.consentimiento_de((select id from public.assignments limit 1)),
+  'aceptado',
+  'Manda la última decisión, por muchas vueltas que haya dado'
 );
 
 -- =============================================================================
