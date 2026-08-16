@@ -199,12 +199,19 @@ test.describe("Mis evaluaciones", () => {
     await page.waitForURL(/consentimiento|panel/, { timeout: 20000 });
     await page.goto("/evaluacion");
 
+    /*
+     * `.first()` porque otras pruebas dejan a Ana con más de una evaluación.
+     * Es la cuarta vez que un localizador sin acotar se rompe al crecer los
+     * datos: en una base compartida, «el único» dura poco.
+     */
     await expect(
-      page.getByText(/Perfil DISC y dominancia cerebral/i),
+      page.getByText(/Perfil DISC y dominancia cerebral/i).first(),
     ).toBeVisible();
 
     // Quien va a ser evaluado tiene derecho a saber de parte de quién.
-    await expect(page.getByText(/Distribuciones del Caribe/i)).toBeVisible();
+    await expect(
+      page.getByText(/Distribuciones del Caribe/i).first(),
+    ).toBeVisible();
   });
 });
 

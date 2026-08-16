@@ -168,4 +168,74 @@ test.describe.serial("Área de empresa", () => {
       page.getByRole("button", { name: /enviar solicitud/i }),
     ).toBeInViewport();
   });
+
+  test("los informes se ven cuando el profesional los firma", async ({
+    page,
+  }) => {
+    const db = admin();
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+    const { data: persona } = await db
+      .from("organization_people")
+      .select("id, organization_id")
+      .eq("documento", "1047373301")
+      .single();
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    const { data: asignacion } = await db
+      .from("assignments")
+      .insert({
+        assessment_id: prueba!.id,
+        person_id: persona!.id,
+        organization_id: persona!.organization_id,
+        assigned_by: doctor!.id,
+        status: "enviada",
+      })
+      .select("id")
+      .single();
+
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/informes");
+
+    /*
+     * Sin firmar NO hay enlace, y se dice en qué punto está. Un enlace que
+     * lleva a una pantalla vacía se prueba dos veces antes de creérselo.
+     */
+    await expect(page.getByText(/en revisión/i)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Ana María Restrepo/i }),
+    ).toHaveCount(0);
+
+    // El profesional firma.
+    await db
+      .from("assignments")
+      .update({ status: "publicada" })
+      .eq("id", asignacion!.id);
+    await db.from("results").insert({
+      assignment_id: asignacion!.id,
+      released_at: new Date().toISOString(),
+      nota_global: "Apto para el cargo.",
+    });
+    await db.from("result_values").insert({
+      assignment_id: asignacion!.id,
+      parameter_key: "D",
+      valor: 3,
+      sugerido: "Asertividad situacional baja.",
+    });
+
+    await page.reload();
+    await page.getByRole("link", { name: /Ana María Restrepo/i }).click();
+
+    // El informe completo, que es lo que la empresa encargó.
+    await expect(page.getByText(/Apto para el cargo/)).toBeVisible();
+    await expect(page.getByText(/Asertividad situacional baja/)).toBeVisible();
+  });
 });

@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(19);
+select plan(20);
 
 delete from public.consents;
 delete from public.result_values;
@@ -231,6 +231,14 @@ select is(
   (select count(*)::int from public.responses),
   0,
   'Pero la empresa NO ve la hoja de respuestas: contrató un informe'
+);
+
+-- Y ve las ETIQUETAS, que es lo que hace legible el informe: sin ellas llega
+-- una lista de claves —«D», «cuadrante_a»— sin nada que diga qué son.
+select is(
+  (select count(*)::int from public.assessment_parameters),
+  1,
+  'La empresa ve los parámetros del informe que encargó'
 );
 
 -- =============================================================================

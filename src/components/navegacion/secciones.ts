@@ -128,7 +128,6 @@ export const SECCIONES_EMPRESA: readonly Seccion[] = [
     href: "/empresa/informes",
     etiqueta: "Informes",
     icono: ClipboardList,
-    placeholder: true,
   },
   {
     href: "/empresa/facturacion",
