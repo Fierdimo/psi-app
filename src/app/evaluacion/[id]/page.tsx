@@ -9,6 +9,11 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { Consentimiento } from "@/components/evaluaciones/consentimiento";
+import {
+  Informe,
+  type ParametroInforme,
+  type ValorInforme,
+} from "@/components/evaluaciones/informe";
 import { obtenerPerfil } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { Item } from "@/lib/evaluaciones/motor";
@@ -70,6 +75,27 @@ export default async function EvaluacionPage({
         .order("posicion")
     : { data: null };
 
+  const publicada = asignacion.status === "publicada";
+
+  const [{ data: parametros }, { data: valores }, { data: resultado }] =
+    publicada
+      ? await Promise.all([
+          supabase
+            .from("assessment_parameters")
+            .select("clave, etiqueta, kind, seccion")
+            .order("posicion"),
+          supabase
+            .from("result_values")
+            .select("parameter_key, valor, sugerido, nota")
+            .eq("assignment_id", id),
+          supabase
+            .from("results")
+            .select("nota_global")
+            .eq("assignment_id", id)
+            .maybeSingle(),
+        ])
+      : [{ data: null }, { data: null }, { data: null }];
+
   const { data: respuestas } = enCurso
     ? await supabase
         .from("responses")
@@ -103,10 +129,12 @@ export default async function EvaluacionPage({
           Ya no tienes que hacer nada más. El profesional revisa los resultados
           antes de que estén disponibles: no son automáticos, y por eso tardan.
         </Alert>
-      ) : asignacion.status === "publicada" ? (
-        <Alert tone="success" title="Tu informe ya está disponible">
-          Puedes consultarlo en tu sección de resultados.
-        </Alert>
+      ) : publicada ? (
+        <Informe
+          parametros={(parametros ?? []) as ParametroInforme[]}
+          valores={(valores ?? []) as ValorInforme[]}
+          notaGlobal={resultado?.nota_global ?? null}
+        />
       ) : ["enviada", "calificada"].includes(asignacion.status) ? (
         <Alert tone="info" title="Tus respuestas están enviadas">
           El profesional las está revisando. Cuando termine, tu informe

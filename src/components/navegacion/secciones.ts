@@ -2,7 +2,6 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardCheck,
-  ClipboardList,
   FileText,
   Home,
   NotebookPen,
@@ -37,20 +36,16 @@ export const SECCIONES: readonly Seccion[] = [
     principal: true,
   },
   /*
-   * Va antes que «Resultados» a propósito: primero lo que hay que hacer,
-   * después lo que hay que leer. Y no lleva `placeholder` porque, a diferencia
-   * de las de abajo, esta sección ya funciona.
+   * Aquí vive TODO lo de una evaluación: la que hay que responder y la ya
+   * revisada. Hubo una sección «Resultados» aparte y se quitó — era la misma
+   * cosa en dos sitios, y partirla hacía perder el hilo de dónde estaba lo que
+   * uno había respondido. La misma fila pasa de «en revisión» a «resultados
+   * listos» y se abre para leerla.
    */
   {
     href: "/evaluacion",
     etiqueta: "Mis evaluaciones",
     icono: ClipboardCheck,
-  },
-  {
-    href: "/resultados",
-    etiqueta: "Resultados",
-    icono: ClipboardList,
-    placeholder: true,
   },
   {
     href: "/sesiones",

@@ -13,7 +13,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(26);
+select plan(25);
 
 delete from public.consents;
 delete from public.result_values;

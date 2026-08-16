@@ -1,28 +1,13 @@
-import { ClipboardList } from "lucide-react";
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import {
-  EncabezadoPagina,
-  Pantalla,
-} from "@/components/navegacion/encabezado-pagina";
-import { EstadoVacio } from "@/components/ui/estado-vacio";
-
-export const metadata: Metadata = { title: "Resultados" };
-
+/**
+ * La sección «Resultados» dejó de existir.
+ *
+ * Un informe se lee dentro de su evaluación: es la misma cosa en dos momentos
+ * y tenerla en dos sitios hacía perder el hilo de dónde estaba lo que uno
+ * había respondido. La ruta se conserva redirigiendo porque puede estar en un
+ * correo o en un marcador de alguien.
+ */
 export default function ResultadosPage() {
-  return (
-    <Pantalla>
-      <EncabezadoPagina
-        titulo="Resultados de evaluaciones"
-        descripcion="Las evaluaciones que tu profesional te asigne y sus resultados."
-      />
-      <EstadoVacio
-        icono={ClipboardList}
-        titulo="Todavía no hay evaluaciones"
-        descripcion="Aquí aparecerán las evaluaciones que tu profesional te asigne. Los resultados se comparten una vez revisados con él, porque una puntuación sin interpretación puede confundir más que ayudar."
-        proximamente
-        enlace={{ href: "/calendario", texto: "Ver mi calendario" }}
-      />
-    </Pantalla>
-  );
+  redirect("/evaluacion");
 }

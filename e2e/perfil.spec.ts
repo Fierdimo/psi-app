@@ -13,7 +13,7 @@ test.describe.serial("Navegación privada", () => {
 
     const secciones: [string, RegExp][] = [
       ["/calendario", /tu calendario/i],
-      ["/resultados", /resultados de evaluaciones/i],
+      ["/evaluacion", /mis evaluaciones/i],
       ["/sesiones", /mis sesiones/i],
       ["/recursos", /recursos y tareas/i],
       ["/documentos", /documentos/i],
@@ -26,6 +26,14 @@ test.describe.serial("Navegación privada", () => {
         page.getByRole("heading", { level: 1, name: titulo }),
       ).toBeVisible();
     }
+
+    /*
+     * «Resultados» dejó de ser una sección: un informe se lee dentro de su
+     * evaluación. La ruta se conserva redirigiendo porque puede estar en un
+     * correo o en el marcador de alguien.
+     */
+    await page.goto("/resultados");
+    await expect(page).toHaveURL(/\/evaluacion$/);
   });
 
   test("la barra lateral no se mueve al desplazar una página larga", async ({
