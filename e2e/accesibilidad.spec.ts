@@ -59,7 +59,7 @@ test.describe.serial("Accesibilidad · área del paciente", () => {
       "/calendario",
       "/calendario?vista=agenda",
       "/calendario?vista=semana",
-      "/calendario/solicitar",
+      "/solicitar-cita",
       "/mis-datos",
       "/documentos",
     ]) {

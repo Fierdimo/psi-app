@@ -321,3 +321,16 @@ Mientras tanto la plataforma usa los valores de `clinic_settings`: 60 minutos,
   `clinic_settings`. Se parametriza cuando el profesional defina la suya.
 - No hay servicio de errores conectado (Sentry o equivalente). Los fallos se
   ven en los registros del servidor.
+
+## Después de correr las pruebas end-to-end
+
+`pnpm test:e2e` **reemplaza las citas de la siembra por las suyas**: una prueba
+necesita un punto de partida fijo, así que su preparación borra y vuelve a
+crear. Al terminar, la agenda del entorno de desarrollo queda con esas citas
+—van marcadas con una nota que lo dice— y no con las del `seed.sql`.
+
+Para recuperar la siembra:
+
+```bash
+pnpm db:reset
+```

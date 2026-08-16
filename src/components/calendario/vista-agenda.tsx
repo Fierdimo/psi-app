@@ -42,7 +42,7 @@ export function VistaAgenda({
         icono={CalendarPlus}
         titulo="No tienes citas programadas"
         descripcion="Cuando solicites una cita o tu profesional te asigne una, aparecerá aquí con su estado."
-        enlace={{ href: "/calendario/solicitar", texto: "Solicitar una cita" }}
+        enlace={{ href: "/solicitar-cita", texto: "Solicitar una cita" }}
       />
     );
   }

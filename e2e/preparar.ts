@@ -100,11 +100,23 @@ export default async function preparar() {
     }
   }
 
+  /*
+   * Las citas de prueba se marcan como tales.
+   *
+   * Esta preparación BORRA las citas de la siembra y pone las suyas, porque
+   * una prueba necesita un punto de partida fijo. El efecto de lado es que,
+   * al terminar, la agenda del entorno de desarrollo se queda con datos de
+   * prueba y parecen reales — alguien las mira y se pregunta de dónde salen.
+   *
+   * La nota lo dice en la propia pantalla. Y para recuperar la siembra basta
+   * `pnpm db:reset`.
+   */
   const { error: errorCitas } = await admin.from("appointments").insert(
     CITAS_DE_PRUEBA.map((cita) => ({
       ...cita,
       professional_id: PROFESIONAL,
       created_by: cita.created_by ?? PROFESIONAL,
+      patient_note: NOTA_DE_PRUEBA,
     })),
   );
 
@@ -112,6 +124,10 @@ export default async function preparar() {
     throw new Error(`No se pudieron sembrar citas: ${errorCitas.message}`);
   }
 }
+
+/** Va en la propia cita para que nadie la confunda con un dato real. */
+const NOTA_DE_PRUEBA =
+  "Cita creada por las pruebas automáticas. «pnpm db:reset» devuelve la siembra.";
 
 const PROFESIONAL = "33333333-3333-3333-3333-333333333333";
 const ANA = "11111111-1111-1111-1111-111111111111";

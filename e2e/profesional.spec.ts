@@ -31,7 +31,7 @@ async function asegurarSolicitudPendiente(
   dias = 15,
 ) {
   await entrarComo(page, cuenta);
-  await page.goto("/calendario/solicitar");
+  await page.goto("/solicitar-cita");
 
   const yaTiene = page.getByText(/ya tienes una solicitud pendiente/i);
   if (await yaTiene.isVisible().catch(() => false)) return;

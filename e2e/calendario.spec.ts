@@ -76,7 +76,7 @@ test.describe.serial("Solicitar una cita", () => {
     page,
   }) => {
     await entrarComo(page, CUENTAS.otroPaciente);
-    await page.goto("/calendario/solicitar");
+    await page.goto("/solicitar-cita");
 
     await page.getByLabel("Día").fill(enDias(10));
     await page.getByLabel("Hora de inicio").selectOption("11:00");
@@ -98,7 +98,7 @@ test.describe.serial("Solicitar una cita", () => {
 
   test("no deja acumular dos solicitudes pendientes", async ({ page }) => {
     await entrarComo(page, CUENTAS.otroPaciente);
-    await page.goto("/calendario/solicitar");
+    await page.goto("/solicitar-cita");
 
     await expect(
       page.getByText(/ya tienes una solicitud pendiente/i),
@@ -110,7 +110,7 @@ test.describe.serial("Solicitar una cita", () => {
 
   test("la anticipación mínima se aplica en el servidor", async ({ page }) => {
     await entrarComo(page, CUENTAS.paciente);
-    await page.goto("/calendario/solicitar");
+    await page.goto("/solicitar-cita");
 
     // El input tiene `min`, pero la regla real vive en la base: se fuerza una
     // fecha de hoy saltándose la restricción del navegador.
@@ -177,7 +177,7 @@ test.describe("Zonas horarias", () => {
   }) => {
     await entrarComo(page, CUENTAS.paciente);
 
-    await page.goto("/calendario/solicitar");
+    await page.goto("/solicitar-cita");
     await page.getByLabel("Día").fill(enDias(12));
     await page.getByLabel("Hora de inicio").selectOption("11:00");
     await page.getByRole("button", { name: /solicitar cita/i }).click();
@@ -216,6 +216,49 @@ test.describe("Zonas horarias", () => {
     await page.goto("/mis-datos");
     await page.getByLabel("Zona horaria").selectOption("America/Bogota");
     await guardarSeccion(page, /guardar preferencias/i);
+  });
+});
+
+test.describe("Pedir cita", () => {
+  /*
+   * Se podía SOLO desde el calendario.
+   *
+   * Quien entra a su espacio aterriza en el panel, y con una cita ya agendada
+   * la tarjeta de «próxima cita» no ofrecía ninguna forma de pedir otra: había
+   * que adivinar que el camino era entrar a «Calendario». Lo encontró el
+   * cliente buscando dónde solicitar.
+   */
+  /*
+   * Se PULSA el enlace, no se navega a la dirección.
+   *
+   * Escribiendo la dirección a mano funcionaba: una navegación completa no
+   * pasa por las rutas interceptadas. Pulsando, en cambio, el hueco del panel
+   * tomaba «solicitar» por el identificador de una cita y devolvía 404. El
+   * botón llevaba a una página rota y parecía que la función no existiera.
+   */
+  test("se llega a solicitar cita desde el panel", async ({ page }) => {
+    await entrarComo(page, CUENTAS.paciente);
+    await page.goto("/panel");
+
+    await page.getByRole("link", { name: /solicitar otra cita/i }).click();
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: /solicitar una cita/i }),
+    ).toBeVisible();
+  });
+
+  test("y desde el calendario, que es donde está el botón", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.paciente);
+    await page.goto("/calendario");
+
+    await page.getByRole("link", { name: /^solicitar cita$/i }).click();
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: /solicitar una cita/i }),
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
 

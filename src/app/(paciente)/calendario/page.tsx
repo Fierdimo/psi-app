@@ -116,10 +116,7 @@ export default async function CalendarioPage({
           </p>
         </div>
 
-        <Link
-          href="/calendario/solicitar"
-          className={buttonVariants({ size: "md" })}
-        >
+        <Link href="/solicitar-cita" className={buttonVariants({ size: "md" })}>
           <CalendarPlus aria-hidden="true" className="size-4" />
           Solicitar cita
         </Link>

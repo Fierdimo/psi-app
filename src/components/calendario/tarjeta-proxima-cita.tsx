@@ -44,7 +44,7 @@ export function TarjetaProximaCita({
           </p>
         </div>
 
-        <Link href="/calendario/solicitar" className={buttonVariants()}>
+        <Link href="/solicitar-cita" className={buttonVariants()}>
           <CalendarPlus aria-hidden="true" className="size-4" />
           Solicitar una cita
         </Link>
@@ -99,7 +99,23 @@ export function TarjetaProximaCita({
         </p>
       )}
 
-      <div className="border-line flex flex-wrap justify-end gap-2.5 border-t pt-4">
+      <div className="border-line flex flex-wrap items-center justify-end gap-2.5 border-t pt-4">
+        {/*
+          Pedir cita se podía SOLO desde el calendario.
+          Quien entra a su espacio aterriza aquí, y con una cita ya agendada
+          esta tarjeta no ofrecía ninguna forma de pedir otra: había que
+          adivinar que el camino era entrar a «Calendario». La acción más
+          importante del área no puede estar escondida una pantalla más
+          adentro.
+        */}
+        <Link
+          href="/solicitar-cita"
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+        >
+          <CalendarPlus aria-hidden="true" className="size-4" />
+          Solicitar otra cita
+        </Link>
+
         <Link
           href="/calendario"
           className={buttonVariants({ variant: "secondary", size: "sm" })}
