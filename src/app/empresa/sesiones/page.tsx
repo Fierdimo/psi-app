@@ -5,10 +5,10 @@ import {
   EncabezadoPagina,
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
-import {
-  FormularioSesion,
-  type PersonaConvocable,
-} from "@/components/empresa/formulario-sesion";
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
@@ -48,17 +48,13 @@ export default async function SesionesPage() {
       .order("starts_at", { ascending: false }),
     supabase
       .from("organization_people")
-      .select("id, nombre, apellidos, documento")
+      .select("id, nombre, apellidos, documento, cargo, vinculo")
       .order("nombre"),
   ]);
 
   const zona = perfil.timezone;
 
-  const personas: PersonaConvocable[] = (gente ?? []).map((p) => ({
-    id: p.id,
-    nombre: [p.nombre, p.apellidos].filter(Boolean).join(" "),
-    documento: p.documento,
-  }));
+  const personas = gente ?? [];
 
   // Mañana. El margen exacto lo impone la base; esto solo evita ofrecer un día
   // que se va a rechazar.
@@ -69,16 +65,23 @@ export default async function SesionesPage() {
       <EncabezadoPagina
         titulo="Sesiones de evaluación"
         descripcion="Una sesión reúne a varias personas de tu listado. La solicitas tú; el profesional la confirma cuando el trámite está resuelto."
-      />
-
-      <FormularioSesion personas={personas} fechaMinima={fechaMinima} />
+      >
+        {/* Solicitar es un acto aparte de consultar: se abre como panel. */}
+        <Link href="/empresa/sesiones/nueva" className={buttonVariants()}>
+          <CalendarPlus aria-hidden="true" className="size-4" />
+          Solicitar sesión
+        </Link>
+      </EncabezadoPagina>
 
       {!sesiones || sesiones.length === 0 ? (
         <EstadoVacio
           icono={CalendarDays}
           titulo="Todavía no has solicitado ninguna sesión"
           descripcion="Cuando solicites una, aparecerá aquí con su estado. No queda en firme hasta que el profesional la confirma."
-          enlace={{ href: "/empresa/personas", texto: "Ir a mis personas" }}
+          enlace={{
+            href: "/empresa/sesiones/nueva",
+            texto: "Solicitar la primera",
+          }}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -105,7 +108,23 @@ export default async function SesionesPage() {
                     </p>
                   )}
                 </div>
-                <Badge tone={estado.tone}>{estado.texto}</Badge>
+                <div className="flex items-center gap-3">
+                  {/*
+                    Editar solo mientras siga siendo una solicitud.
+                    Confirmada, la fecha es un compromiso de dos y a los
+                    convocados ya se les avisó: cambiarla por detrás haría que
+                    alguien se presentara el día que no era.
+                  */}
+                  {s.status === "solicitada" && (
+                    <Link
+                      href={`/empresa/sesiones/${s.id}`}
+                      className="text-accent-on-soft hover:text-accent text-sm font-medium"
+                    >
+                      Editar
+                    </Link>
+                  )}
+                  <Badge tone={estado.tone}>{estado.texto}</Badge>
+                </div>
               </li>
             );
           })}

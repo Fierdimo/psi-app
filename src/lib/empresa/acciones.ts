@@ -2,11 +2,18 @@
 
 import { DateTime } from "luxon";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import { erroresDeZod, type EstadoFormulario } from "@/lib/validacion/auth";
+
+/** Limpia el prefijo que PostgREST antepone a los mensajes de la base. */
+function limpiarMensaje(error: { message: string; hint?: string | null }) {
+  const mensaje = error.message.replace(/^.*?:\s*/, "");
+  return error.hint ? `${mensaje} ${error.hint}` : mensaje;
+}
 
 /**
  * Acciones del área de empresa.
@@ -172,4 +179,94 @@ export async function solicitarSesion(
     mensaje:
       "Solicitud enviada. El profesional te contactará para resolver el trámite y la confirmará después.",
   };
+}
+
+/**
+ * Corregir los datos de alguien del listado.
+ *
+ * Un listado que solo crece no se puede mantener: se carga un documento mal
+ * escrito, alguien cambia de cargo, un aspirante entra a la plantilla.
+ */
+export async function editarPersona(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirEmpresa();
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("editar_persona", {
+    p_persona: String(formData.get("persona") ?? ""),
+    p_nombre: String(formData.get("nombre") ?? "").trim(),
+    p_apellidos: String(formData.get("apellidos") ?? "").trim() || null,
+    p_email: String(formData.get("email") ?? "").trim(),
+    p_documento: String(formData.get("documento") ?? "").trim(),
+    p_cargo: String(formData.get("cargo") ?? "").trim() || null,
+    p_vinculo: String(formData.get("vinculo") ?? "aspirante"),
+  });
+
+  if (error) return { ok: false, mensaje: limpiarMensaje(error) };
+
+  revalidatePath("/empresa/personas");
+  redirect("/empresa/personas?guardada=1");
+}
+
+/** Quitar del listado a quien se cargó por error o nunca se presentó. */
+export async function quitarPersona(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirEmpresa();
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("quitar_persona", {
+    p_persona: String(formData.get("persona") ?? ""),
+  });
+
+  if (error) return { ok: false, mensaje: limpiarMensaje(error) };
+
+  revalidatePath("/empresa/personas");
+  // Su ficha ya no existe: quedarse en ella mostraría un 404.
+  redirect("/empresa/personas?retirada=1");
+}
+
+/**
+ * Corregir una solicitud, mientras siga siendo una solicitud.
+ *
+ * Una vez confirmada la fecha es un compromiso de dos y a los convocados ya se
+ * les avisó, así que la base lo rechaza. Aquí no se ofrece siquiera.
+ */
+export async function editarSolicitud(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const perfil = await exigirEmpresa();
+
+  const dia = String(formData.get("dia") ?? "");
+  const hora = String(formData.get("hora") ?? "");
+  const duracion = Number(formData.get("duracion") ?? 60);
+
+  const inicio = DateTime.fromISO(`${dia}T${hora}`, { zone: perfil.timezone });
+  if (!inicio.isValid)
+    return { ok: false, mensaje: "Fecha u hora no válidas." };
+
+  const personas = formData.getAll("personas").map(String);
+  if (personas.length === 0) {
+    return { ok: false, errores: { personas: "Elige al menos una persona" } };
+  }
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("editar_solicitud_evaluacion", {
+    p_cita: String(formData.get("cita") ?? ""),
+    p_inicio: inicio.toUTC().toISO(),
+    p_fin: inicio.plus({ minutes: duracion }).toUTC().toISO(),
+    p_modalidad: String(formData.get("modalidad") ?? "presencial"),
+    p_lugar: String(formData.get("lugar") ?? "").trim() || null,
+    p_nota: String(formData.get("nota") ?? "").trim() || null,
+    p_personas: personas,
+  });
+
+  if (error) return { ok: false, mensaje: limpiarMensaje(error) };
+
+  revalidatePath("/empresa/sesiones");
+  redirect("/empresa/sesiones?editada=1");
 }

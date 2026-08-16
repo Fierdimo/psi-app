@@ -11,6 +11,7 @@ import { crearClienteServidor } from "@/lib/supabase/server";
  */
 export default async function LayoutEmpresa({
   children,
+  panel,
 }: LayoutProps<"/empresa">) {
   const perfil = await exigirEmpresa();
 
@@ -30,6 +31,8 @@ export default async function LayoutEmpresa({
       insignia="Área de empresa"
     >
       {children}
+      {/* Hueco del panel lateral: lo llenan los formularios de alta y edición. */}
+      {panel}
     </ArmazonPrivado>
   );
 }

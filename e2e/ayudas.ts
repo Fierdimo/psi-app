@@ -24,13 +24,20 @@ export async function entrarComo(
   await page.goto(puerta);
   await rellenarIngreso(page, cuenta);
 
-  await page.waitForURL(/\/(consentimiento|panel|profesional\/agenda)/);
+  /*
+   * Cada rol aterriza en SU sitio.
+   *
+   * La empresa entra a `/empresa`, que no estaba contemplado aquí: el ayudante
+   * se quedaba esperando una dirección que nunca iba a llegar y el fallo
+   * apuntaba a la prueba en vez de a esta línea.
+   */
+  await page.waitForURL(/\/(consentimiento|panel|empresa|profesional\/agenda)/);
 
   if (page.url().includes("/consentimiento")) {
     await page.getByRole("button", { name: /he leído y acepto/i }).click();
   }
 
-  await page.waitForURL(/\/(panel|profesional\/agenda)/);
+  await page.waitForURL(/\/(panel|empresa|profesional\/agenda)/);
 }
 
 /** Envía un formulario de «Mis datos» y espera su confirmación. */

@@ -14,6 +14,7 @@ export const CUENTAS = {
   paciente: { correo: "ana@psi.test", contrasena: "psi-local-2026" },
   otroPaciente: { correo: "beto@psi.test", contrasena: "psi-local-2026" },
   profesional: { correo: "profesional@psi.test", contrasena: "psi-local-2026" },
+  empresa: { correo: "empresa@psi.test", contrasena: "psi-local-2026" },
   /**
    * Cuenta exclusiva de la prueba del consentimiento.
    *

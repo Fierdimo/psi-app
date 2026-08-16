@@ -5,7 +5,11 @@ import {
   EncabezadoPagina,
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
-import { FormularioPersona } from "@/components/empresa/formulario-persona";
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
@@ -24,8 +28,11 @@ export const metadata: Metadata = { title: "Personas" };
  * pendiente de aceptar su invitación. Es lo que determina si podrá responder
  * el día de la sesión, y es la pregunta que trae aquí a quien administra.
  */
-export default async function PersonalPage() {
+export default async function PersonalPage({
+  searchParams,
+}: PageProps<"/empresa/personas">) {
   await exigirEmpresa();
+  const { guardada, retirada } = await searchParams;
   const supabase = await crearClienteServidor();
 
   const { data: personas } = await supabase
@@ -40,15 +47,39 @@ export default async function PersonalPage() {
       <EncabezadoPagina
         titulo="Personas a evaluar"
         descripcion="Aspirantes a un puesto o gente que ya trabaja contigo. Se identifican por su documento y no por su correo: así se les reconoce aunque cambien de trabajo o de dirección."
-      />
+      >
+        {/*
+          El formulario ya no vive dentro del listado.
+          Un listado con un formulario encima deja de leerse de un vistazo, y
+          es lo único que se viene a hacer aquí: mirar quién está y en qué
+          estado. Cargar a alguien es un acto aparte y se abre como panel.
+        */}
+        <Link href="/empresa/personas/nueva" className={buttonVariants()}>
+          <UserPlus aria-hidden="true" className="size-4" />
+          Cargar persona
+        </Link>
+      </EncabezadoPagina>
 
-      <FormularioPersona />
+      {guardada && (
+        <Alert tone="success" title="Datos actualizados">
+          Los cambios ya están en el listado.
+        </Alert>
+      )}
+      {retirada && (
+        <Alert tone="info" title="Persona retirada">
+          Ya no aparece en tu listado ni se puede convocar.
+        </Alert>
+      )}
 
       {!personas || personas.length === 0 ? (
         <EstadoVacio
           icono={Users}
           titulo="Todavía no has cargado a nadie"
-          descripcion="Usa el formulario de arriba. Podrás convocarlas a una sesión aunque todavía no tengan cuenta: la crean cuando reciben su invitación."
+          descripcion="Podrás convocarlas a una sesión aunque todavía no tengan cuenta: la crean cuando reciben su invitación."
+          enlace={{
+            href: "/empresa/personas/nueva",
+            texto: "Cargar la primera",
+          }}
         />
       ) : (
         <div className="border-line bg-panel overflow-x-auto rounded-lg border">
@@ -73,6 +104,9 @@ export default async function PersonalPage() {
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
                   Cuenta
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  <span className="sr-only">Acciones</span>
                 </th>
               </tr>
             </thead>
@@ -102,6 +136,15 @@ export default async function PersonalPage() {
                     ) : (
                       <Badge tone="neutral">Sin aceptar</Badge>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {/* Editar abre el mismo formulario del alta, como panel. */}
+                    <Link
+                      href={`/empresa/personas/${p.id}`}
+                      className="text-accent-on-soft hover:text-accent text-sm font-medium"
+                    >
+                      Editar
+                    </Link>
                   </td>
                 </tr>
               ))}

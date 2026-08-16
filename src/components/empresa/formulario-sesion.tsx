@@ -1,12 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
 import { Alert } from "@/components/ui/alert";
+import {
+  SelectorDePersonas,
+  type PersonaElegible,
+} from "@/components/empresa/selector-de-personas";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
-import { solicitarSesion } from "@/lib/empresa/acciones";
+import { editarSolicitud, solicitarSesion } from "@/lib/empresa/acciones";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
 const INICIAL: EstadoFormulario = { ok: false };
@@ -18,12 +22,6 @@ const DURACIONES = [
   { valor: "240", etiqueta: "4 horas" },
 ];
 
-export type PersonaConvocable = {
-  id: string;
-  nombre: string;
-  documento: string;
-};
-
 /**
  * Solicitud de una sesión de evaluación.
  *
@@ -32,31 +30,61 @@ export type PersonaConvocable = {
  * nada. El contador está a la vista porque el número de convocados es lo que
  * determina cuánto dura la sesión.
  */
+export interface SesionEditable {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  modality: string;
+  location: string | null;
+  patient_note: string | null;
+}
+
 export function FormularioSesion({
   personas,
+  /** Preseleccionados al editar una solicitud existente. */
+  inicial = [],
   fechaMinima,
+  /** Con sesión, el formulario CORRIGE una solicitud en vez de crearla. */
+  sesion,
 }: {
-  personas: PersonaConvocable[];
+  personas: PersonaElegible[];
+  inicial?: string[];
   fechaMinima: string;
+  sesion?: SesionEditable;
 }) {
-  const [estado, accion, enviando] = useActionState(solicitarSesion, INICIAL);
-  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const editando = sesion !== undefined;
+
+  const [estado, accion, enviando] = useActionState(
+    editando ? editarSolicitud : solicitarSesion,
+    INICIAL,
+  );
 
   /*
-   * Tras un envío correcto React reinicia el formulario y las casillas vuelven
-   * a verse vacías. La selección vive además en estado propio —hace falta para
-   * el contador— y si no se limpia también, la pantalla dice «2 de 3» sobre
-   * tres casillas sin marcar. Se descubrió mirando la pantalla después de
-   * enviar, no leyendo el código.
+   * Los valores iniciales salen de la sesión, en la zona del navegador.
    *
-   * Se ajusta durante el render comparando con el valor anterior, no en un
-   * efecto: sincronizar estado en `useEffect` provoca un render en cascada.
+   * La fecha llega en UTC desde la base; presentarla sin convertir mostraría
+   * otro día a partir de las 19:00 en Bogotá, que es justo cuando alguien
+   * revisa lo que pidió por la tarde.
    */
-  const [okPrevio, setOkPrevio] = useState(estado.ok);
-  if (estado.ok !== okPrevio) {
-    setOkPrevio(estado.ok);
-    if (estado.ok) setMarcadas(new Set());
-  }
+  const inicio = sesion ? new Date(sesion.starts_at) : null;
+
+  const dosDigitos = (n: number) => String(n).padStart(2, "0");
+
+  const diaInicial = inicio
+    ? `${inicio.getFullYear()}-${dosDigitos(inicio.getMonth() + 1)}-${dosDigitos(inicio.getDate())}`
+    : undefined;
+
+  const horaInicial = inicio
+    ? `${dosDigitos(inicio.getHours())}:${dosDigitos(inicio.getMinutes())}`
+    : "09:00";
+
+  const duracionInicial = sesion
+    ? String(
+        Math.round(
+          (new Date(sesion.ends_at).getTime() - inicio!.getTime()) / 60000,
+        ),
+      )
+    : "120";
 
   if (personas.length === 0) {
     return (
@@ -67,28 +95,15 @@ export function FormularioSesion({
     );
   }
 
-  function alternar(id: string) {
-    setMarcadas((previas) => {
-      const siguiente = new Set(previas);
-      if (siguiente.has(id)) siguiente.delete(id);
-      else siguiente.add(id);
-      return siguiente;
-    });
-  }
-
   return (
     <form
       action={accion}
       className="border-line bg-panel flex flex-col gap-5 rounded-lg border p-6"
       noValidate
     >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-h4">Solicitar una sesión</h2>
-        <p className="text-text-muted text-sm">
-          Propones día y hora. El profesional te contacta para resolver el
-          trámite y la confirma después: hasta entonces no queda en firme.
-        </p>
-      </div>
+      {sesion && <input type="hidden" name="cita" value={sesion.id} />}
+      {/* El título lo pone el encabezado de la pantalla: repetirlo aquí
+          hacía leer dos veces lo mismo antes de llegar a los campos. */}
 
       {estado.mensaje && (
         <Alert
@@ -103,6 +118,8 @@ export function FormularioSesion({
         <Field
           id="fecha"
           name="fecha"
+
+          defaultValue={diaInicial}
           type="date"
           label="Día"
           min={fechaMinima}
@@ -113,7 +130,7 @@ export function FormularioSesion({
           name="hora"
           type="time"
           label="Hora de inicio"
-          defaultValue="09:00"
+          defaultValue={horaInicial}
           error={estado.errores?.hora}
         />
         <Select
@@ -121,50 +138,22 @@ export function FormularioSesion({
           name="duracion"
           label="Duración"
           opciones={DURACIONES}
-          defaultValue="120"
+          defaultValue={duracionInicial}
           error={estado.errores?.duracion}
         />
       </div>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-text-strong flex flex-wrap items-baseline gap-2 font-medium">
-          A quién convocas
-          <span className="text-text-muted text-sm font-normal">
-            {marcadas.size === 0
-              ? "ninguna seleccionada"
-              : `${marcadas.size} de ${personas.length}`}
-          </span>
-        </legend>
-
-        {estado.errores?.personas && (
-          <p className="text-danger-600 text-sm">{estado.errores.personas}</p>
-        )}
-
-        <ul className="border-line divide-line max-h-72 divide-y overflow-y-auto rounded-md border">
-          {personas.map((p) => (
-            <li key={p.id}>
-              <label className="hover:bg-bg flex cursor-pointer items-center gap-3 px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="personas"
-                  value={p.id}
-                  checked={marcadas.has(p.id)}
-                  onChange={() => alternar(p.id)}
-                  className="accent-accent size-4"
-                />
-                <span className="text-text-body">{p.nombre}</span>
-                <span className="text-text-muted tabular ml-auto text-sm">
-                  {p.documento}
-                </span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      </fieldset>
+      <SelectorDePersonas
+        personas={personas}
+        inicial={inicial}
+        error={estado.errores?.personas}
+      />
 
       <Field
         id="nota"
         name="nota"
+
+        defaultValue={sesion?.patient_note ?? ""}
         label="Para qué es la evaluación"
         placeholder="Por ejemplo: selección para dos cargos operativos."
         error={estado.errores?.nota}

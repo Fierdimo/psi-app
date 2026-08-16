@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(28);
+select plan(35);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -387,6 +387,86 @@ select is(
   (select count(*)::int from public.appointments where organization_id is not null),
   2,
   'Confirmadas sí: sus dos sesiones, la de cada empresa que la convocó'
+);
+
+-- =============================================================================
+-- LA EMPRESA CORRIGE LO SUYO, Y SOLO MIENTRAS NO HAYA CONSECUENCIAS
+-- =============================================================================
+select tests_como(:'jefe_acme');
+
+select lives_ok(
+  format('select public.editar_persona(%L, ''Ana'', ''Restrepo'', ''ana@acme.test'', %L, ''Jefa de bodega'', ''empleado'')',
+         (select id from public.organization_people where organization_id = :'acme' order by documento limit 1),
+         (select documento from public.organization_people where organization_id = :'acme' order by documento limit 1)),
+  'Corrige los datos de alguien de su listado'
+);
+
+-- Y el documento de quien ya tiene cuenta NO se toca: es lo que la identifica
+-- y lo que enlaza el historial que otra empresa haya dejado antes.
+select throws_ok(
+  format('select public.editar_persona(%L, ''Ana'', ''Restrepo'', ''ana@acme.test'', ''0000000'', null, ''empleado'')',
+         (select id from public.organization_people
+          where organization_id = :'acme' and profile_id is not null limit 1)),
+  'No se puede cambiar el documento de alguien que ya activó su cuenta.',
+  'Cambiarle el documento a quien ya activó su cuenta la convertiría en otra persona'
+);
+
+select tests_como(:'jefe_globex');
+
+select throws_ok(
+  format('select public.editar_persona(%L, ''X'', ''X'', ''x@x.test'', ''999'', null, ''aspirante'')',
+         (select id from public.organization_people where organization_id = :'acme' limit 1)),
+  'Esa persona no está en tu listado.',
+  'Pero no toca el listado de otra empresa'
+);
+
+select tests_como(:'jefe_acme');
+
+select throws_ok(
+  format('select public.quitar_persona(%L)',
+         (select p.id from public.organization_people p
+          join public.appointment_attendees a on a.person_id = p.id
+          join public.appointments c on c.id = a.appointment_id
+          where p.organization_id = :'acme' and c.status = 'confirmada' limit 1)),
+  'Esa persona está convocada a una sesión ya confirmada.',
+  'No se quita a alguien convocado a una sesión que ya va a ocurrir'
+);
+
+-- Una solicitud sin responder sí se corrige. Se crea una: las de la
+-- preparación están confirmadas.
+select tests_servidor_o();
+
+insert into public.appointments
+  (id, organization_id, professional_id, created_by, starts_at, ends_at, status, modality)
+values ('cccc9999-0000-4000-8000-00000000abcd', :'acme', :'doctor', :'jefe_acme',
+        now() + interval '15 days', now() + interval '15 days 2 hours',
+        'solicitada', 'presencial');
+
+select tests_como(:'jefe_acme');
+
+select lives_ok(
+  format('select public.editar_solicitud_evaluacion(%L, now() + interval ''20 days'', now() + interval ''20 days 2 hours'', ''presencial'', ''Sala 2'', ''Nueva nota'', array[%L]::uuid[])',
+         'cccc9999-0000-4000-8000-00000000abcd'::uuid,
+         (select id from public.organization_people where organization_id = :'acme' limit 1)),
+  'Corrige su solicitud mientras el profesional no la haya respondido'
+);
+
+-- Una confirmada, no: la fecha ya es un compromiso de dos.
+select throws_ok(
+  format('select public.editar_solicitud_evaluacion(%L, now() + interval ''30 days'', now() + interval ''30 days 2 hours'', ''presencial'', null, null, array[%L]::uuid[])',
+         (select id from public.appointments where organization_id = :'acme' and status = 'confirmada' limit 1),
+         (select id from public.organization_people where organization_id = :'acme' limit 1)),
+  'Esa solicitud ya no se puede editar.',
+  'Confirmada ya no: cambiarla por detrás haría que alguien se presentara otro día'
+);
+
+select tests_como(:'emp_acme');
+
+select throws_ok(
+  format('select public.quitar_persona(%L)',
+         (select id from public.organization_people where organization_id = :'acme' limit 1)),
+  'Solo una empresa edita su listado.',
+  'Y una persona evaluada no edita el listado de nadie'
 );
 
 select * from finish();
