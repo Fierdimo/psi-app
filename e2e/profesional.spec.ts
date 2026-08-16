@@ -255,6 +255,20 @@ test.describe.serial("Sesiones de empresa", () => {
     // La prueba anterior de este bloque `serial` ya la confirmó: asignar solo
     // tiene sentido sobre una sesión que va a ocurrir.
     await entrarComo(page, CUENTAS.profesional);
+
+    /*
+     * Confirmar no puede hacer que la sesión desaparezca de la vista. El paso
+     * siguiente es asignar, así que la sesión confirmada y sin instrumento
+     * tiene que verse DESDE Evaluaciones y no solo en el calendario.
+     */
+    await page.goto("/profesional/evaluaciones");
+    await expect(
+      page.getByText(/confirmadas, sin evaluación asignada/i),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Distribuciones del Caribe/i).first(),
+    ).toBeVisible();
+
     await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
 
     await page
@@ -275,6 +289,15 @@ test.describe.serial("Sesiones de empresa", () => {
     await expect(
       page.getByRole("button", { name: /abrir el examen/i }),
     ).toHaveCount(0);
+
+    // Y una vez asignada deja de reclamarlo.
+    await page.goto("/profesional/evaluaciones");
+    await expect(
+      page.getByText(/confirmadas, sin evaluación asignada/i),
+    ).toHaveCount(0);
+    await expect(page.getByText("Ana María Restrepo").first()).toBeVisible();
+
+    await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
 
     // Repetir no duplica.
     await page

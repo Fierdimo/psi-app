@@ -9,6 +9,7 @@ import {
 } from "@/components/navegacion/encabezado-pagina";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirProfesional } from "@/lib/auth/perfil";
+import { capitalizar, fechaLarga } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Evaluaciones" };
@@ -34,9 +35,41 @@ const ETIQUETA: Record<
 };
 
 export default async function EvaluacionesPage() {
-  await exigirProfesional();
+  const perfil = await exigirProfesional();
+  const zona = perfil.timezone;
 
   const supabase = await crearClienteServidor();
+
+  /*
+   * Las sesiones confirmadas a las que todavía no se les asignó nada.
+   *
+   * Sin esto, confirmar una solicitud la hacía desaparecer de la vista: la
+   * sesión existía en el calendario y en Evaluaciones no había rastro, así que
+   * había que acordarse de volver a la agenda a buscarla. El paso siguiente a
+   * confirmar es asignar, y tiene que verse desde donde se asigna.
+   */
+  const uno = <T,>(v: unknown): T | null =>
+    Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
+
+  type Nombre = { nombre: string; apellidos: string | null };
+
+  const { data: sesiones } = await supabase
+    .from("appointments")
+    .select(
+      "id, starts_at, organizacion:organizations(nombre), asignaciones:assignments(id)",
+    )
+    .eq("status", "confirmada")
+    /*
+     * Solo las sesiones de empresa.
+     *
+     * Una sesión corporativa ES una sesión de evaluación: si está confirmada y
+     * no tiene instrumento, falta un paso. Una cita de terapia no: la mayoría
+     * no lleva prueba, y marcarlas todas como «falta asignar» convertiría este
+     * aviso en ruido que se aprende a ignorar. A un paciente se le asigna
+     * desde el detalle de su cita, cuando toca.
+     */
+    .not("organization_id", "is", null)
+    .order("starts_at");
 
   const { data } = await supabase
     .from("assignments")
@@ -44,11 +77,6 @@ export default async function EvaluacionesPage() {
       "id, status, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos), organizacion:organizations(nombre)",
     )
     .order("assigned_at", { ascending: true });
-
-  const uno = <T,>(v: unknown): T | null =>
-    Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
-
-  type Nombre = { nombre: string; apellidos: string | null };
 
   const filas = (data ?? [])
     .map((a) => {
@@ -65,6 +93,14 @@ export default async function EvaluacionesPage() {
     })
     .sort((a, b) => (ORDEN[a.status] ?? 9) - (ORDEN[b.status] ?? 9));
 
+  const sinAsignar = (sesiones ?? [])
+    .filter((s) => (s.asignaciones ?? []).length === 0)
+    .map((s) => ({
+      id: s.id,
+      starts_at: s.starts_at,
+      titular: uno<{ nombre: string }>(s.organizacion)?.nombre ?? "Sesión",
+    }));
+
   return (
     <Pantalla>
       <EncabezadoPagina
@@ -72,13 +108,52 @@ export default async function EvaluacionesPage() {
         descripcion="Lo que espera tu revisión aparece primero. Nada llega a la persona ni a su empresa hasta que lo firmes."
       />
 
+      {sinAsignar.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-h3">Confirmadas, sin evaluación asignada</h2>
+            <p className="text-text-muted mt-1 text-sm">
+              Aceptaste estas sesiones pero todavía no elegiste qué instrumento
+              se aplica.
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {sinAsignar.map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/profesional/citas/${s.id}`}
+                  className="border-line bg-panel hover:border-accent flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+                >
+                  <div>
+                    <p className="text-text-strong font-medium">{s.titular}</p>
+                    <p className="text-text-muted text-sm">
+                      {capitalizar(fechaLarga(s.starts_at, zona))}
+                    </p>
+                  </div>
+                  <Badge tone="warning">Falta asignar</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {filas.length === 0 ? (
-        <EstadoVacio
-          icono={ClipboardList}
-          titulo="Todavía no has asignado ninguna evaluación"
-          descripcion="Se asignan desde el detalle de una sesión confirmada: eliges el instrumento una vez y queda para todos los convocados."
-          enlace={{ href: "/profesional/agenda", texto: "Ir a la agenda" }}
-        />
+        sinAsignar.length > 0 ? (
+          // Decir «no has asignado ninguna» debajo de una lista de sesiones que
+          // esperan asignación se contradice a sí mismo.
+          <p className="text-text-muted text-sm">
+            Cuando asignes un instrumento, cada persona aparecerá aquí con su
+            estado.
+          </p>
+        ) : (
+          <EstadoVacio
+            icono={ClipboardList}
+            titulo="Todavía no has asignado ninguna evaluación"
+            descripcion="Se asignan desde el detalle de una sesión confirmada: eliges el instrumento una vez y queda para todos los convocados."
+            enlace={{ href: "/profesional/agenda", texto: "Ir a la agenda" }}
+          />
+        )
       ) : (
         <ul className="flex flex-col gap-2">
           {filas.map((f) => {
