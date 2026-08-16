@@ -307,6 +307,15 @@ test.describe.serial("Sesiones de empresa", () => {
 
     await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
 
+    /*
+     * El listado de convocados no puede empujar la acción fuera de la vista.
+     * Con quince personas ocupaba toda la altura y los botones quedaban abajo,
+     * invisibles y sin nada que indicara que estaban ahí.
+     */
+    // «Ocultar» vive dentro del `<summary>`, que es el elemento interactivo:
+    // el rol de botón lo tiene él, no la palabra.
+    await expect(page.getByText(/^Ocultar$/)).toBeVisible();
+
     await page
       .getByRole("button", { name: /asignar a los convocados/i })
       .click();

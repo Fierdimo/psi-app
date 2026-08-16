@@ -218,7 +218,7 @@ export default async function CitaProfesionalPage({
         {deEmpresa && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">
             <h2 className="text-h4">Convocados</h2>
-            <Convocados personas={convocados} compacto />
+            <Convocados personas={convocados} compacto plegable abierto />
           </div>
         )}
 

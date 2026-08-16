@@ -31,11 +31,22 @@ export function Convocados({
    * más código y peor comportamiento.
    */
   plegable = false,
+  /**
+   * Desplegado de entrada, pero plegable.
+   *
+   * En el detalle de la sesión se entra precisamente a ver a quién se
+   * convocó, así que empieza abierto; pero con quince personas la lista
+   * empujaba los botones de acción fuera de la pantalla, y en el panel
+   * lateral eso los deja invisibles. Abierto, con tope de alto y su propio
+   * desplazamiento, y con la opción de plegarlo.
+   */
+  abierto = false,
 }: {
   personas: PersonaConvocada[];
   /** Sin encabezado ni recuadro, para usarlo dentro de una tarjeta ya densa. */
   compacto?: boolean;
   plegable?: boolean;
+  abierto?: boolean;
 }) {
   if (personas.length === 0) {
     return (
@@ -63,8 +74,16 @@ export function Convocados({
     </>
   );
 
+  /*
+   * El listado nunca crece sin límite.
+   *
+   * Con más de cinco o seis personas ocupaba toda la altura disponible y lo
+   * que venía DEBAJO —los botones de confirmar, de asignar— quedaba fuera de
+   * la vista sin que nada indicara que estaba ahí. Un tope con desplazamiento
+   * propio deja el listado completo accesible y la acción a la vista.
+   */
   const listado = (
-    <ul className="border-line divide-line divide-y rounded-md border">
+    <ul className="border-line divide-line max-h-72 divide-y overflow-y-auto overscroll-contain rounded-md border">
       {personas.map((p) => (
         <li
           key={p.documento}
@@ -88,13 +107,17 @@ export function Convocados({
 
   if (plegable) {
     return (
-      <details className="group flex flex-col gap-2">
+      <details open={abierto} className="group flex flex-col gap-2">
         <summary className="text-text-muted hover:text-text-body ease-psi flex cursor-pointer list-none items-center gap-1.5 text-sm transition-colors duration-150">
           {resumen}
           <ChevronDown
             aria-hidden="true"
             className="size-4 shrink-0 transition-transform group-open:rotate-180"
           />
+          <span className="text-accent-on-soft ml-auto text-sm font-medium">
+            <span className="group-open:hidden">Ver</span>
+            <span className="hidden group-open:inline">Ocultar</span>
+          </span>
         </summary>
         <div className="pt-2">{listado}</div>
       </details>
