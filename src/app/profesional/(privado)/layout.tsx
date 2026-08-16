@@ -18,6 +18,7 @@ import { exigirProfesional } from "@/lib/auth/perfil";
  */
 export default async function LayoutProfesional({
   children,
+  panel,
 }: LayoutProps<"/profesional">) {
   const perfil = await exigirProfesional();
 
@@ -30,6 +31,9 @@ export default async function LayoutProfesional({
       insignia="Área profesional"
     >
       {children}
+      {/* Hueco del panel lateral: lo llena una ruta interceptada al abrir una
+          cita desde la agenda. */}
+      {panel}
     </ArmazonPrivado>
   );
 }

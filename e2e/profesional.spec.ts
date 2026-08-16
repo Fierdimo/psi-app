@@ -178,6 +178,31 @@ test.describe.serial("Agenda del profesional", () => {
   });
 });
 
+test.describe("El detalle como panel", () => {
+  /*
+   * Mismo gesto que en el área del paciente, y aquí importa más: quien revisa
+   * su agenda entra y sale de varias citas seguidas, y volver a situarse en el
+   * mes cada vez es justo el trabajo que esta pantalla debería ahorrar.
+   */
+  test("una cita de la agenda se abre por la derecha", async ({ page }) => {
+    await entrarComo(page, CUENTAS.profesional);
+
+    // En vista de mes se ven las citas de todo el periodo, no solo las de esta
+    // semana, que en la siembra está vacía.
+    await page.goto("/profesional/agenda?vista=mes");
+
+    await page.locator('a[href^="/profesional/citas/"]').first().click();
+
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeVisible();
+    await expect(page).toHaveURL(/\/profesional\/citas\/[0-9a-f-]+$/);
+
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page).toHaveURL(/vista=mes/);
+  });
+});
+
 test.describe("Pacientes", () => {
   test("el listado muestra a los pacientes y su ficha es accesible", async ({
     page,
