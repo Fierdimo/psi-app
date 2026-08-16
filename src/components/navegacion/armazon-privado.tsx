@@ -6,6 +6,8 @@ import {
   BarraLateral,
 } from "@/components/navegacion/nav-privada";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { Area } from "@/components/navegacion/nav-privada";
 import { cerrarSesion } from "@/lib/auth/acciones";
 
 /**
@@ -25,25 +27,70 @@ export function ArmazonPrivado({
   children,
   /** En una prueba en curso la navegación estorba y se puede ocultar. */
   conNavegacion = true,
+  area = "paciente",
+  /** A dónde lleva la marca. Cada área tiene su propia puerta de entrada. */
+  inicio = "/panel",
+  /**
+   * Cabecera oscura para las áreas que muestran datos de OTRAS personas.
+   *
+   * No es un capricho: es un recordatorio permanente de dónde está uno. El
+   * área del paciente la lleva clara y la del profesional oscura, y la
+   * diferencia tiene que notarse de un vistazo sin leer nada.
+   */
+  tono = "claro",
+  /** Etiqueta junto a la marca, del tipo «Área profesional». */
+  insignia,
 }: {
   nombre: string;
   children: React.ReactNode;
   conNavegacion?: boolean;
+  area?: Area;
+  inicio?: string;
+  tono?: "claro" | "oscuro";
+  insignia?: string;
 }) {
+  const oscura = tono === "oscuro";
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-line bg-panel sticky top-0 z-20 h-[var(--alto-cabecera)] border-b">
+      <header
+        className={cn(
+          "sticky top-0 z-20 h-[var(--alto-cabecera)] border-b",
+          oscura ? "bg-brand-800 border-brand-900" : "border-line bg-panel",
+        )}
+      >
         <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/panel" className="rounded-md">
-            <Brand size="sm" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href={inicio} className="rounded-md">
+              <Brand size="sm" tone={oscura ? "dark" : undefined} />
+            </Link>
+            {insignia ? (
+              <span className="bg-brand-900 text-brand-200 text-micro rounded-sm px-2 py-1 font-semibold tracking-[0.06em] uppercase">
+                {insignia}
+              </span>
+            ) : null}
+          </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-text-muted hidden text-sm sm:inline">
+            <span
+              className={cn(
+                "hidden text-sm sm:inline",
+                oscura ? "text-brand-200" : "text-text-muted",
+              )}
+            >
               {nombre}
             </span>
             <form action={cerrarSesion}>
-              <Button type="submit" variant="ghost" size="sm">
+              <Button
+                type="submit"
+                variant="ghost"
+                size="sm"
+                className={
+                  oscura
+                    ? "text-brand-200 hover:bg-brand-900 hover:text-surface-0"
+                    : undefined
+                }
+              >
                 Cerrar sesión
               </Button>
             </form>
@@ -52,13 +99,13 @@ export function ArmazonPrivado({
       </header>
 
       <div className="mx-auto flex w-full max-w-[1280px] flex-1">
-        {conNavegacion ? <BarraLateral /> : null}
+        {conNavegacion ? <BarraLateral area={area} /> : null}
         <main id="contenido" className="min-w-0 flex-1">
           {children}
         </main>
       </div>
 
-      {conNavegacion ? <BarraInferior /> : null}
+      {conNavegacion ? <BarraInferior area={area} /> : null}
     </div>
   );
 }

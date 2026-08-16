@@ -72,7 +72,16 @@ export function BandejaSolicitudes({
               <Card
                 edge="border"
                 accent
-                className="flex flex-wrap items-start justify-between gap-4"
+                /*
+                  Se adapta a SU CONTENEDOR, no a la ventana.
+                  Esta tarjeta vive en dos sitios: a ancho completo en la
+                  pantalla de solicitudes, y en una columna de 380 px junto al
+                  calendario. Con `sm:` miraría el ancho de la ventana —que en
+                  escritorio siempre es grande— y en la columna estrecha se
+                  partía en cinco líneas. La consulta de contenedor mira el
+                  hueco real que tiene.
+                */
+                className="@container flex flex-col items-start gap-4 @md:flex-row @md:flex-wrap @md:items-start @md:justify-between"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <span className="flex flex-wrap items-center gap-2">
@@ -127,7 +136,9 @@ export function BandejaSolicitudes({
                   )}
                 </div>
 
-                <AccionesSolicitud citaId={cita.id} />
+                <div className="w-full @md:w-auto">
+                  <AccionesSolicitud citaId={cita.id} />
+                </div>
               </Card>
             </li>
           );

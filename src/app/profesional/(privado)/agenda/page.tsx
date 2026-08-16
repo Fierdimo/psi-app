@@ -102,66 +102,83 @@ export default async function AgendaPage({
         </Alert>
       )}
 
-      <BandejaSolicitudes solicitudes={solicitudes} zona={zona} />
+      {/*
+        El calendario y lo que espera decisión, uno al lado del otro.
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-h3" aria-live="polite">
-          {tituloDePeriodo(vista, referencia)}
-        </h2>
+        La bandeja iba ARRIBA y empujaba el calendario fuera de la pantalla:
+        con tres solicitudes había que desplazarse para ver el día de hoy, que
+        es a lo que se entra. Como columna no compite por el mismo sitio, y las
+        dos cosas que se miran juntas se ven juntas.
 
-        <Controles
-          vista={vista}
-          referencia={referencia}
-          hoy={ahoraEn(zona)}
-          ruta="/profesional/agenda"
-        />
+        En pantallas estrechas vuelve a ir encima, que es donde cabe: ahí no
+        hay dos columnas que repartir.
+      */}
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        <section className="flex min-w-0 flex-1 flex-col gap-4">
+          <h2 className="text-h3" aria-live="polite">
+            {tituloDePeriodo(vista, referencia)}
+          </h2>
 
-        {(vista === "agenda" || vista === "mes") && (
-          <>
-            {/* En mes, la retícula solo desde `sm`: en móvil el profesional
-                necesita leer nombres, y en una celda de 45 px no caben. */}
-            {vista === "mes" && (
-              <div className="hidden sm:block">
-                <VistaMes
-                  referencia={referencia}
-                  citas={citas}
-                  zona={zona}
-                  etiquetaDeCita={titularDeCita}
-                  base="/profesional/citas"
-                  rutaVista="/profesional/agenda"
-                />
-              </div>
-            )}
-            <div className={vista === "mes" ? "sm:hidden" : undefined}>
-              <AgendaLista citas={citas} zona={zona} ahoraISO={ahoraISO} />
-            </div>
-          </>
-        )}
-
-        {vista === "semana" && (
-          <VistaSemana
+          <Controles
+            vista={vista}
             referencia={referencia}
-            citas={citas}
-            zona={zona}
-            etiquetaDeCita={titularDeCita}
-            base="/profesional/citas"
+            hoy={ahoraEn(zona)}
+            ruta="/profesional/agenda"
           />
-        )}
 
-        {vista === "dia" && (
-          <div className="flex flex-col gap-6">
+          {(vista === "agenda" || vista === "mes") && (
+            <>
+              {/* En mes, la retícula solo desde `sm`: en móvil el profesional
+                necesita leer nombres, y en una celda de 45 px no caben. */}
+              {vista === "mes" && (
+                <div className="hidden sm:block">
+                  <VistaMes
+                    referencia={referencia}
+                    citas={citas}
+                    zona={zona}
+                    etiquetaDeCita={titularDeCita}
+                    base="/profesional/citas"
+                    rutaVista="/profesional/agenda"
+                  />
+                </div>
+              )}
+              <div className={vista === "mes" ? "sm:hidden" : undefined}>
+                <AgendaLista citas={citas} zona={zona} ahoraISO={ahoraISO} />
+              </div>
+            </>
+          )}
+
+          {vista === "semana" && (
             <VistaSemana
               referencia={referencia}
               citas={citas}
               zona={zona}
-              dias={1}
               etiquetaDeCita={titularDeCita}
               base="/profesional/citas"
             />
-            <AgendaLista citas={citas} zona={zona} ahoraISO={ahoraISO} />
-          </div>
+          )}
+
+          {vista === "dia" && (
+            <div className="flex flex-col gap-6">
+              <VistaSemana
+                referencia={referencia}
+                citas={citas}
+                zona={zona}
+                dias={1}
+                etiquetaDeCita={titularDeCita}
+                base="/profesional/citas"
+              />
+              <AgendaLista citas={citas} zona={zona} ahoraISO={ahoraISO} />
+            </div>
+          )}
+        </section>
+
+        {solicitudes.length > 0 && (
+          <aside className="w-full shrink-0 xl:w-[380px]">
+            <BandejaSolicitudes solicitudes={solicitudes} zona={zona} />
+          </aside>
         )}
-      </section>
+      </div>
     </div>
   );
 }

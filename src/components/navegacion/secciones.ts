@@ -1,9 +1,15 @@
 import {
-  BookOpen,
+  Building2,
   CalendarDays,
-  ClipboardCheck,
+  ClipboardList,
   FileText,
   Home,
+  Inbox,
+  Receipt,
+  Settings,
+  Users,
+  BookOpen,
+  ClipboardCheck,
   NotebookPen,
   UserCog,
   type LucideIcon,
@@ -17,6 +23,8 @@ export type Seccion = {
   placeholder?: boolean;
   /** Aparece en la barra inferior de móvil, donde solo caben tres. */
   principal?: boolean;
+  /** Activa solo con coincidencia exacta: para la raíz de un área. */
+  exacta?: boolean;
 };
 
 /**
@@ -71,4 +79,62 @@ export const SECCIONES: readonly Seccion[] = [
     icono: UserCog,
     principal: true,
   },
+];
+
+/* ============================================================================
+   Las otras dos áreas
+
+   Viven aquí, junto a las del paciente, porque las tres alimentan la MISMA
+   barra lateral. Tenerlas repartidas en tres archivos fue lo que hizo que
+   cada área acabara con una navegación distinta sin que nadie lo decidiera.
+   ========================================================================== */
+
+export const SECCIONES_PROFESIONAL: readonly Seccion[] = [
+  { href: "/profesional/agenda", etiqueta: "Agenda", icono: CalendarDays },
+  /*
+   * Lo que espera una decisión, en su propia entrada.
+   *
+   * Estaba dentro de la agenda, debajo del calendario. Confirmar la solicitud
+   * de una empresa obligaba a entrar a una pantalla de otra cosa y buscar: es
+   * la acción más frecuente del día y estaba a dos saltos de distancia.
+   */
+  {
+    href: "/profesional/solicitudes",
+    etiqueta: "Solicitudes",
+    icono: Inbox,
+  },
+  { href: "/profesional/pacientes", etiqueta: "Pacientes", icono: Users },
+  { href: "/profesional/empresas", etiqueta: "Empresas", icono: Building2 },
+  {
+    href: "/profesional/evaluaciones",
+    etiqueta: "Evaluaciones",
+    icono: ClipboardList,
+    placeholder: true,
+  },
+  {
+    href: "/profesional/documentos",
+    etiqueta: "Documentos",
+    icono: FileText,
+    placeholder: true,
+  },
+  { href: "/profesional/consulta", etiqueta: "La consulta", icono: Settings },
+];
+
+export const SECCIONES_EMPRESA: readonly Seccion[] = [
+  { href: "/empresa", etiqueta: "Inicio", icono: Home, exacta: true },
+  { href: "/empresa/personas", etiqueta: "Personas", icono: Users },
+  { href: "/empresa/sesiones", etiqueta: "Sesiones", icono: CalendarDays },
+  {
+    href: "/empresa/informes",
+    etiqueta: "Informes",
+    icono: ClipboardList,
+    placeholder: true,
+  },
+  {
+    href: "/empresa/facturacion",
+    etiqueta: "Facturación",
+    icono: Receipt,
+    placeholder: true,
+  },
+  { href: "/empresa/datos", etiqueta: "Datos", icono: Building2 },
 ];

@@ -1,9 +1,4 @@
-import Link from "next/link";
-
-import { Brand } from "@/components/marca/brand";
-import { NavProfesional } from "@/components/navegacion/nav-profesional";
-import { Button } from "@/components/ui/button";
-import { cerrarSesion } from "@/lib/auth/acciones";
+import { ArmazonPrivado } from "@/components/navegacion/armazon-privado";
 import { exigirProfesional } from "@/lib/auth/perfil";
 
 /**
@@ -12,10 +7,14 @@ import { exigirProfesional } from "@/lib/auth/perfil";
  * El grupo `(privado)` existe para que este layout NO envuelva a
  * `/profesional`, que es la pantalla de entrada y debe ser pública.
  *
- * La cabecera azul rey oscuro no es un capricho estético: es un recordatorio
- * permanente de que lo que hay en pantalla son datos de otras personas. El
- * área del paciente tiene cabecera blanca; la diferencia debe notarse de un
- * vistazo.
+ * Mismo armazón que el paciente, con sus secciones y su cabecera oscura. Antes
+ * llevaba una fila horizontal propia: tres áreas con tres navegaciones era una
+ * diferencia sin motivo, y quien usa las tres tenía que aprender tres. La
+ * barra lateral además crece sin quedarse sin sitio, que es donde la fila se
+ * rompía —ya iban siete secciones y empezaban a desplazarse en horizontal—.
+ *
+ * La cabecera oscura sí se conserva: recuerda de un vistazo que lo que hay en
+ * pantalla son datos de otras personas.
  */
 export default async function LayoutProfesional({
   children,
@@ -23,41 +22,14 @@ export default async function LayoutProfesional({
   const perfil = await exigirProfesional();
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="bg-brand-800">
-        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4 px-6 py-3.5">
-          <div className="flex items-center gap-4">
-            <Link href="/profesional/agenda" className="rounded-md">
-              <Brand tone="dark" size="sm" />
-            </Link>
-            <span className="bg-brand-900 text-brand-200 text-micro rounded-sm px-2 py-1 font-semibold tracking-[0.06em] uppercase">
-              Área profesional
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-brand-200 hidden text-sm sm:inline">
-              {perfil.nombre} {perfil.apellidos}
-            </span>
-            <form action={cerrarSesion}>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="sm"
-                className="text-brand-200 hover:bg-brand-900 hover:text-surface-0"
-              >
-                Cerrar sesión
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <NavProfesional />
-
-      <main id="contenido" className="flex-1">
-        {children}
-      </main>
-    </div>
+    <ArmazonPrivado
+      nombre={`${perfil.nombre ?? ""} ${perfil.apellidos ?? ""}`.trim()}
+      area="profesional"
+      inicio="/profesional/agenda"
+      tono="oscuro"
+      insignia="Área profesional"
+    >
+      {children}
+    </ArmazonPrivado>
   );
 }

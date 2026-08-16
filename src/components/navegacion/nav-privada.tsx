@@ -4,10 +4,17 @@ import { ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { SECCIONES, type Seccion } from "./secciones";
+import {
+  SECCIONES,
+  SECCIONES_EMPRESA,
+  SECCIONES_PROFESIONAL,
+  type Seccion,
+} from "./secciones";
 import { cn } from "@/lib/utils";
 
-function esActiva(pathname: string, href: string) {
+function esActiva(pathname: string, href: string, exacta?: boolean) {
+  // `/empresa` es la raíz de su área: sin `exacta` se quedaría siempre activa.
+  if (exacta) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -15,7 +22,24 @@ function esActiva(pathname: string, href: string) {
    Barra lateral · escritorio (≥1024 px)
    ========================================================================== */
 
-export function BarraLateral() {
+/**
+ * Qué secciones toca pintar.
+ *
+ * Se recibe el NOMBRE del área y no la lista: las secciones llevan su icono, y
+ * un icono es una función, que no puede cruzar del servidor al cliente. Pasar
+ * la lista compilaba y reventaba en tiempo de ejecución con «Functions cannot
+ * be passed directly to Client Components».
+ */
+const DE_AREA: Record<Area, readonly Seccion[]> = {
+  paciente: SECCIONES,
+  profesional: SECCIONES_PROFESIONAL,
+  empresa: SECCIONES_EMPRESA,
+};
+
+export type Area = "paciente" | "profesional" | "empresa";
+
+export function BarraLateral({ area = "paciente" }: { area?: Area }) {
+  const secciones = DE_AREA[area];
   const pathname = usePathname();
 
   return (
@@ -36,11 +60,11 @@ export function BarraLateral() {
       */}
       <div className="sticky top-[var(--alto-cabecera)] max-h-[calc(100dvh-var(--alto-cabecera))] overflow-y-auto overscroll-contain p-4">
         <ul className="flex flex-col gap-0.5">
-          {SECCIONES.map((seccion) => (
+          {secciones.map((seccion) => (
             <li key={seccion.href}>
               <EnlaceLateral
                 seccion={seccion}
-                activa={esActiva(pathname, seccion.href)}
+                activa={esActiva(pathname, seccion.href, seccion.exacta)}
               />
             </li>
           ))}
@@ -93,11 +117,19 @@ function EnlaceLateral({
    solo. Un menú hecho a mano con estado sería más código y peor accesibilidad.
    ========================================================================== */
 
-export function BarraInferior() {
+export function BarraInferior({ area = "paciente" }: { area?: Area }) {
+  const secciones = DE_AREA[area];
   const pathname = usePathname();
 
-  const principales = SECCIONES.filter((s) => s.principal);
-  const resto = SECCIONES.filter((s) => !s.principal);
+  /*
+   * Sin `principal` marcada, las tres primeras hacen de principales.
+   *
+   * Es lo razonable en un área nueva: las que van primero son las que más se
+   * usan, y esa decisión ya se tomó al ordenarlas.
+   */
+  const marcadas = secciones.filter((s) => s.principal);
+  const principales = marcadas.length > 0 ? marcadas : secciones.slice(0, 3);
+  const resto = secciones.filter((s) => !principales.includes(s));
   const algunaDelRestoActiva = resto.some((s) => esActiva(pathname, s.href));
 
   return (
@@ -107,7 +139,7 @@ export function BarraInferior() {
     >
       <ul className="grid grid-cols-4">
         {principales.map((seccion) => {
-          const activa = esActiva(pathname, seccion.href);
+          const activa = esActiva(pathname, seccion.href, seccion.exacta);
           const Icono = seccion.icono;
           return (
             <li key={seccion.href}>
@@ -145,7 +177,7 @@ export function BarraInferior() {
 
             <ul className="border-line bg-panel absolute right-2 bottom-[calc(100%+8px)] z-30 w-56 overflow-hidden rounded-lg border shadow-md">
               {resto.map((seccion) => {
-                const activa = esActiva(pathname, seccion.href);
+                const activa = esActiva(pathname, seccion.href, seccion.exacta);
                 const Icono = seccion.icono;
                 return (
                   <li key={seccion.href}>
