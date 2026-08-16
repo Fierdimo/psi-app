@@ -235,6 +235,17 @@ test.describe.serial("Sesiones de empresa", () => {
     // paciente sin nombre, porque el calendario usaba el ayudante equivocado.
     await expect(page.getByText(/Sin nombre/i)).toHaveCount(0);
 
+    /*
+     * Los convocados van PLEGADOS: se ve a cuántos alcanza, que es lo que hace
+     * falta para aceptar, y quiénes son se despliega. El listado abierto
+     * ocupaba más que la fecha y los botones juntos.
+     */
+    await expect(solicitud.getByText(/2 personas convocadas/i)).toBeVisible();
+    await expect(solicitud.getByText("Ana María Restrepo")).toBeHidden();
+
+    await solicitud.locator("summary").click();
+    await expect(solicitud.getByText("Ana María Restrepo")).toBeVisible();
+
     await solicitud.getByRole("button", { name: /confirmar/i }).click();
 
     // Que no aparezca la pantalla de error de Next, que es lo que veía el

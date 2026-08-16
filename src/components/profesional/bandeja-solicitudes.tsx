@@ -131,7 +131,7 @@ export function BandejaSolicitudes({
 
                   {deEmpresa && (
                     <div className="pt-1">
-                      <Convocados personas={convocados} />
+                      <Convocados personas={convocados} plegable />
                     </div>
                   )}
                 </div>
