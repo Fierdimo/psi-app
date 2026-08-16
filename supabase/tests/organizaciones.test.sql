@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(26);
+select plan(28);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -112,6 +112,15 @@ select lives_ok(
   ),
   'La misma cédula sí puede aparecer en dos empresas distintas'
 );
+
+/** Vuelve al rol de servidor para mover el estado entre comprobaciones. */
+create or replace function tests_servidor_o() returns void
+language plpgsql as $$
+begin
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+end;
+$$;
 
 create or replace function tests_como(p_uid uuid) returns void
 language plpgsql as $$
@@ -348,6 +357,36 @@ select is(
   4,
   'El profesional ve las cuatro: dos corporativas y dos individuales, una de '
   'ellas pedida por alguien a quien ya evaluó una empresa'
+);
+
+-- =============================================================================
+-- UNA FECHA SIN CONFIRMAR NO ES ASUNTO DE LA PERSONA CONVOCADA
+--
+-- Es la negociación entre su empresa y el profesional: puede cambiar o no
+-- ocurrir. Verla le hace apuntarse un día que quizá nadie le pidió.
+-- =============================================================================
+select tests_servidor_o();
+update public.appointments set status = 'solicitada'
+where organization_id is not null;
+
+select tests_como(:'emp_acme');
+
+select is(
+  (select count(*)::int from public.appointments where organization_id is not null),
+  0,
+  'Sin confirmar, la persona convocada NO ve la sesión'
+);
+
+select tests_servidor_o();
+update public.appointments set status = 'confirmada'
+where organization_id is not null;
+
+select tests_como(:'emp_acme');
+
+select is(
+  (select count(*)::int from public.appointments where organization_id is not null),
+  2,
+  'Confirmadas sí: sus dos sesiones, la de cada empresa que la convocó'
 );
 
 select * from finish();

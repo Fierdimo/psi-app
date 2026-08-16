@@ -68,9 +68,15 @@ export default async function DetalleCitaPage({
 
   const supabase = await crearClienteServidor();
 
-  // Sin filtro por paciente a propósito: lo aplica RLS. Si la cita es de otra
-  // persona la consulta no devuelve nada y se responde 404 — igual que si no
-  // existiera. Un 403 confirmaría que ese identificador sí existe.
+  /*
+   * Sin filtro por paciente a propósito: lo aplica RLS. Si la cita es de otra
+   * persona la consulta no devuelve nada y se responde 404 — igual que si no
+   * existiera. Un 403 confirmaría que ese identificador sí existe.
+   *
+   * Lo mismo vale para una sesión de empresa SIN CONFIRMAR: la política solo
+   * deja ver las confirmadas, así que aquí tampoco aparece. Esa condición está
+   * en un único sitio y no en cada consulta, que es la razón de ponerla ahí.
+   */
   const { data } = await supabase
     .from("appointments")
     .select("*, organizacion:organizations(nombre)")

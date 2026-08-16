@@ -221,6 +221,85 @@ test.describe("Zonas horarias", () => {
 
 test.describe("El detalle como panel", () => {
   /*
+   * Una sesión propia, confirmada.
+   *
+   * La de la siembra nace SIN CONFIRMAR —y una persona convocada no ve una
+   * fecha sin confirmar, que es la negociación entre su empresa y el
+   * profesional—. Confirmar aquella dejaba sin trabajo a la prueba del
+   * profesional, que necesita encontrarla pendiente: las pruebas comparten
+   * base y tocar la siembra se paga en otro archivo.
+   */
+  const SESION = "66660000-0000-4000-8000-00000000ffff";
+
+  test.beforeAll(async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    );
+
+    const { data: persona } = await db
+      .from("organization_people")
+      .select("id, organization_id")
+      .eq("documento", "1047373301")
+      .single();
+
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    await db
+      .from("appointment_attendees")
+      .delete()
+      .eq("appointment_id", SESION);
+    await db.from("appointments").delete().eq("id", SESION);
+
+    const inicio = new Date(Date.now() + 20 * 864e5);
+    const fin = new Date(inicio.getTime() + 2 * 3600e3);
+
+    await db.from("appointments").insert({
+      id: SESION,
+      organization_id: persona!.organization_id,
+      professional_id: doctor!.id,
+      created_by: doctor!.id,
+      starts_at: inicio.toISOString(),
+      ends_at: fin.toISOString(),
+      status: "confirmada",
+      modality: "presencial",
+    });
+
+    await db
+      .from("appointment_attendees")
+      .insert({ appointment_id: SESION, person_id: persona!.id });
+  });
+
+  /*
+   * Y se retira al terminar.
+   *
+   * Las pruebas comparten base: esta sesión confirmada y sin instrumento
+   * aparecía después en «Confirmadas, sin evaluación asignada» del
+   * profesional y rompía una comprobación de otro archivo. Quien crea datos
+   * los recoge.
+   */
+  test.afterAll(async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    );
+
+    await db
+      .from("appointment_attendees")
+      .delete()
+      .eq("appointment_id", SESION);
+    await db.from("appointments").delete().eq("id", SESION);
+  });
+
+  /*
    * Pulsar una cita abre un panel por la derecha, no una pantalla nueva: al
    * cerrarlo el calendario sigue donde estaba, en el mes que se miraba.
    *

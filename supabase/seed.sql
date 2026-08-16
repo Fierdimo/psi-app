@@ -25,7 +25,11 @@ grant select, update, delete on public.account_deletion_requests to service_role
 grant select, update on public.profiles to service_role;
 -- Las pruebas del calendario crean y cancelan citas; la preparación reconstruye
 -- el punto de partida antes de cada ejecución.
-grant select, insert, delete on public.appointments to service_role;
+grant select, insert, update, delete on public.appointments to service_role;
+-- Las pruebas del panel se crean SU PROPIA sesión confirmada en vez de tocar
+-- la de la siembra: al confirmarla dejaban sin trabajo a la prueba del
+-- profesional, que necesita encontrarla pendiente.
+grant insert, delete on public.appointment_attendees to service_role;
 grant delete on public.appointment_changes to service_role;
 -- La prueba del circuito de invitación tiene que fabricar un testigo conocido:
 -- en la aplicación el testigo solo existe en claro el instante del envío, y de
