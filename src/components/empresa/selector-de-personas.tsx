@@ -99,25 +99,46 @@ export function SelectorDePersonas({
       ))}
 
       {elegidas.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
-          {elegidas.map((id) => {
-            const p = porId.get(id);
-            if (!p) return null;
-            return (
-              <li key={id}>
-                <button
-                  type="button"
-                  onClick={() => alternar(id)}
-                  className="bg-accent-soft text-accent-on-soft hover:bg-accent hover:text-surface-0 ease-psi flex items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-sm transition-colors duration-150"
-                >
-                  {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
-                  <X aria-hidden="true" className="size-3.5" />
-                  <span className="sr-only">Quitar de la convocatoria</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="border-line bg-bg flex flex-col gap-2 rounded-md border p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-text-strong text-sm font-medium">
+              Convocadas ({elegidas.length})
+            </span>
+            <button
+              type="button"
+              onClick={() => setElegidas([])}
+              className="text-text-muted hover:text-danger-600 text-sm"
+            >
+              Quitar todas
+            </button>
+          </div>
+
+          {/*
+            Lo elegido tampoco crece sin freno.
+            Con veinticinco personas esta zona medía casi 900 px y empujaba el
+            botón de enviar fuera de la pantalla; con cien, la pantalla entera
+            era una lista de nombres. Tope y desplazamiento propio.
+          */}
+          <ul className="flex max-h-40 flex-wrap gap-2 overflow-y-auto overscroll-contain">
+            {elegidas.map((id) => {
+              const p = porId.get(id);
+              if (!p) return null;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => alternar(id)}
+                    className="bg-accent-soft text-accent-on-soft hover:bg-accent hover:text-surface-0 ease-psi flex items-center gap-1.5 rounded-full py-1 pr-2 pl-3 text-sm transition-colors duration-150"
+                  >
+                    {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
+                    <X aria-hidden="true" className="size-3.5" />
+                    <span className="sr-only">Quitar de la convocatoria</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       <label className="relative flex items-center">
@@ -175,10 +196,32 @@ export function SelectorDePersonas({
         </ul>
       )}
 
+      {/*
+        Añadir en bloque, porque el caso real es «encargo cien exámenes».
+        Elegirlas de una en una son cien clics, y el buscador ya sabe cuáles
+        son: si la búsqueda acota a un cargo o a un lote de documentos, se
+        añaden todas de una vez.
+      */}
+      {coincidencias.length > 1 && (
+        <button
+          type="button"
+          onClick={() =>
+            setElegidas((previas) => [
+              ...previas,
+              ...coincidencias.map((p) => p.id),
+            ])
+          }
+          className="text-accent-on-soft hover:text-accent self-start text-sm font-medium"
+        >
+          Añadir {coincidencias.length}{" "}
+          {busqueda.trim() === "" ? "personas" : "que coinciden"}
+        </button>
+      )}
+
       {ocultas > 0 && (
         <p className="text-text-muted text-sm">
-          {ocultas} {ocultas === 1 ? "persona más" : "personas más"} coinciden.
-          Afina la búsqueda para verlas.
+          Se muestran {visibles.length} de {coincidencias.length}. Afina la
+          búsqueda o añádelas todas.
         </p>
       )}
     </fieldset>

@@ -128,4 +128,44 @@ test.describe.serial("Área de empresa", () => {
       page.getByRole("button", { name: /quitar de la convocatoria/i }),
     ).toBeVisible();
   });
+
+  test("con cien personas el formulario sigue cabiendo", async ({ page }) => {
+    /*
+     * El caso real es «encargo cien exámenes».
+     *
+     * Con la lista completa desplegada la pantalla era una lista de nombres y
+     * el botón de enviar quedaba fuera; y elegirlas de una en una son cien
+     * clics. Se comprueban las dos cosas: que se añaden en bloque y que lo
+     * elegido no empuja la acción fuera de la vista.
+     */
+    const db = admin();
+    await db.from("organization_people").delete().like("documento", "700000%");
+
+    await db.from("organization_people").insert(
+      Array.from({ length: 60 }, (_, i) => ({
+        organization_id: ORGANIZACION,
+        documento: `700000${String(i).padStart(3, "0")}`,
+        nombre: "Aspirante",
+        apellidos: `Número ${i + 1}`,
+        email: `a${i}@caribe.test`,
+        cargo: "Operario",
+        vinculo: "aspirante" as const,
+      })),
+    );
+
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/sesiones/nueva");
+
+    // Los resultados están acotados: no se pintan sesenta filas.
+    await expect(page.locator("fieldset ul li")).toHaveCount(8);
+
+    await page.getByRole("button", { name: /^añadir \d+ personas$/i }).click();
+
+    await expect(page.getByText(/Convocadas \(\d+\)/)).toBeVisible();
+
+    // Y lo que importa: la acción sigue alcanzable sin desplazarse.
+    await expect(
+      page.getByRole("button", { name: /enviar solicitud/i }),
+    ).toBeInViewport();
+  });
 });
