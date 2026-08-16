@@ -20,7 +20,22 @@ import {
  * objetivos de toque imposibles. Además responde directamente a la pregunta
  * que trae un paciente al entrar: «¿cuándo es lo próximo?».
  */
-export function VistaAgenda({ citas, zona }: { citas: Cita[]; zona: string }) {
+export function VistaAgenda({
+  citas,
+  zona,
+  /**
+   * Distingue una sesión de evaluación de una cita de atención.
+   *
+   * Se parecen —un hueco con fecha y hora— y no lo son: a una va a que la
+   * atiendan, a la otra la convocó una empresa para evaluarla. Verlas iguales
+   * invita a presentarse al sitio equivocado.
+   */
+  etiquetaDeCita,
+}: {
+  citas: Cita[];
+  zona: string;
+  etiquetaDeCita?: (cita: Cita) => string;
+}) {
   if (citas.length === 0) {
     return (
       <EstadoVacio
@@ -65,7 +80,9 @@ export function VistaAgenda({ citas, zona }: { citas: Cita[]; zona: string }) {
                          la fecha vive en el encabezado del grupo, y quien
                          navega saltando de enlace en enlace nunca la oye. */
                       aria-label={[
-                        `Cita ${aspecto.descripcion.toLowerCase()}`,
+                        etiquetaDeCita?.(cita)
+                          ? `${etiquetaDeCita(cita)} ${aspecto.descripcion.toLowerCase()}`
+                          : `Cita ${aspecto.descripcion.toLowerCase()}`,
                         fechaCompleta(cita.starts_at, zona),
                         rangoHorario(cita.starts_at, cita.ends_at, zona),
                         MODALIDAD[cita.modality],
@@ -79,6 +96,9 @@ export function VistaAgenda({ citas, zona }: { citas: Cita[]; zona: string }) {
                         {MODALIDAD[cita.modality]}
                         {cita.location && ` · ${cita.location}`}
                       </span>
+                      {etiquetaDeCita?.(cita) ? (
+                        <Badge tone="neutral">{etiquetaDeCita(cita)}</Badge>
+                      ) : null}
                       <Badge tone={aspecto.tono}>{aspecto.etiqueta}</Badge>
                     </Link>
                   </li>

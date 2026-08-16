@@ -183,6 +183,13 @@ test.describe("Zonas horarias", () => {
     await page.getByRole("button", { name: /solicitar cita/i }).click();
     await expect(page).toHaveURL(/solicitada=1/);
 
+    /*
+     * Su cita, no la sesión de evaluación.
+     *
+     * En el calendario de la persona conviven ahora las dos, y las dos pueden
+     * estar «solicitadas». El accesible de una evaluación empieza por
+     * «Evaluación», así que basta con exigir que empiece por «Cita».
+     */
     const cita = page.getByRole("link", { name: /^cita solicitada/i }).first();
 
     await page.goto("/calendario?vista=agenda");

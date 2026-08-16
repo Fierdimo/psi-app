@@ -58,19 +58,28 @@ export default async function CalendarioPage({
   const intervalo = intervaloDeVista(vista, referencia);
   const supabase = await crearClienteServidor();
 
-  // RLS ya filtra por paciente; el rango solo acota lo que se pinta.
+  /*
+   * RLS ya filtra por persona; el rango solo acota lo que se pinta.
+   *
+   * SE INCLUYEN LAS SESIONES DE EMPRESA a las que está convocada. Estaban
+   * fuera —el filtro `organization_id is null` venía de impedir que una sesión
+   * corporativa contara como «solicitud pendiente» suya y le bloqueara pedir
+   * cita— pero eso apagó también el calendario: la persona tenía una sesión
+   * con fecha, hora y dirección, y su calendario no la mencionaba.
+   *
+   * Donde el filtro SÍ debe seguir es en contar solicitudes pendientes, que es
+   * otra cosa y está en otro sitio.
+   */
   const [{ data: citasDelRango }, { data: proximas }] = await Promise.all([
     supabase
       .from("appointments")
-      .select("*")
-      .is("organization_id", null)
+      .select("*, organizacion:organizations(nombre)")
       .gte("starts_at", intervalo.start!.toUTC().toISO()!)
       .lte("starts_at", intervalo.end!.toUTC().toISO()!)
       .order("starts_at"),
     supabase
       .from("appointments")
-      .select("*")
-      .is("organization_id", null)
+      .select("*, organizacion:organizations(nombre)")
       .gte("starts_at", ahoraEn(zona).toUTC().toISO()!)
       .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
       .order("starts_at")
@@ -78,6 +87,17 @@ export default async function CalendarioPage({
   ]);
 
   const citas = (citasDelRango ?? []) as Cita[];
+
+  /*
+   * Se distingue de una cita de terapia, y por su nombre.
+   *
+   * En el calendario de la persona conviven ahora dos cosas que se parecen —un
+   * hueco con fecha y hora— y no lo son: a una va a que la atiendan, a la otra
+   * la convocó una empresa para evaluarla. Verlas iguales invita a presentarse
+   * al sitio equivocado.
+   */
+  const etiquetaDeCita = (cita: Cita) =>
+    cita.organization_id !== null ? "Evaluación" : "";
   const siguientes = (proximas ?? []) as Cita[];
 
   // Para la agenda siempre se mira hacia delante, aunque se navegue por meses.
@@ -175,23 +195,41 @@ export default async function CalendarioPage({
           />
 
           {vista === "agenda" && (
-            <VistaAgenda citas={citasAgenda} zona={zona} />
+            <VistaAgenda
+              citas={citasAgenda}
+              zona={zona}
+              etiquetaDeCita={etiquetaDeCita}
+            />
           )}
 
           {vista === "mes" && (
             <>
               {/* Móvil: agenda. Escritorio: retícula. Ver la nota de arriba. */}
               <div className="sm:hidden">
-                <VistaAgenda citas={citasAgenda} zona={zona} />
+                <VistaAgenda
+                  citas={citasAgenda}
+                  zona={zona}
+                  etiquetaDeCita={etiquetaDeCita}
+                />
               </div>
               <div className="hidden sm:block">
-                <VistaMes referencia={referencia} citas={citas} zona={zona} />
+                <VistaMes
+                  referencia={referencia}
+                  citas={citas}
+                  zona={zona}
+                  etiquetaDeCita={etiquetaDeCita}
+                />
               </div>
             </>
           )}
 
           {vista === "semana" && (
-            <VistaSemana referencia={referencia} citas={citas} zona={zona} />
+            <VistaSemana
+              referencia={referencia}
+              citas={citas}
+              zona={zona}
+              etiquetaDeCita={etiquetaDeCita}
+            />
           )}
 
           {vista === "dia" && (
@@ -199,6 +237,7 @@ export default async function CalendarioPage({
               referencia={referencia}
               citas={citas}
               zona={zona}
+              etiquetaDeCita={etiquetaDeCita}
               dias={1}
             />
           )}
