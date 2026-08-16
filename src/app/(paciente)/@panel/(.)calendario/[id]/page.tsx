@@ -16,8 +16,10 @@ import DetalleCita from "@/app/(paciente)/calendario/[id]/page";
 export default async function PanelDetalleCita(
   props: PageProps<"/calendario/[id]">,
 ) {
+  const { id } = await props.params;
+
   return (
-    <PanelLateral titulo="Detalle de la cita">
+    <PanelLateral titulo="Detalle de la cita" ruta={`/calendario/${id}`}>
       {/*
         Dentro del panel sobra el «Volver al calendario» de la página: el
         calendario está detrás y la equis ya cierra. Se oculta aquí y no en la

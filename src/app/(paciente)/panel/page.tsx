@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CalendarPlus } from "lucide-react";
 import Link from "next/link";
 
 import { TarjetaProximaCita } from "@/components/calendario/tarjeta-proxima-cita";
@@ -8,6 +9,7 @@ import {
 } from "@/components/navegacion/encabezado-pagina";
 import { SECCIONES } from "@/components/navegacion/secciones";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { exigirSesion } from "@/lib/auth/perfil";
 import { ASPECTO, MODALIDAD, type Cita } from "@/lib/citas/estados";
 import {
@@ -75,7 +77,19 @@ export default async function PanelPage() {
       <EncabezadoPagina
         titulo={`Hola, ${perfil.nombre ?? "bienvenido"}`}
         descripcion="Este es tu espacio privado. Solo tú y tu profesional pueden ver lo que hay aquí."
-      />
+      >
+        {/*
+          Pedir cita, arriba y a la vista.
+
+          Es la razón por la que la mayoría entra, y estaba escondida una
+          pantalla más adentro: había que ir a «Calendario» y buscarla allí.
+          Aquí es lo primero que se ve al aterrizar.
+        */}
+        <Link href="/solicitar-cita" className={buttonVariants()}>
+          <CalendarPlus aria-hidden="true" className="size-4" />
+          Solicitar cita
+        </Link>
+      </EncabezadoPagina>
 
       {(evaluaciones ?? []).length > 0 && (
         <section className="flex flex-col gap-3">

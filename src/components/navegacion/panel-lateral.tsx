@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /**
@@ -18,11 +18,25 @@ import { useEffect } from "react";
 export function PanelLateral({
   titulo,
   children,
+  /**
+   * La ruta a la que pertenece el panel.
+   *
+   * Sirve para que se cierre solo cuando deja de tocarle. Al enviar el
+   * formulario de solicitud, la acción redirige al calendario: la dirección
+   * cambiaba pero el hueco del panel conservaba su contenido, así que el aviso
+   * de «solicitud enviada» quedaba DETRÁS del formulario ya enviado.
+   *
+   * Comparar la ruta actual con la suya lo resuelve sin que cada panel tenga
+   * que acordarse de cerrarse.
+   */
+  ruta,
 }: {
   titulo: string;
   children: React.ReactNode;
+  ruta?: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
@@ -40,6 +54,10 @@ export function PanelLateral({
       document.body.style.overflow = previo;
     };
   }, [router]);
+
+  // Si la navegación ya se fue a otra parte, este panel no pinta nada.
+  if (ruta && pathname !== ruta && !pathname.startsWith(`${ruta}/`))
+    return null;
 
   return (
     <div

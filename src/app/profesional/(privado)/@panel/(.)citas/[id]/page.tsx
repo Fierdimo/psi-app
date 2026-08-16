@@ -16,8 +16,10 @@ import { PanelLateral } from "@/components/navegacion/panel-lateral";
 export default async function PanelCitaProfesional(
   props: PageProps<"/profesional/citas/[id]">,
 ) {
+  const { id } = await props.params;
+
   return (
-    <PanelLateral titulo="Detalle de la cita">
+    <PanelLateral titulo="Detalle de la cita" ruta={`/profesional/citas/${id}`}>
       {/* Dentro del panel sobra el «Volver a la agenda»: está detrás y la
           equis ya cierra. */}
       <div className="[&_a[href='/profesional/agenda']]:hidden">

@@ -247,7 +247,7 @@ test.describe("Pedir cita", () => {
     ).toBeVisible();
   });
 
-  test("y desde el calendario, que es donde está el botón", async ({
+  test("desde el calendario se abre como panel, sin perderlo de vista", async ({
     page,
   }) => {
     await entrarComo(page, CUENTAS.paciente);
@@ -255,10 +255,57 @@ test.describe("Pedir cita", () => {
 
     await page.getByRole("link", { name: /^solicitar cita$/i }).click();
 
+    /*
+     * Se pide una cita MIRANDO el calendario: qué semana está libre, cuándo
+     * cae la anterior. Por eso el formulario se abre encima y no en otra
+     * pantalla.
+     */
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeVisible();
     await expect(
-      page.getByRole("heading", { level: 1, name: /solicitar una cita/i }),
+      panel.getByRole("heading", { level: 1, name: /solicitar una cita/i }),
     ).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page).toHaveURL(/\/calendario$/);
+  });
+
+  test("al enviarla el panel se cierra solo", async ({ page }) => {
+    /*
+     * Se limpia su solicitud pendiente antes.
+     *
+     * Solo se admite una a la vez, y otras pruebas de este archivo dejan la
+     * suya: sin esto el formulario ni siquiera se dibuja y el fallo apunta al
+     * sitio equivocado.
+     */
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } },
+    );
+    await db
+      .from("appointments")
+      .delete()
+      .eq("patient_id", "11111111-1111-1111-1111-111111111111")
+      .in("status", ["solicitada", "reprogramacion_solicitada"]);
+
+    await entrarComo(page, CUENTAS.paciente);
+    await page.goto("/solicitar-cita");
+
+    await page.getByLabel("Día").fill(enDias(15));
+    await page.getByLabel("Hora de inicio").selectOption("11:00");
+    await page.getByRole("button", { name: /^solicitar cita$/i }).click();
+
+    /*
+     * La acción redirige al calendario. Sin cerrarse, el aviso de «solicitud
+     * enviada» quedaba DETRÁS del formulario ya enviado: la dirección cambiaba
+     * pero el hueco del panel conservaba su contenido.
+     */
+    await expect(page).toHaveURL(/solicitada=1/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByText(/solicitud enviada/i)).toBeVisible();
   });
 });
 
