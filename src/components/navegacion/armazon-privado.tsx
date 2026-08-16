@@ -59,7 +59,7 @@ export function ArmazonPrivado({
           oscura ? "bg-brand-800 border-brand-900" : "border-line bg-panel",
         )}
       >
-        <div className="flex h-full items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-full w-full max-w-[1800px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href={inicio} className="rounded-md">
               <Brand size="sm" tone={oscura ? "dark" : undefined} />
@@ -98,7 +98,20 @@ export function ArmazonPrivado({
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-[1280px] flex-1">
+      {/*
+        Se aprovecha el ancho de la pantalla.
+
+        Antes todo iba centrado en 1280 px: en un monitor de trabajo quedaban
+        dos franjas vacías a los lados mientras el calendario se apretaba en el
+        centro y la bandeja de solicitudes partía sus tarjetas en cinco líneas.
+        Un panel de trabajo no es un artículo.
+
+        El tope de 1800 px sí se queda, para pantallas muy anchas: pasada esa
+        medida no se gana nada y la cabecera se separa tanto del contenido que
+        cuesta relacionarlos. Y donde SÍ hay prosa —descripciones, informes— la
+        medida de lectura la acota cada componente, que es donde importa.
+      */}
+      <div className="mx-auto flex w-full max-w-[1800px] flex-1">
         {conNavegacion ? <BarraLateral area={area} /> : null}
         <main id="contenido" className="min-w-0 flex-1">
           {children}

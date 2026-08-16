@@ -45,7 +45,13 @@ export function Informe({
   const secciones = [...new Set(parametros.map((p) => p.seccion ?? "otros"))];
 
   return (
-    <div className="flex flex-col gap-8">
+    /*
+      Un informe se LEE, así que aquí sí manda la medida de lectura.
+      El armazón usa todo el ancho de la pantalla porque un panel de trabajo lo
+      necesita, pero un párrafo de 1.300 px hace perder la línea al volver al
+      margen izquierdo. Ancho para la herramienta, medida para el texto.
+    */
+    <div className="flex max-w-[80ch] flex-col gap-8">
       {notaGlobal ? (
         <div className="border-line bg-panel rounded-xl border p-6">
           <p className="text-text-body">{notaGlobal}</p>

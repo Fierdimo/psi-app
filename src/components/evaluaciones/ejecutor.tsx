@@ -98,7 +98,8 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    /* Misma razón que en el informe: aquí se lee un enunciado, no se opera. */
+    <div className="flex max-w-[70ch] flex-col gap-6">
       <Progreso hechos={respondidos} total={items.length} />
 
       {fallo ? (
