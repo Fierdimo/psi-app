@@ -16,7 +16,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(35);
+select plan(38);
 
 -- Punto de partida limpio. Todo ocurre dentro de la transacción que se revierte
 -- al final, así que la siembra sobrevive intacta.
@@ -467,6 +467,30 @@ select throws_ok(
          (select id from public.organization_people where organization_id = :'acme' limit 1)),
   'Solo una empresa edita su listado.',
   'Y una persona evaluada no edita el listado de nadie'
+);
+
+-- =============================================================================
+-- LA FICHA DE LA EMPRESA SE CORRIGE, PERO NO SE QUEDA SIN CONTACTO
+-- =============================================================================
+select tests_como(:'jefe_acme');
+
+select lives_ok(
+  'select public.actualizar_empresa(''Acme S.A.S'', ''900123'', ''Marta'', ''marta@acme.test'', null)',
+  'Corrige los datos de su empresa'
+);
+
+select throws_ok(
+  'select public.actualizar_empresa(''Acme S.A.S'', null, null, null, null)',
+  'Deja al menos un correo o un teléfono de contacto.',
+  'Pero no puede quedarse sin canal: es por donde se resuelve el trámite'
+);
+
+select tests_como(:'emp_acme');
+
+select throws_ok(
+  'select public.actualizar_empresa(''Mía'', null, null, ''x@x.test'', null)',
+  'Solo una empresa edita sus datos.',
+  'Y una persona evaluada no edita la ficha de la empresa que la convocó'
 );
 
 select * from finish();

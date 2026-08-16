@@ -270,3 +270,32 @@ export async function editarSolicitud(
   revalidatePath("/empresa/sesiones");
   redirect("/empresa/sesiones?editada=1");
 }
+
+/**
+ * Corregir los datos de la empresa.
+ *
+ * El correo de contacto es lo que más se queda viejo, y es justo por donde el
+ * profesional resuelve el trámite antes de confirmar una sesión: una dirección
+ * obsoleta detiene el circuito sin que nadie sepa por qué.
+ */
+export async function actualizarEmpresa(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirEmpresa();
+
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc("actualizar_empresa", {
+    p_nombre: String(formData.get("nombre") ?? ""),
+    p_nit: String(formData.get("nit") ?? ""),
+    p_contacto_nombre: String(formData.get("contacto_nombre") ?? ""),
+    p_contacto_email: String(formData.get("contacto_email") ?? ""),
+    p_contacto_telefono: String(formData.get("contacto_telefono") ?? ""),
+  });
+
+  if (error) return { ok: false, mensaje: limpiarMensaje(error) };
+
+  revalidatePath("/empresa/datos");
+  revalidatePath("/empresa");
+  return { ok: true, mensaje: "Datos actualizados." };
+}

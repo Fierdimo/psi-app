@@ -238,4 +238,25 @@ test.describe.serial("Área de empresa", () => {
     await expect(page.getByText(/Apto para el cargo/)).toBeVisible();
     await expect(page.getByText(/Asertividad situacional baja/)).toBeVisible();
   });
+
+  test("la ficha de la empresa se puede corregir", async ({ page }) => {
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/datos");
+
+    await page.getByLabel("Correo").fill("contacto.nuevo@caribe.test");
+    await page.getByRole("button", { name: /guardar cambios/i }).click();
+    await expect(page.getByText(/datos actualizados/i)).toBeVisible();
+
+    /*
+     * Y no puede quedarse sin ningún canal: es por donde el profesional
+     * resuelve el trámite antes de confirmar una sesión, así que una ficha
+     * muda deja las solicitudes en un limbo.
+     */
+    await page.getByLabel("Correo").fill("");
+    await page.getByLabel("Teléfono").fill("");
+    await page.getByRole("button", { name: /guardar cambios/i }).click();
+    await expect(
+      page.getByText(/al menos un correo o un teléfono/i),
+    ).toBeVisible();
+  });
 });
