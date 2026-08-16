@@ -218,3 +218,58 @@ test.describe("Zonas horarias", () => {
     await guardarSeccion(page, /guardar preferencias/i);
   });
 });
+
+test.describe("El detalle como panel", () => {
+  /*
+   * Pulsar una cita abre un panel por la derecha, no una pantalla nueva: al
+   * cerrarlo el calendario sigue donde estaba, en el mes que se miraba.
+   *
+   * Y una sesión de empresa se abre igual. Antes respondía 404 —esta pantalla
+   * las excluía— así que la persona la veía en su calendario, pulsaba y no
+   * pasaba nada.
+   */
+  test("abre la cita por la derecha y cierra donde estaba", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.paciente);
+    await page.goto("/calendario?vista=agenda");
+
+    const evaluacion = page.getByRole("link", { name: /^evaluación/i }).first();
+    await expect(evaluacion).toBeVisible();
+    await evaluacion.click();
+
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeVisible();
+
+    // Se explica qué es y por qué no se cambia desde aquí.
+    await expect(panel.getByText(/es una sesión de evaluación/i)).toBeVisible();
+
+    // La dirección es la misma que la de la página, así que se puede compartir.
+    await expect(page).toHaveURL(/\/calendario\/[0-9a-f-]+$/);
+
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(page).toHaveURL(/vista=agenda/);
+  });
+
+  test("el mismo enlace abierto en directo es una página entera", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.paciente);
+    await page.goto("/calendario?vista=agenda");
+
+    const href = await page
+      .getByRole("link", { name: /^evaluación/i })
+      .first()
+      .getAttribute("href");
+
+    await page.goto(href!);
+
+    // Sin panel: quien llega desde un correo o un marcador no viene de ningún
+    // sitio al que volver, así que se le da la pantalla completa.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: /volver al calendario/i }),
+    ).toBeVisible();
+  });
+});

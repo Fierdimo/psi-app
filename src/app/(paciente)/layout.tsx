@@ -12,12 +12,18 @@ import { exigirSesion } from "@/lib/auth/perfil";
  * exigir el consentimiento de atención: quien responde una prueba que encargó
  * una empresa no está en tratamiento con nadie.
  */
-export default async function LayoutPaciente({ children }: LayoutProps<"/">) {
+export default async function LayoutPaciente({
+  children,
+  panel,
+}: LayoutProps<"/">) {
   const perfil = await exigirSesion();
 
   return (
     <ArmazonPrivado nombre={perfil.nombre ?? "Tu espacio"}>
       {children}
+      {/* Hueco del panel lateral: lo llena una ruta interceptada cuando se
+          abre una cita desde el calendario, y va vacío el resto del tiempo. */}
+      {panel}
     </ArmazonPrivado>
   );
 }

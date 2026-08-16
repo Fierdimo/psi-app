@@ -246,7 +246,7 @@ function Apartado({
               name="nota"
               rows={3}
               defaultValue={valor?.nota ?? ""}
-              className="border-line bg-canvas text-text-body rounded-lg border p-3 text-sm"
+              className="border-line bg-bg text-text-body rounded-lg border p-3 text-sm"
             />
           </label>
           <div className="flex items-center gap-3">

@@ -132,3 +132,26 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Panel lateral
+
+   Entra desde la derecha, deprisa. Un panel que tarda se percibe como una
+   pantalla nueva, que es justo lo que este gesto evita.
+   ------------------------------------------------------------------------ */
+@keyframes psi-panel {
+  from {
+    transform: translateX(1.5rem);
+    opacity: 0;
+  }
+}
+
+.animate-panel {
+  animation: psi-panel 180ms var(--ease-psi);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-panel {
+    animation: none;
+  }
+}

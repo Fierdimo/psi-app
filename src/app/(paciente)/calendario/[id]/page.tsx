@@ -73,8 +73,7 @@ export default async function DetalleCitaPage({
   // existiera. Un 403 confirmaría que ese identificador sí existe.
   const { data } = await supabase
     .from("appointments")
-    .select("*")
-    .is("organization_id", null)
+    .select("*, organizacion:organizations(nombre)")
     .eq("id", id)
     .maybeSingle();
 
@@ -82,6 +81,23 @@ export default async function DetalleCitaPage({
 
   const cita = data as Cita;
   const aspecto = ASPECTO[cita.status];
+
+  /*
+   * Una sesión de evaluación se abre igual, pero no se opera igual.
+   *
+   * Antes esta pantalla la excluía y respondía 404: la persona veía la sesión
+   * en su calendario, pulsaba y no pasaba nada. Ahora se abre — y sin los
+   * botones de cancelar y reprogramar, que aquí no le corresponden: la fecha
+   * la acordó su empresa con el profesional y la base rechazaría el intento.
+   */
+  const embebida = (data as { organizacion?: unknown }).organizacion;
+  const empresa =
+    (Array.isArray(embebida)
+      ? (embebida[0] as { nombre: string } | undefined)
+      : (embebida as { nombre: string } | null | undefined)
+    )?.nombre ?? null;
+
+  const esEvaluacion = cita.organization_id !== null;
   const ahoraISO = ahoraEn(zona).toUTC().toISO()!;
 
   const { data: parametros } = await supabase
@@ -176,20 +192,31 @@ export default async function DetalleCitaPage({
             </div>
           )}
 
-          <AccionesCita
-            citaId={cita.id}
-            puedeReprogramar={puedeReprogramar(cita, ahoraISO)}
-            puedeCancelar={puedeCancelar(cita, ahoraISO)}
-            fechaMinima={fechaMinima}
-            horas={horasDisponibles()}
-            margenHoras={margen}
-            politicaCancelacion={parametros?.cancellation_policy ?? null}
-          />
+          {esEvaluacion ? (
+            <Alert tone="info" title="Es una sesión de evaluación">
+              {empresa
+                ? `${empresa} te convocó a esta sesión.`
+                : "Una empresa te convocó a esta sesión."}{" "}
+              La fecha la acordó con el profesional, así que no se cambia desde
+              aquí: si no puedes asistir, avísale a quien te convocó.
+            </Alert>
+          ) : (
+            <AccionesCita
+              citaId={cita.id}
+              puedeReprogramar={puedeReprogramar(cita, ahoraISO)}
+              puedeCancelar={puedeCancelar(cita, ahoraISO)}
+              fechaMinima={fechaMinima}
+              horas={horasDisponibles()}
+              margenHoras={margen}
+              politicaCancelacion={parametros?.cancellation_policy ?? null}
+            />
+          )}
         </Card>
 
         <p className="text-text-muted text-micro flex items-center gap-1.5">
           <CalendarDays aria-hidden="true" className="size-3.5" />
-          Solicitada el {fechaCompleta(cita.created_at, zona)}
+          {esEvaluacion ? "Convocada" : "Solicitada"} el{" "}
+          {fechaCompleta(cita.created_at, zona)}
         </p>
       </div>
     </Pantalla>

@@ -133,6 +133,10 @@
   --accent-soft-border: var(--color-brand-100);
   --accent-on-soft: var(--color-brand-700);
 
+  /* Velo del panel lateral. Deja ver lo que hay detrás —esa es su función,
+     recordar de dónde se salió— sin que compita por la atención. */
+  --overlay: color-mix(in oklab, var(--color-ink-900) 45%, transparent);
+
   --focus-ring: var(--color-brand-600);
   --focus-halo: rgba(47, 73, 212, 0.15);
   --focus-halo-danger: rgba(179, 38, 30, 0.15);
@@ -165,4 +169,5 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-border: var(--accent-soft-border);
   --color-accent-on-soft: var(--accent-on-soft);
+  --color-overlay: var(--overlay);
 }
