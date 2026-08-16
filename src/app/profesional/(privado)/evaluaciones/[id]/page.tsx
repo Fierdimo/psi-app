@@ -120,7 +120,6 @@ export default async function RevisarEvaluacionPage({
         notaGlobal={resultado?.nota_global ?? null}
         publicado={resultado?.released_at ?? null}
         consentimiento={(decision as string | null) ?? null}
-        habilitada={asignacion.habilitado_at !== null}
       />
     </Pantalla>
   );

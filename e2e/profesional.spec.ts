@@ -308,7 +308,7 @@ test.describe.serial("Sesiones de empresa", () => {
     });
   });
 
-  test("abre el examen desde la evaluación, y solo con consentimiento", async ({
+  test("consentir deja el examen disponible, sin un paso más", async ({
     page,
   }) => {
     const { createClient } = await import("@supabase/supabase-js");
@@ -328,14 +328,8 @@ test.describe.serial("Sesiones de empresa", () => {
     await entrarComo(page, CUENTAS.profesional);
     await page.goto(`/profesional/evaluaciones/${asignada!.id}`);
 
-    /*
-     * Sin consentimiento NO se ofrece abrir, y se dice por qué. Un botón que
-     * siempre falla enseña a ignorar los errores.
-     */
+    // Mientras no haya consentido, la pantalla lo dice y no hay nada que hacer.
     await expect(page.getByText(/esperando su consentimiento/i)).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /abrir el examen/i }),
-    ).toHaveCount(0);
 
     // La persona acepta desde su cuenta.
     const { data: persona } = await db
@@ -352,11 +346,12 @@ test.describe.serial("Sesiones de empresa", () => {
       assignment_id: asignada!.id,
     });
 
+    /*
+     * Y en cuanto acepta queda disponible, sin que el profesional tenga que
+     * abrirlo. Ese paso no decidía nada y en una sesión grande eran tantos
+     * clics como convocados.
+     */
     await page.reload();
-    await page.getByRole("button", { name: /abrir el examen/i }).click();
-
-    await expect(page.getByText(/el examen está abierto/i)).toBeVisible({
-      timeout: 15000,
-    });
+    await expect(page.getByText(/puede empezar cuando quiera/i)).toBeVisible();
   });
 });

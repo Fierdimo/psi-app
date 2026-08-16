@@ -25,11 +25,9 @@ const INICIAL = { ok: false, mensaje: "" };
 export function Consentimiento({
   asignacion,
   decision,
-  habilitada,
 }: {
   asignacion: string;
   decision: string | null;
-  habilitada: boolean;
 }) {
   const [estado, accion, enviando] = useActionState(
     consentirEvaluacion,
@@ -110,27 +108,26 @@ export function Consentimiento({
         </Alert>
       ) : null}
 
+      {/*
+        Aceptar y empezar, sin esperar a nadie.
+        Antes había que aguardar a que el profesional abriera el examen persona
+        por persona. Ese paso no decidía nada —la decisión ya la había tomado
+        quien firma— y en una sesión de quince convocados eran quince esperas.
+      */}
       {aceptado ? (
-        habilitada ? (
-          <form action={accionInicio} className="flex flex-col gap-3">
-            <input type="hidden" name="asignacion" value={asignacion} />
-            {estadoInicio.mensaje ? (
-              <Alert tone="danger" title="No se pudo abrir la prueba">
-                {estadoInicio.mensaje}
-              </Alert>
-            ) : null}
-            <div>
-              <Button type="submit" disabled={iniciando}>
-                {iniciando ? "Abriendo…" : "Empezar la prueba"}
-              </Button>
-            </div>
-          </form>
-        ) : (
-          <Alert tone="info" title="El profesional abrirá la prueba">
-            La evaluación se abre durante la sesión, no antes. Cuando el
-            profesional la habilite podrás empezar desde aquí.
-          </Alert>
-        )
+        <form action={accionInicio} className="flex flex-col gap-3">
+          <input type="hidden" name="asignacion" value={asignacion} />
+          {estadoInicio.mensaje ? (
+            <Alert tone="danger" title="No se pudo abrir la prueba">
+              {estadoInicio.mensaje}
+            </Alert>
+          ) : null}
+          <div>
+            <Button type="submit" disabled={iniciando}>
+              {iniciando ? "Abriendo…" : "Empezar la prueba"}
+            </Button>
+          </div>
+        </form>
       ) : null}
     </div>
   );

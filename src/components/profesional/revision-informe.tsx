@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   calificarEvaluacion,
-  habilitarExamen,
   publicarResultado,
   redactarResultado,
 } from "@/lib/evaluaciones/acciones-profesional";
@@ -47,7 +46,6 @@ export function RevisionInforme({
   notaGlobal,
   publicado,
   consentimiento,
-  habilitada,
 }: {
   asignacion: string;
   status: string;
@@ -56,7 +54,6 @@ export function RevisionInforme({
   notaGlobal: string | null;
   publicado: string | null;
   consentimiento: string | null;
-  habilitada: boolean;
 }) {
   const [estadoCal, calificar, calificando] = useActionState(
     calificarEvaluacion,
@@ -84,13 +81,7 @@ export function RevisionInforme({
    * un botón que no existe.
    */
   if (status === "asignada") {
-    return (
-      <Abrir
-        asignacion={asignacion}
-        consentimiento={consentimiento}
-        habilitada={habilitada}
-      />
-    );
+    return <Abrir consentimiento={consentimiento} />;
   }
 
   if (status === "en_curso") {
@@ -294,32 +285,15 @@ function titulo(seccion: string) {
 }
 
 /**
- * El paso que va entre el consentimiento y la prueba.
+ * En qué punto está antes de que haya nada que revisar.
  *
- * Nunca ofrece abrir cuando la base lo va a rechazar: sin consentimiento
- * aceptado dice por qué y no pinta el botón. Un botón que siempre falla enseña
- * a ignorar los errores, y el error que aquí no hay que ignorar es justo ese.
+ * Ya no hay botón de abrir: aceptar el consentimiento abre el examen. Ese paso
+ * no añadía criterio —la decisión ya la había tomado la persona— y en una
+ * sesión de quince convocados eran quince clics.
+ *
+ * Queda `habilitar_examen` en la base para abrir a mano un caso suelto.
  */
-function Abrir({
-  asignacion,
-  consentimiento,
-  habilitada,
-}: {
-  asignacion: string;
-  consentimiento: string | null;
-  habilitada: boolean;
-}) {
-  const [estado, accion, enviando] = useActionState(habilitarExamen, INICIAL);
-
-  if (habilitada) {
-    return (
-      <Alert tone="success" title="El examen está abierto">
-        La persona ya puede empezar desde su cuenta. Cuando envíe sus
-        respuestas, podrás calificarlas aquí.
-      </Alert>
-    );
-  }
-
+function Abrir({ consentimiento }: { consentimiento: string | null }) {
   if (consentimiento !== "aceptado") {
     return (
       <Alert
@@ -338,28 +312,9 @@ function Abrir({
   }
 
   return (
-    <form action={accion} className="flex flex-col gap-3">
-      <input type="hidden" name="asignacion" value={asignacion} />
-
-      <Alert tone="info" title="Consentimiento aceptado">
-        Puedes abrir el examen. Se abre en la sesión, con la persona delante, y
-        a partir de ese momento ella puede responder desde su cuenta.
-      </Alert>
-
-      {estado.mensaje ? (
-        <Alert
-          tone={estado.ok ? "success" : "danger"}
-          title={estado.ok ? "Abierto" : "No se pudo abrir"}
-        >
-          {estado.mensaje}
-        </Alert>
-      ) : null}
-
-      <div>
-        <Button type="submit" disabled={enviando}>
-          {enviando ? "Abriendo…" : "Abrir el examen"}
-        </Button>
-      </div>
-    </form>
+    <Alert tone="success" title="Puede empezar cuando quiera">
+      Aceptó el consentimiento, así que su examen ya está disponible desde su
+      cuenta. Cuando envíe sus respuestas podrás calificarlas aquí.
+    </Alert>
   );
 }

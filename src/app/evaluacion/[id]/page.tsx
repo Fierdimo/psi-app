@@ -44,9 +44,7 @@ export default async function EvaluacionPage({
    */
   const { data: asignacion } = await supabase
     .from("assignments")
-    .select(
-      "id, status, habilitado_at, assessment:assessments(nombre, descripcion)",
-    )
+    .select("id, status, assessment:assessments(nombre, descripcion)")
     .eq("id", id)
     .maybeSingle();
 
@@ -123,11 +121,7 @@ export default async function EvaluacionPage({
           )}
         />
       ) : (
-        <Consentimiento
-          asignacion={id}
-          decision={decision ?? null}
-          habilitada={asignacion.habilitado_at !== null}
-        />
+        <Consentimiento asignacion={id} decision={decision ?? null} />
       )}
     </Pantalla>
   );

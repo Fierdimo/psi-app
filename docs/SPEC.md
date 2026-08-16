@@ -663,7 +663,11 @@ Y en la otra dirección también, porque es lo que el propio consentimiento prom
 
 De ahí que el consentimiento de una evaluación no sea un interruptor sino un **historial de decisiones**: cada respuesta se guarda con su fecha, y lo que manda es la última. Se conservan también los rechazos, y no por burocracia — que conste que alguien pudo negarse **es lo que hace válido que después aceptara**. Un consentimiento sin la posibilidad demostrable de rechazo no es consentimiento.
 
-**El examen lo abre el profesional durante la sesión.** No basta con que sea el día de la cita: queda bloqueado hasta que él lo habilita. Así se garantiza que la parte presencial ocurrió antes y que la prueba se respondió bajo supervisión, que es lo que da valor al informe.
+**Consentir abre el examen.** En cuanto la persona acepta, puede responder desde su cuenta.
+
+Hubo un paso más —el profesional abría el examen de cada persona— y se quitó porque no decidía nada: la decisión ya la había tomado quien firma, y ese acto crecía con cada convocado justo en las sesiones grandes, que son las que más cuestan. Quedan los tres candados que sí deciden algo: sin sesión confirmada no se asigna, sin asignación no hay examen, y **sin consentimiento no se responde**.
+
+Si alguna vez conviene que la prueba no pueda responderse antes de la sesión presencial, la vuelta atrás es una línea: el candado sigue en `iniciar_prueba`.
 
 **Nada sale de la plataforma sin que el profesional lo mande.** Son tres actos suyos y distintos, y no se funden en uno por comodidad: **confirmar** dice «acepto la sesión»; **emitir las invitaciones** dice «ya pueden crear su cuenta»; y **abrir el examen**, durante la sesión presencial, dice «pueden empezar a responder». Confirmar una fecha no debe hacer que a nadie le llegue un correo, porque entre una cosa y otra suele faltar el trámite. Hay una prueba que lo afirma: tras confirmar, la tabla de invitaciones sigue vacía.
 

@@ -116,7 +116,7 @@ select is(
 select throws_ok(
   format('select public.habilitar_examen((select id from public.assignments limit 1))'),
   'Esa persona no ha aceptado esta evaluación.',
-  'Sin consentimiento el profesional NO puede abrir el examen'
+  'Sin consentimiento no se abre el examen, ni siquiera a mano'
 );
 
 select tests_como(:'otro');
@@ -204,24 +204,21 @@ select is(
 );
 
 -- =============================================================================
--- NADIE EMPIEZA SOLO
+-- CONSENTIR ABRE EL EXAMEN
+--
+-- Antes hacía falta que el profesional lo abriera, uno por uno. En cuanto la
+-- persona ha consentido, ese paso no añadía criterio: solo trabajo, y trabajo
+-- que crecía con cada convocado.
 -- =============================================================================
-select throws_ok(
-  'select public.iniciar_prueba((select id from public.assignments limit 1))',
-  'Esta evaluación todavía no está abierta.',
-  'Con consentimiento pero sin que el profesional la abra, no se empieza'
+select is(
+  (select habilitado_at is not null from public.assignments limit 1),
+  true,
+  'Aceptar el consentimiento deja el examen disponible'
 );
 
-select tests_como(:'doctor');
-select lives_ok(
-  'select public.habilitar_examen((select id from public.assignments limit 1))',
-  'El profesional la abre durante la sesión'
-);
-
-select tests_como(:'ana');
 select lives_ok(
   'select public.iniciar_prueba((select id from public.assignments limit 1))',
-  'Y ahora sí empieza'
+  'Y la persona empieza sin esperar a nadie'
 );
 
 select lives_ok(
