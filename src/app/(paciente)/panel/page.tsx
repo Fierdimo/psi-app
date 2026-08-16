@@ -39,14 +39,25 @@ export default async function PanelPage() {
 
   const [{ data: proximas }, { data: pendientes }, { data: evaluaciones }] =
     await Promise.all([
+      /*
+       * También la sesión que encargó una empresa.
+       *
+       * El filtro `organization_id is null` estaba aquí por la misma razón que
+       * en el calendario —que una sesión corporativa no contara como solicitud
+       * pendiente suya— y aquí apagaba lo mismo: la persona tenía una sesión
+       * con fecha y dirección y su pantalla de inicio no la mencionaba. Se
+       * arregló el calendario y se olvidó el panel, que es donde se aterriza.
+       *
+       * Y se piden varias, no una: con una cita de terapia el sábado y una
+       * evaluación el martes, la segunda no existía en esta pantalla.
+       */
       supabase
         .from("appointments")
-        .select("*")
-        .is("organization_id", null)
+        .select("*, organizacion:organizations(nombre)")
         .gte("starts_at", ahoraISO)
         .in("status", ["confirmada", "solicitada", "reprogramacion_solicitada"])
         .order("starts_at")
-        .limit(1),
+        .limit(4),
       supabase
         .from("appointments")
         .select("*")
@@ -68,7 +79,18 @@ export default async function PanelPage() {
         .order("assigned_at"),
     ]);
 
-  const proxima = ((proximas ?? []) as Cita[])[0] ?? null;
+  const siguientes = (proximas ?? []) as Cita[];
+  const proxima = siguientes[0] ?? null;
+
+  /*
+   * Lo que viene DESPUÉS de la próxima.
+   *
+   * La tarjeta destacada enseña una sola cita, así que con una cita de terapia
+   * el martes y una sesión de evaluación el viernes, la segunda no existía en
+   * esta pantalla. Se veía en el calendario y no aquí, que es donde se
+   * aterriza.
+   */
+  const despues = siguientes.slice(1);
   const enEspera = (pendientes ?? []) as Cita[];
   const accesos = SECCIONES.filter((s) => s.href !== "/panel");
 
@@ -121,6 +143,37 @@ export default async function PanelPage() {
       )}
 
       <TarjetaProximaCita cita={proxima} zona={zona} />
+
+      {despues.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-h3">Después</h2>
+          <ul className="border-line divide-line bg-panel divide-y rounded-lg border">
+            {despues.map((cita) => (
+              <li key={cita.id}>
+                <Link
+                  href={`/calendario/${cita.id}`}
+                  className="hover:bg-accent-soft ease-psi flex min-h-16 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150"
+                >
+                  <span className="text-text-strong tabular font-medium">
+                    {capitalizar(fechaLarga(cita.starts_at, zona))} ·{" "}
+                    {hora(cita.starts_at, zona)}
+                  </span>
+                  <span className="text-text-muted flex-1 text-sm">
+                    {cita.organization_id
+                      ? "Sesión de evaluación"
+                      : MODALIDAD[cita.modality]}
+                    {" · "}
+                    {distanciaEnDias(cita.starts_at, zona)}
+                  </span>
+                  <Badge tone={ASPECTO[cita.status].tono}>
+                    {ASPECTO[cita.status].etiqueta}
+                  </Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {enEspera.length > 0 && (
         <section className="flex flex-col gap-3">

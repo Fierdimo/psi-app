@@ -1,4 +1,4 @@
-import { CalendarPlus, MapPin, Video } from "lucide-react";
+import { Building2, CalendarPlus, MapPin, Video } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,19 @@ export function TarjetaProximaCita({
   cita: Cita | null;
   zona: string;
 }) {
+  /*
+   * Quién convoca. PostgREST devuelve la relación embebida como arreglo
+   * aunque sea de uno, así que se normaliza en vez de forzar el tipo.
+   */
+  const embebida = (cita as { organizacion?: unknown } | null)?.organizacion;
+  const empresa =
+    (Array.isArray(embebida)
+      ? (embebida[0] as { nombre: string } | undefined)
+      : (embebida as { nombre: string } | null | undefined)
+    )?.nombre ?? null;
+
+  const esEvaluacion = cita?.organization_id != null;
+
   if (!cita) {
     return (
       <Card edge="border" className="flex flex-col items-start gap-4">
@@ -58,8 +71,14 @@ export function TarjetaProximaCita({
   return (
     <Card edge="shadow" accent className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
+        {/*
+          Se nombra por lo que es.
+          A una cita va a que la atiendan; a una sesión de evaluación la
+          convocó una empresa. Llamarlas igual invita a presentarse al sitio
+          equivocado, y aquí es lo primero que se lee al entrar.
+        */}
         <span className="text-text-muted text-micro font-semibold tracking-[0.09em] uppercase">
-          Próxima cita
+          {esEvaluacion ? "Próxima evaluación" : "Próxima cita"}
         </span>
         <Badge tone={aspecto.tono}>{aspecto.etiqueta}</Badge>
       </div>
@@ -76,6 +95,12 @@ export function TarjetaProximaCita({
           <p className="text-text-muted flex items-center gap-1.5 text-sm">
             <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
             {cita.location}
+          </p>
+        )}
+        {empresa && (
+          <p className="text-text-muted flex items-center gap-1.5 text-sm">
+            <Building2 aria-hidden="true" className="size-3.5 shrink-0" />
+            Te convocó {empresa}
           </p>
         )}
         {esVirtual && !cita.meeting_url && (
@@ -108,13 +133,15 @@ export function TarjetaProximaCita({
           importante del área no puede estar escondida una pantalla más
           adentro.
         */}
-        <Link
-          href="/solicitar-cita"
-          className={buttonVariants({ variant: "secondary", size: "sm" })}
-        >
-          <CalendarPlus aria-hidden="true" className="size-4" />
-          Solicitar otra cita
-        </Link>
+        {!esEvaluacion && (
+          <Link
+            href="/solicitar-cita"
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            <CalendarPlus aria-hidden="true" className="size-4" />
+            Solicitar otra cita
+          </Link>
+        )}
 
         <Link
           href="/calendario"
