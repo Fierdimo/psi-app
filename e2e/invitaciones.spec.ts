@@ -207,3 +207,76 @@ test.describe("Mis evaluaciones", () => {
     await expect(page.getByText(/Distribuciones del Caribe/i)).toBeVisible();
   });
 });
+
+test.describe("El ejecutor de la prueba", () => {
+  /*
+   * Tres fallos que encontró el cliente respondiendo, y que ninguna prueba
+   * veía porque todas miraban la base y no la pantalla.
+   */
+  test("marca lo elegido y no deja avanzar a medias", async ({ page }) => {
+    const db = admin();
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+    const { data: persona } = await db
+      .from("organization_people")
+      .select("id, organization_id, profile_id")
+      .eq("documento", "1047373301")
+      .single();
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    const { data: asignacion } = await db
+      .from("assignments")
+      .insert({
+        assessment_id: prueba!.id,
+        person_id: persona!.id,
+        organization_id: persona!.organization_id,
+        assigned_by: doctor!.id,
+        status: "en_curso",
+        habilitado_at: new Date().toISOString(),
+        started_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    await db.from("consents").insert({
+      user_id: persona!.profile_id,
+      document_key: "consentimiento_evaluacion",
+      version: "1",
+      decision: "aceptado",
+      assignment_id: asignacion!.id,
+    });
+
+    await page.goto("/ingresar");
+    await rellenarIngreso(page, CUENTAS.paciente);
+    await page.waitForURL(/consentimiento|panel/, { timeout: 20000 });
+    await page.goto(`/evaluacion/${asignacion!.id}`);
+
+    const siguiente = page.getByRole("button", { name: /^Siguiente$/ });
+    const radios = page.locator('input[type="radio"]');
+
+    // Sin responder no se avanza.
+    await expect(siguiente).toBeDisabled();
+
+    // Con MEDIA respuesta tampoco: un bloque necesita «más» Y «menos», y con
+    // uno solo la escala se calcula mal sin que nada lo avise.
+    await radios.nth(0).check();
+    await expect(siguiente).toBeDisabled();
+
+    await radios.nth(3).check();
+    await expect(siguiente).toBeEnabled();
+
+    // Y lo elegido se ve elegido. La escala Likert se pintaba con clases que
+    // no existen en este proyecto, así que la respuesta se guardaba sin que
+    // la persona tuviera forma de saberlo.
+    await siguiente.click();
+    await expect(page.getByText(/2 de 68/)).toBeVisible();
+  });
+});

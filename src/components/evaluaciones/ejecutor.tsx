@@ -6,6 +6,7 @@ import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/lib/evaluaciones/motor";
+import { cn } from "@/lib/utils";
 
 /**
  * El ejecutor: donde la persona responde.
@@ -30,12 +31,31 @@ interface Marca {
   menos?: string;
 }
 
+/**
+ * ¿Está REALMENTE contestado este ítem?
+ *
+ * En un bloque de elección forzada hacen falta las DOS columnas. Marcar solo
+ * «más» dejaba avanzar y contaba como respondido, y ese bloque puntúa mal: la
+ * escala se calcula restando los «menos» a los «más», así que media respuesta
+ * desplaza el perfil sin que nada lo avise.
+ */
+function contestado(item: Item, valor: unknown): boolean {
+  if (valor === undefined || valor === null) return false;
+
+  if (item.tipo === "forced_choice") {
+    const marca = valor as Marca;
+    return Boolean(marca.mas) && Boolean(marca.menos);
+  }
+
+  return true;
+}
+
 export function Ejecutor({ asignacion, items, respuestas }: Props) {
   const [valores, setValores] = useState<Record<string, unknown>>(respuestas);
   const [indice, setIndice] = useState(() => {
     // Se retoma donde se quedó. Si hubo una caída, volver a empezar sería
     // castigar a la persona por un fallo nuestro.
-    const primeraSin = items.findIndex((i) => respuestas[i.id] === undefined);
+    const primeraSin = items.findIndex((i) => !contestado(i, respuestas[i.id]));
     return primeraSin === -1 ? items.length - 1 : primeraSin;
   });
   const [fallo, setFallo] = useState<string | null>(null);
@@ -44,11 +64,21 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
   const item = items[indice];
 
   const respondidos = useMemo(
-    () => items.filter((i) => valores[i.id] !== undefined).length,
+    () => items.filter((i) => contestado(i, valores[i.id])).length,
     [items, valores],
   );
 
   const completo = respondidos === items.length;
+
+  /*
+   * No se avanza sin responder.
+   *
+   * Antes «Siguiente» siempre estaba activo, así que era fácil pasar de largo
+   * sin darse cuenta y descubrir 68 pantallas después que faltaban respuestas
+   * sueltas. En un instrumento ipsativo un bloque en blanco no es un dato
+   * menos: descuadra el perfil entero.
+   */
+  const respondido = contestado(item, valores[item.id]);
 
   function guardar(valor: unknown) {
     setValores((previos) => ({ ...previos, [item.id]: valor }));
@@ -77,11 +107,13 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
         </Alert>
       ) : null}
 
-      <div className="border-border bg-surface rounded-xl border p-6">
-        <p className="text-muted text-sm">
+      <div className="border-line bg-panel rounded-xl border p-6">
+        <p className="text-text-muted text-sm">
           {indice + 1} de {items.length}
         </p>
-        <h2 className="text-fg mt-1 text-lg font-semibold">{item.enunciado}</h2>
+        <h2 className="text-text-strong mt-1 text-lg font-semibold">
+          {item.enunciado}
+        </h2>
 
         <div className="mt-5">
           {item.tipo === "forced_choice" ? (
@@ -118,7 +150,12 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
         </Button>
 
         {indice < items.length - 1 ? (
-          <Button onClick={() => setIndice((n) => n + 1)}>Siguiente</Button>
+          <Button
+            disabled={!respondido}
+            onClick={() => setIndice((n) => n + 1)}
+          >
+            Siguiente
+          </Button>
         ) : (
           <form
             action={(formData) =>
@@ -136,6 +173,16 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
         )}
       </div>
 
+      {/* Se dice POR QUÉ está apagado. Un botón inerte sin explicación se lee
+          como una avería. */}
+      {!respondido ? (
+        <p className="text-text-muted text-sm">
+          {item.tipo === "forced_choice"
+            ? "Marca las dos: la que más te describe y la que menos. Puedes volver atrás cuando quieras y cambiar lo que ya marcaste."
+            : "Responde para continuar. Puedes volver atrás cuando quieras y cambiar lo que ya marcaste."}
+        </p>
+      ) : null}
+
       {!completo && indice === items.length - 1 ? (
         <Alert tone="info" title="Te faltan respuestas">
           Has respondido {respondidos} de {items.length}. Usa «Anterior» para
@@ -151,14 +198,14 @@ function Progreso({ hechos, total }: { hechos: number; total: number }) {
   const porcentaje = Math.round((hechos / total) * 100);
   return (
     <div>
-      <div className="text-muted flex justify-between text-sm">
+      <div className="text-text-muted flex justify-between text-sm">
         <span>
           {hechos} de {total} respondidas
         </span>
         <span>{porcentaje}%</span>
       </div>
       <div
-        className="bg-border mt-2 h-2 overflow-hidden rounded-full"
+        className="bg-line mt-2 h-2 overflow-hidden rounded-full"
         role="progressbar"
         aria-valuenow={porcentaje}
         aria-valuemin={0}
@@ -166,7 +213,7 @@ function Progreso({ hechos, total }: { hechos: number; total: number }) {
         aria-label="Progreso de la prueba"
       >
         <div
-          className="bg-primary h-full transition-all"
+          className="bg-accent h-full transition-all"
           style={{ width: `${porcentaje}%` }}
         />
       </div>
@@ -205,15 +252,16 @@ function EleccionForzada({
         una frase que leyó al empezar, y equivocarse de columna le cambia el
         perfil.
       */}
-      <p className="text-muted mb-4 text-sm">
-        De estas cuatro, marca la que <strong className="text-fg">más</strong>{" "}
-        te describe y la que <strong className="text-fg">menos</strong>. No hay
-        respuestas buenas ni malas.
+      <p className="text-text-muted mb-4 text-sm">
+        De estas cuatro, marca la que{" "}
+        <strong className="text-text-strong">más</strong> te describe y la que{" "}
+        <strong className="text-text-strong">menos</strong>. No hay respuestas
+        buenas ni malas.
       </p>
 
       <table className="w-full">
         <thead>
-          <tr className="text-muted text-sm">
+          <tr className="text-text-muted text-sm">
             <th className="pb-2 text-left font-medium">Opción</th>
             <th className="w-20 pb-2 font-medium">Más</th>
             <th className="w-20 pb-2 font-medium">Menos</th>
@@ -221,8 +269,8 @@ function EleccionForzada({
         </thead>
         <tbody>
           {item.opciones.map((opcion) => (
-            <tr key={opcion.id} className="border-border border-t">
-              <td className="text-fg py-3">{opcion.texto}</td>
+            <tr key={opcion.id} className="border-line border-t">
+              <td className="text-text-body py-3">{opcion.texto}</td>
               {(["mas", "menos"] as const).map((columna) => (
                 <td key={columna} className="py-3 text-center">
                   <input
@@ -231,7 +279,7 @@ function EleccionForzada({
                     checked={valor[columna] === opcion.id}
                     onChange={() => marcar(columna, opcion.id)}
                     aria-label={`${opcion.texto}: la que ${columna === "mas" ? "más" : "menos"} me describe`}
-                    className="accent-primary size-5"
+                    className="size-5 accent-[var(--accent)]"
                   />
                 </td>
               ))}
@@ -254,16 +302,22 @@ function Likert({
 }) {
   return (
     <fieldset>
-      <legend className="text-muted mb-3 text-sm">
+      <legend className="text-text-muted mb-3 text-sm">
         1 es «no me describe» y 5 es «me describe del todo».
       </legend>
       <div className="flex flex-wrap gap-2">
         {[1, 2, 3, 4, 5].map((n) => (
           <label
             key={n}
-            className={`border-border flex size-12 cursor-pointer items-center justify-center rounded-lg border text-base font-medium ${
-              valor === n ? "bg-primary text-on-primary" : "bg-surface text-fg"
-            }`}
+            className={cn(
+              "ease-psi flex size-12 cursor-pointer items-center justify-center rounded-lg border text-base font-medium transition-colors duration-150",
+              // Lo marcado tiene que verse a un metro de distancia: son 40
+              // afirmaciones seguidas y la única señal de que la respuesta
+              // quedó registrada es esta.
+              valor === n
+                ? "border-accent bg-accent text-surface-0"
+                : "border-line-interactive bg-panel text-text-body hover:border-accent hover:bg-accent-soft",
+            )}
           >
             <input
               type="radio"
