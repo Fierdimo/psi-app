@@ -732,8 +732,29 @@ export default function LandingPage() {
 
       <footer className="border-line bg-panel border-t">
         <div className="text-text-muted mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-5 py-8 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>
-            © {new Date().getFullYear()} {PROFESIONAL.nombre}
+          {/*
+            Dos créditos distintos y por eso separados: a la izquierda de quién
+            es el contenido, a la derecha quién lo hizo. Juntarlos en la misma
+            fila de enlaces confundiría el estudio con una red social suya.
+          */}
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              © {new Date().getFullYear()} {PROFESIONAL.nombre}
+            </span>
+            <span aria-hidden="true" className="text-line hidden sm:inline">
+              ·
+            </span>
+            <span>
+              Desarrollado por{" "}
+              <a
+                href="https://nexias.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text-body hover:text-accent ease-psi font-medium transition-colors duration-150"
+              >
+                Nexias
+              </a>
+            </span>
           </span>
           <div className="flex gap-5">
             <a
