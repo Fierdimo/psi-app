@@ -21,6 +21,22 @@ había forma de ver cómo quedaba una invitación sin desplegarla.
 
 ---
 
+## 0 · La dirección del sitio
+
+```bash
+NEXT_PUBLIC_SITE_URL="https://jbrpsicometrias.com"
+```
+
+Es lo primero porque de ahí salen **todos los enlaces que se envían fuera**:
+confirmar el correo, recuperar la contraseña, y el pase de cada convocado con
+su QR.
+
+Sin ella se deduce de los encabezados de la petición, que sirve en local pero
+no es de fiar detrás de un proxy: un enlace con el host interno funciona en la
+pantalla de quien lo genera y no funciona en el teléfono de quien lo recibe.
+
+---
+
 ## 1 · Verificar el dominio
 
 Sin esto, cualquier proveedor entrega al spam o directamente rechaza.

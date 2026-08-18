@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
+import { origenDeLaPeticion } from "@/lib/http/origen";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import {
@@ -150,9 +151,7 @@ export async function registrar(
   }
 
   const supabase = await crearClienteServidor();
-  const encabezados = await headers();
-  const origen =
-    encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origen = await origenDeLaPeticion();
 
   // El destino viaja dentro del enlace de verificación para que quien se
   // registra desde una invitación vuelva a ella y no a su panel.
@@ -221,9 +220,7 @@ export async function solicitarRecuperacion(
   }
 
   const supabase = await crearClienteServidor();
-  const encabezados = await headers();
-  const origen =
-    encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origen = await origenDeLaPeticion();
 
   await supabase.auth.resetPasswordForEmail(datos.data.correo, {
     redirectTo: `${origen}/auth/callback?siguiente=/recuperar/nueva`,

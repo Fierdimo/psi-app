@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { redirect } from "next/navigation";
@@ -10,6 +9,7 @@ import { enviarCorreo } from "@/lib/correo/enviar";
 import { invitacionEvaluacion } from "@/lib/correo/plantillas";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { origenDeLaPeticion } from "@/lib/http/origen";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
 /**
@@ -72,9 +72,7 @@ export async function emitirInvitaciones(
     .eq("id", cita)
     .maybeSingle();
 
-  const encabezados = await headers();
-  const origen =
-    encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origen = await origenDeLaPeticion();
 
   /*
    * PostgREST devuelve la relación embebida como arreglo aunque sea de uno.

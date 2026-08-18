@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { origenDeLaPeticion } from "@/lib/http/origen";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import {
   esquemaCambioContrasena,
@@ -104,9 +104,7 @@ export async function cambiarCorreo(
   }
 
   const { supabase } = await usuarioActual();
-  const encabezados = await headers();
-  const origen =
-    encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origen = await origenDeLaPeticion();
 
   const { error } = await supabase.auth.updateUser(
     { email: datos.data.correo },

@@ -204,7 +204,16 @@ test.describe.serial("Pases de acceso", () => {
     await fila.getByRole("button", { name: /copiar enlace/i }).click();
 
     const enlace = await page.evaluate(() => navigator.clipboard.readText());
-    expect(enlace).toContain("/invitacion/");
+
+    /*
+     * Con host, no una ruta suelta.
+     *
+     * El enlace se derivaba del encabezado `origin`, que el navegador manda al
+     * enviar un formulario pero NO al pedir una página. Al pasar los pases a
+     * leerse en el servidor salían como «/invitacion/abc…», y un QR con una
+     * ruta relativa no lleva a ninguna parte fuera de esa pestaña.
+     */
+    expect(enlace).toMatch(/^https?:\/\/[^/]+\/invitacion\/[a-f0-9]{64}$/);
 
     /*
      * Lo que importa: que el enlace copiado ABRA algo.

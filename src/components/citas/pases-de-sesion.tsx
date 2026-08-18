@@ -1,7 +1,6 @@
-import { headers } from "next/headers";
-
 import { EnlacesDeAcceso } from "@/components/citas/enlaces-de-acceso";
 import { crearClienteServidor } from "@/lib/supabase/server";
+import { origenDeLaPeticion } from "@/lib/http/origen";
 import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
 
 /**
@@ -39,9 +38,7 @@ export async function PasesDeSesion({
    */
   if (error || !data || data.length === 0) return null;
 
-  const encabezados = await headers();
-  const origen =
-    encabezados.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const origen = await origenDeLaPeticion();
 
   const enlaces: EnlaceDeAcceso[] = (
     data as {
