@@ -56,6 +56,22 @@ function obtenerTransporte() {
       secure: puerto === 465,
       // Mailpit no pide credenciales: pasarle unas vacías rompe el saludo.
       auth: usuario && clave ? { user: usuario, pass: clave } : undefined,
+
+      /*
+       * Tiempos de espera, y no son un adorno.
+       *
+       * Casi todos los VPS bloquean la salida SMTP para frenar el correo
+       * basura. Un puerto bloqueado no RECHAZA la conexión: la deja colgada.
+       * Sin estos topes, confirmar una cita se quedaba esperando hasta que la
+       * plataforma matara la petición —medio minuto o más— y la persona veía
+       * una pantalla pensando, por un correo que además no es crítico.
+       *
+       * Con ellos falla en cinco segundos, se registra y la operación sigue:
+       * la cita ya está confirmada y eso es lo que importa.
+       */
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 10000,
     });
   }
 

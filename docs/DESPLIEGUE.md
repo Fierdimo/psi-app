@@ -94,7 +94,62 @@ crearon y cuántas se enviaron, y son números distintos cuando falta.
 
 ---
 
-## 4 · Comprobar que funciona
+## 4 · Si esto corre en un VPS
+
+Lo que en local funciona puede no funcionar ahí, y por un motivo que no da
+ningún error claro.
+
+**Casi todos los proveedores de VPS bloquean la salida SMTP.** Es la medida
+estándar contra el correo basura, y afecta siempre al puerto 25 y a menudo
+también al 587 y al 465. Lo peor es la forma de fallar: un puerto bloqueado no
+rechaza la conexión, la deja **colgada**, así que el síntoma es «no llega
+nada» sin nada en los registros.
+
+Tres consecuencias prácticas:
+
+- **No instales un servidor de correo en el VPS.** Un Postfix propio enviando
+  desde una IP recién estrenada acaba en spam o en listas negras: no hay
+  reputación que lo respalde. Hay que salir por un relé —el mismo del paso 2—,
+  que es justo lo que hace la configuración actual.
+- **Si 587 está bloqueado, prueba 2525.** Casi todos los relés lo ofrecen
+  precisamente porque los proveedores no suelen filtrarlo.
+- **Puede que haya que pedir el desbloqueo.** Varios proveedores lo abren si se
+  les escribe explicando para qué; otros no lo hacen en cuentas nuevas.
+
+Para saber en cuál de esos casos estás, **desde el propio servidor**:
+
+```bash
+pnpm correo:probar tu-correo@ejemplo.com
+```
+
+Dice si la conexión se acepta, si las credenciales valen y si el envío sale, y
+qué mirar en cada caso. Es lo primero que hay que ejecutar tras desplegar.
+
+El código ya no se queda esperando: la conexión abandona a los cinco segundos.
+Sin ese tope, confirmar una cita se quedaba pensando hasta que la plataforma
+mataba la petición, por un correo que además no es crítico.
+
+### Si Supabase también va en el VPS
+
+Con Supabase alojado, el SMTP de autenticación se configura desde su panel. Si
+lo autoalojas, GoTrue lee **variables de entorno**, no el panel:
+
+```bash
+GOTRUE_SMTP_HOST=smtp.resend.com
+GOTRUE_SMTP_PORT=587
+GOTRUE_SMTP_USER=resend
+GOTRUE_SMTP_PASS=re_...
+GOTRUE_SMTP_ADMIN_EMAIL=no-responder@jbrpsicometrias.com
+GOTRUE_SMTP_SENDER_NAME=JBR Psicometrías
+```
+
+Las plantillas de `supabase/templates/` hay que montarlas en el contenedor y
+apuntarlas con `GOTRUE_MAILER_TEMPLATES_CONFIRMATION` y sus equivalentes; si no,
+vuelve el texto en inglés por defecto.
+
+---
+
+## 5 · Comprobar que funciona
 
 En este orden, que es el de las dependencias:
 
