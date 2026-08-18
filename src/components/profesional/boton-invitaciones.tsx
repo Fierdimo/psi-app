@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { EnlacesDeAcceso } from "@/components/citas/enlaces-de-acceso";
 import { emitirInvitaciones } from "@/lib/citas/acciones-invitaciones";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
@@ -42,6 +43,10 @@ export function BotonInvitaciones({
         >
           {estado.mensaje}
         </Alert>
+      )}
+
+      {estado.enlaces && estado.enlaces.length > 0 && (
+        <EnlacesDeAcceso enlaces={estado.enlaces} />
       )}
 
       <form action={accion} className="flex flex-wrap items-center gap-3">

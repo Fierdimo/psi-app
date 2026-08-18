@@ -7,18 +7,29 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { FormularioSesion } from "@/components/empresa/formulario-sesion";
+import { PasesDeAcceso } from "@/components/empresa/pases-de-acceso";
 import { exigirEmpresa } from "@/lib/auth/perfil";
-import { ahoraEn } from "@/lib/fechas/formato";
+import {
+  ahoraEn,
+  capitalizar,
+  fechaLarga,
+  rangoHorario,
+} from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Editar la solicitud" };
+export const metadata: Metadata = { title: "La sesión" };
 
 /**
- * Corregir una solicitud, mientras siga siendo una solicitud.
+ * Una sesión, y lo que se puede hacer con ella en cada momento.
  *
- * Una vez confirmada, la fecha es un compromiso de dos y a los convocados ya
- * se les avisó: cambiarla por detrás haría que alguien se presentara el día
+ * MIENTRAS ES SOLICITUD se edita: la fecha y a quién convocas. Una vez
+ * confirmada, la fecha es un compromiso de dos y a los convocados ya se les
+ * avisó, así que cambiarla por detrás haría que alguien se presentara el día
  * que no era. La base lo rechaza; aquí ni se ofrece.
+ *
+ * YA CONFIRMADA lo que hace falta es lo contrario: repartir el acceso. Esta
+ * pantalla era hasta ahora un callejón —«ya no se edita, escríbele»— cuando es
+ * justo el momento en que la empresa tiene algo que hacer.
  */
 export default async function EditarSesionPage({
   params,
@@ -51,18 +62,50 @@ export default async function EditarSesionPage({
 
   const fechaMinima = ahoraEn(perfil.timezone).plus({ days: 1 }).toISODate()!;
 
+  const repartible =
+    sesion.status === "confirmada" || sesion.status === "realizada";
+
   return (
     <Pantalla>
       <EncabezadoPagina
-        titulo="Editar la solicitud"
-        descripcion="Puedes cambiar la fecha y a quién convocas mientras el profesional no la haya respondido."
+        titulo={repartible ? "La sesión" : "Editar la solicitud"}
+        descripcion={
+          repartible
+            ? /*
+               * Cuándo es, en el encabezado.
+               *
+               * La pantalla se titulaba «La sesión» y no decía en ningún sitio
+               * qué día ni a qué hora: quien entra a repartir los accesos es
+               * quien tiene que avisar a su gente, y esa es la primera cosa
+               * que necesita copiar en el mensaje.
+               */
+              `${capitalizar(fechaLarga(sesion.starts_at, perfil.timezone))} · ${rangoHorario(sesion.starts_at, sesion.ends_at, perfil.timezone)}` +
+              (sesion.location ? ` · ${sesion.location}` : "")
+            : "Puedes cambiar la fecha y a quién convocas mientras el profesional no la haya respondido."
+        }
       />
 
       {sesion.status !== "solicitada" ? (
-        <Alert tone="info" title="Esta sesión ya no se edita">
-          El profesional ya respondió, así que la fecha es un compromiso de dos
-          y a los convocados se les avisó. Si necesitas cambiarla, escríbele.
-        </Alert>
+        <div className="flex flex-col gap-4">
+          {/*
+            Los pases van PRIMERO cuando los hay.
+
+            El aviso de «ya no se edita» responde a algo que la empresa no ha
+            preguntado; lo que viene a hacer aquí es repartir. Arriba del todo,
+            el aviso empujaba la única acción de la pantalla por debajo del
+            pliegue en un teléfono.
+
+            Y solo con la sesión en pie: repartir accesos de una cancelada o
+            rechazada es mandar a alguien a presentarse a nada.
+          */}
+          {repartible && <PasesDeAcceso citaId={sesion.id} />}
+
+          <Alert tone="info" title="Esta sesión ya no se edita">
+            El profesional ya respondió, así que la fecha es un compromiso de
+            dos y a los convocados se les avisó. Si necesitas cambiarla,
+            escríbele.
+          </Alert>
+        </div>
       ) : (
         <FormularioSesion
           personas={personas ?? []}

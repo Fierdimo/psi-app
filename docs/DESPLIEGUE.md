@@ -204,7 +204,59 @@ vuelve el texto en inglés por defecto.
 
 ---
 
-## 5 · Comprobar que funciona
+## 5 · Sin servicio de correo: la entrega en mano
+
+Contratar un servicio de envío se puede posponer, pero conviene saber qué se
+pierde exactamente y qué no.
+
+**Lo que sigue funcionando.** Cada sesión confirmada puede repartir sus accesos
+a mano, con un enlace y un QR por convocado:
+
+- El **profesional**, desde la sesión, con «Invitar a los convocados»: los
+  enlaces aparecen en pantalla salgan o no los correos.
+- La **empresa**, desde `/empresa/sesiones/[id]`, con «Generar pases de
+  acceso». Es la vía que mejor escala: la empresa ya tiene su canal con su
+  gente —intranet, grupo del turno, el jefe de área— y llega antes que un
+  correo desde fuera.
+
+Quien no tiene cuenta recibe su invitación; quien ya la tiene aparece marcada y
+su pase lleva a la entrada normal, porque su evaluación le espera dentro. El QR
+está pensado para la entrega en persona: se enseña en pantalla y lo escanea con
+su teléfono.
+
+**Lo que hay que aceptar a cambio.** Un pase con testigo es la llave para entrar
+como esa persona. Puesto en manos de la empresa, la empresa **puede** crear la
+cuenta de su empleado y, con ella, aceptar el consentimiento y responder la
+prueba en su lugar. No hay forma de evitarlo: quien tiene el enlace tiene el
+acceso. Por eso los pases se generan al pulsar —nunca al abrir la pantalla— y
+`access_passes_log` guarda quién los pidió y cuándo.
+
+Si esa cesión no es aceptable para un cliente concreto, la salida es que los
+reparta el profesional el día de la sesión, en persona: el acceso llega a su
+dueño sin pasar por nadie más.
+
+**Lo que NO se puede sustituir a mano:**
+
+- **Recuperar la contraseña.** Va por correo y no hay otra vía. Sin servicio de
+  envío, quien olvide la suya se queda fuera hasta que alguien se la reponga
+  desde el panel de Supabase.
+- **Cambiar de dirección de correo**, por lo mismo.
+
+Para quitar la verificación al registrarse —el paso que hoy bloquea las cuentas
+nuevas si no hay correo— en `supabase/config.toml`:
+
+```toml
+[auth.email]
+enable_confirmations = false
+```
+
+Con eso la cuenta queda activa al crearse. El precio es que nadie comprueba que
+la dirección sea suya: alguien puede registrarse con el correo de otra persona,
+y ese correo es el único camino para recuperar la contraseña más adelante.
+
+---
+
+## 6 · Comprobar que funciona
 
 En este orden, que es el de las dependencias:
 
@@ -213,7 +265,8 @@ En este orden, que es el de las dependencias:
 2. **Recuperar contraseña**, desde `/recuperar`.
 3. **Invitación a una evaluación.** Confirmar una sesión de empresa y pulsar
    «Invitar a los convocados»: tiene que decir _«N invitaciones enviadas por
-   correo»_. Si dice _«N creadas, 0 enviadas»_, falta la configuración SMTP.
+   correo»_. Si dice _«N creadas, 0 enviadas»_, falta la configuración SMTP —y
+   los enlaces que aparecen debajo siguen sirviendo para entregarlas a mano.
 4. **Recordatorio de víspera.** Lo dispara `/api/tareas/recordatorios` con el
    secreto `TAREAS_SECRETO`; hay que programarlo una vez al día.
 

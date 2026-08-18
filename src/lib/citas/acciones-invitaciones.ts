@@ -87,8 +87,15 @@ export async function emitirInvitaciones(
     "Una empresa";
 
   let enviados = 0;
+  const enlaces: { nombre: string; correo: string; enlace: string }[] = [];
 
   for (const persona of lista) {
+    enlaces.push({
+      nombre: persona.nombre ?? persona.email,
+      correo: persona.email,
+      enlace: `${origen}/invitacion/${persona.token}`,
+    });
+
     const { enviado } = await enviarCorreo(
       { correo: persona.email, nombre: persona.nombre },
       invitacionEvaluacion(
@@ -127,13 +134,26 @@ export async function emitirInvitaciones(
   const una = lista.length === 1;
   const cuantas = una ? "1 invitación" : `${lista.length} invitaciones`;
 
+  /*
+   * Los enlaces se devuelven SIEMPRE, salgan o no los correos.
+   *
+   * El testigo solo existe en claro este instante: en la base queda su hash y
+   * de ahí no se vuelve. Si el correo no llega —dirección vieja, carpeta de
+   * spam, o sencillamente no hay servicio de correo contratado— esta es la
+   * única oportunidad de entregar el acceso, y la sesión es presencial: se
+   * puede pasar por el canal que ya se use, o enseñarlo el día de la prueba.
+   *
+   * Reemitir crea testigos nuevos, así que perder estos no deja a nadie fuera:
+   * cuesta otro clic, no una persona sin evaluar.
+   */
   return {
     ok: true,
+    enlaces,
     mensaje:
       enviados === lista.length
         ? `${cuantas} ${una ? "enviada" : "enviadas"} por correo.`
         : `${cuantas} ${una ? "creada" : "creadas"}, ${enviados} ${enviados === 1 ? "enviada" : "enviadas"} por correo. ` +
-          `Las que no salieron siguen siendo válidas: revisa la configuración de correo.`,
+          `Las que no salieron siguen siendo válidas: entrégalas tú desde aquí.`,
   };
 }
 

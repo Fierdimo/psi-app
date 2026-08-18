@@ -63,7 +63,30 @@ export const esquemaRecuperar = z.object({ correo });
 
 export const esquemaNuevaContrasena = z.object({ contrasena });
 
+/**
+ * Un acceso listo para entregar en mano.
+ *
+ * Existe en claro este instante y no vuelve: los testigos de invitación se
+ * guardan como hash y de la base no se recuperan. Si el correo no llega
+ * —dirección vieja, carpeta de spam, o sencillamente no hay servicio de correo
+ * contratado— esta pantalla es la única forma de entregar el acceso.
+ */
+export type EnlaceDeAcceso = {
+  nombre: string;
+  correo: string;
+  enlace: string;
+  /**
+   * Quien ya tiene cuenta no lleva testigo: su enlace es el de entrada normal
+   * y su evaluación le espera dentro. Se distingue porque el aviso que
+   * acompaña a un pase con testigo —«no lo reenvíes»— no aplica aquí, y
+   * repetirlo donde no toca enseña a ignorarlo.
+   */
+  yaTieneCuenta?: boolean;
+};
+
 export type EstadoFormulario = {
+  /** Accesos que solo existen en claro este instante. */
+  enlaces?: readonly EnlaceDeAcceso[];
   ok: boolean;
   /** Mensaje general del formulario. */
   mensaje?: string;
