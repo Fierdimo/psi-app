@@ -1,4 +1,4 @@
-import Pagina from "@/app/empresa/personas/[id]/page";
+import { ContenidoDePersona } from "@/app/empresa/personas/[id]/page";
 import { PanelLateral } from "@/components/navegacion/panel-lateral";
 
 /** Editar persona, como panel: la lista se queda detrás. */
@@ -9,7 +9,7 @@ export default async function Panel(
 
   return (
     <PanelLateral titulo="Editar persona" ruta={`/empresa/personas/${id}`}>
-      <Pagina {...props} />
+      <ContenidoDePersona {...props} />
     </PanelLateral>
   );
 }

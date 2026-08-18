@@ -159,14 +159,27 @@ test.describe.serial("Área de empresa", () => {
     // Los resultados están acotados: no se pintan sesenta filas.
     await expect(page.locator("fieldset ul li")).toHaveCount(8);
 
-    await page.getByRole("button", { name: /^añadir \d+ personas$/i }).click();
+    const enviar = page.getByRole("button", { name: /enviar solicitud/i });
+    const antes = (await enviar.boundingBox())!.y;
 
+    await page.getByRole("button", { name: /^añadir \d+ personas$/i }).click();
     await expect(page.getByText(/Convocadas \(\d+\)/)).toBeVisible();
 
-    // Y lo que importa: la acción sigue alcanzable sin desplazarse.
-    await expect(
-      page.getByRole("button", { name: /enviar solicitud/i }),
-    ).toBeInViewport();
+    /*
+     * Lo que importa: elegir sesenta no empuja la acción sesenta filas abajo.
+     *
+     * Se mide cuánto se movió el botón, no si cabe en la pantalla. Este
+     * formulario se abre SIEMPRE como panel —así se llega a él desde el
+     * listado— y en un panel de 600px un formulario con fecha, hora, lugar y
+     * convocados no cabe entero de todas formas; medir eso comprobaba la
+     * variante de página completa, que ya no ve nadie.
+     *
+     * La cota es la del contenedor de convocadas (max-h-40 = 160px) más el
+     * encabezado de la sección. Sin ella, cada persona añadida bajaba el botón
+     * otra fila y con cien era inalcanzable.
+     */
+    const despues = (await enviar.boundingBox())!.y;
+    expect(despues - antes).toBeLessThan(240);
   });
 
   test("los informes se ven cuando el profesional los firma", async ({
@@ -273,5 +286,44 @@ test.describe.serial("Área de empresa", () => {
     await expect(
       page.getByText(/al menos un correo o un teléfono/i),
     ).toBeVisible();
+  });
+
+  /*
+   * Recargar con el panel abierto no cambia de pantalla.
+   *
+   * La intercepción de rutas solo actúa en la navegación de dentro de la
+   * aplicación: al recargar, Next pinta la ruta real y el detalle sustituía al
+   * listado. Quien recargaba —que es lo que se hace cuando algo no se ve
+   * bien— se encontraba con que la aplicación se había movido sola.
+   */
+  test("recargar con el panel abierto conserva el listado detrás", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/personas");
+
+    await page
+      .getByRole("link", { name: /cargar persona/i })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    await page.reload();
+
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /personas/i }),
+    ).toBeVisible();
+
+    /*
+     * Y cerrar lleva al listado, no fuera del sitio.
+     *
+     * Aquí no hay un «atrás» de confianza: en una pestaña recién abierta la
+     * entrada anterior no es la lista, así que `router.back()` sacaría de la
+     * aplicación o no haría nada y el panel se quedaría clavado.
+     */
+    await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await page.waitForURL(/\/empresa\/personas$/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });

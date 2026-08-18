@@ -30,17 +30,33 @@ export function PanelLateral({
    * que acordarse de cerrarse.
    */
   ruta,
+  /**
+   * A dónde ir al cerrar cuando no hay «atrás» al que volver.
+   *
+   * Lo pasa la ruta directa —la que se abre al recargar o al pegar la
+   * dirección—, donde `router.back()` sacaría del sitio o, en una pestaña
+   * nueva, no haría nada y el panel se quedaría clavado. Con navegación normal
+   * no se pasa: ahí volver atrás conserva el scroll y el mes que se estaba
+   * mirando, que es justo lo que el panel existe para no perder.
+   */
+  volverA,
 }: {
   titulo: string;
   children: React.ReactNode;
   ruta?: string;
+  volverA?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const cerrar = () => {
+    if (volverA) router.push(volverA);
+    else router.back();
+  };
+
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.back();
+      if (e.key === "Escape") cerrar();
     };
     document.addEventListener("keydown", alPulsar);
 
@@ -53,7 +69,8 @@ export function PanelLateral({
       document.removeEventListener("keydown", alPulsar);
       document.body.style.overflow = previo;
     };
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, volverA]);
 
   // Si la navegación ya se fue a otra parte, este panel no pinta nada.
   if (ruta && pathname !== ruta && !pathname.startsWith(`${ruta}/`))
@@ -71,7 +88,7 @@ export function PanelLateral({
           equis, que sí es alcanzable con el teclado. */}
       <div
         aria-hidden="true"
-        onClick={() => router.back()}
+        onClick={cerrar}
         className="bg-overlay absolute inset-0"
       />
 
@@ -79,7 +96,7 @@ export function PanelLateral({
         <div className="bg-bg sticky top-0 z-10 flex justify-end p-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={cerrar}
             aria-label="Cerrar"
             className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 place-items-center rounded-md transition-colors duration-150"
           >

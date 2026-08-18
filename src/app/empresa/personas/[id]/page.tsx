@@ -6,6 +6,8 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { FormularioPersona } from "@/components/empresa/formulario-persona";
+import { ListadoDePersonas } from "@/components/empresa/listado-de-personas";
+import { PaginaConPanel } from "@/components/navegacion/pagina-con-panel";
 import { QuitarPersona } from "@/components/empresa/quitar-persona";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -18,7 +20,7 @@ export const metadata: Metadata = { title: "Editar persona" };
  * Reutiliza el mismo formulario que el alta: dos formularios para los mismos
  * campos se separan al primer cambio que se aplique solo a uno.
  */
-export default async function EditarPersonaPage({
+export async function ContenidoDePersona({
   params,
 }: PageProps<"/empresa/personas/[id]">) {
   await exigirEmpresa();
@@ -47,5 +49,20 @@ export default async function EditarPersonaPage({
         <QuitarPersona persona={persona.id} />
       </div>
     </Pantalla>
+  );
+}
+
+/** Abierta en directo, con el listado detrás. */
+export default async function PersonaPage(
+  props: PageProps<"/empresa/personas/[id]">,
+) {
+  return (
+    <PaginaConPanel
+      fondo={<ListadoDePersonas />}
+      titulo="Editar persona"
+      volverA="/empresa/personas"
+    >
+      <ContenidoDePersona {...props} />
+    </PaginaConPanel>
   );
 }

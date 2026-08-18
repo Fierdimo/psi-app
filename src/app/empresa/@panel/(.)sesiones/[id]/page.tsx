@@ -1,4 +1,4 @@
-import Pagina from "@/app/empresa/sesiones/[id]/page";
+import { ContenidoDeSesion } from "@/app/empresa/sesiones/[id]/page";
 import { PanelLateral } from "@/components/navegacion/panel-lateral";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -29,7 +29,7 @@ export default async function Panel(
       }
       ruta={`/empresa/sesiones/${id}`}
     >
-      <Pagina {...props} />
+      <ContenidoDeSesion {...props} />
     </PanelLateral>
   );
 }

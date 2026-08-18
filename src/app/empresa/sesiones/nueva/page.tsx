@@ -5,13 +5,15 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { FormularioSesion } from "@/components/empresa/formulario-sesion";
+import { ListadoDeSesiones } from "@/components/empresa/listado-de-sesiones";
+import { PaginaConPanel } from "@/components/navegacion/pagina-con-panel";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { ahoraEn } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Solicitar una sesión" };
 
-export default async function NuevaSesionPage() {
+export async function ContenidoNuevaSesion() {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
@@ -30,5 +32,18 @@ export default async function NuevaSesionPage() {
       />
       <FormularioSesion personas={personas ?? []} fechaMinima={fechaMinima} />
     </Pantalla>
+  );
+}
+
+/** Abierta en directo, con el listado detrás. */
+export default async function NuevaSesionPage() {
+  return (
+    <PaginaConPanel
+      fondo={<ListadoDeSesiones />}
+      titulo="Solicitar una sesión"
+      volverA="/empresa/sesiones"
+    >
+      <ContenidoNuevaSesion />
+    </PaginaConPanel>
   );
 }

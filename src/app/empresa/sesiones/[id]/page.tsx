@@ -8,6 +8,8 @@ import {
 } from "@/components/navegacion/encabezado-pagina";
 import { FormularioSesion } from "@/components/empresa/formulario-sesion";
 import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
+import { ListadoDeSesiones } from "@/components/empresa/listado-de-sesiones";
+import { PaginaConPanel } from "@/components/navegacion/pagina-con-panel";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import {
   ahoraEn,
@@ -31,7 +33,7 @@ export const metadata: Metadata = { title: "La sesión" };
  * pantalla era hasta ahora un callejón —«ya no se edita, escríbele»— cuando es
  * justo el momento en que la empresa tiene algo que hacer.
  */
-export default async function EditarSesionPage({
+export async function ContenidoDeSesion({
   params,
 }: PageProps<"/empresa/sesiones/[id]">) {
   const perfil = await exigirEmpresa();
@@ -128,5 +130,25 @@ export default async function EditarSesionPage({
         />
       )}
     </Pantalla>
+  );
+}
+
+/**
+ * La sesión abierta en directo: el listado detrás, ella encima.
+ *
+ * Al recargar no hay intercepción, así que sin esto el detalle se comía la
+ * pantalla y quien recargaba creía que la aplicación había cambiado de sitio.
+ */
+export default async function SesionPage(
+  props: PageProps<"/empresa/sesiones/[id]">,
+) {
+  return (
+    <PaginaConPanel
+      fondo={<ListadoDeSesiones />}
+      titulo="La sesión"
+      volverA="/empresa/sesiones"
+    >
+      <ContenidoDeSesion {...props} />
+    </PaginaConPanel>
   );
 }
