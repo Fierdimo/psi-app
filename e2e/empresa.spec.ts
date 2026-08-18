@@ -190,6 +190,17 @@ test.describe.serial("Área de empresa", () => {
       .eq("role", "profesional")
       .single();
 
+    /*
+     * Se limpia lo de la corrida anterior ANTES de sembrar.
+     *
+     * Esta prueba creaba una evaluación y no la borraba, así que a la segunda
+     * ejecución había dos «En revisión» y el localizador fallaba por
+     * ambigüedad. El error apuntaba a la aserción, no a la falta de limpieza,
+     * y se buscó en el sitio equivocado. Ana María no tiene evaluaciones en la
+     * semilla: lo que haya aquí lo puso esta prueba.
+     */
+    await db.from("assignments").delete().eq("person_id", persona!.id);
+
     const { data: asignacion } = await db
       .from("assignments")
       .insert({
@@ -237,6 +248,10 @@ test.describe.serial("Área de empresa", () => {
     // El informe completo, que es lo que la empresa encargó.
     await expect(page.getByText(/Apto para el cargo/)).toBeVisible();
     await expect(page.getByText(/Asertividad situacional baja/)).toBeVisible();
+
+    // Y se recoge, para que la siguiente ejecución encuentre la casa como la
+    // dejó la semilla.
+    await db.from("assignments").delete().eq("id", asignacion!.id);
   });
 
   test("la ficha de la empresa se puede corregir", async ({ page }) => {

@@ -12,7 +12,7 @@ import { CalendarPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { exigirEmpresa } from "@/lib/auth/perfil";
-import { ahoraEn, fechaLarga, rangoHorario } from "@/lib/fechas/formato";
+import { fechaLarga, rangoHorario } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Sesiones" };
@@ -55,20 +55,14 @@ export default async function SesionesPage() {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
-  const [{ data: sesiones }, { data: gente }] = await Promise.all([
-    supabase
-      .from("appointments")
-      .select("id, starts_at, ends_at, status, patient_note")
-      .order("starts_at", { ascending: false }),
-    supabase
-      .from("organization_people")
-      .select("id, nombre, apellidos, documento, cargo, vinculo")
-      .order("nombre"),
-  ]);
+  // El listado de personas se consultaba aquí para un formulario que ya no
+  // vive en esta pantalla: convocar se hace desde el panel de la solicitud.
+  const { data: sesiones } = await supabase
+    .from("appointments")
+    .select("id, starts_at, ends_at, status, patient_note")
+    .order("starts_at", { ascending: false });
 
   const zona = perfil.timezone;
-
-  const personas = gente ?? [];
 
   return (
     <Pantalla>

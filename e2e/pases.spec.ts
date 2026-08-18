@@ -141,6 +141,51 @@ test.describe.serial("Pases de acceso", () => {
     await expect(fila.getByRole("img", { name: /código qr/i })).toBeVisible();
   });
 
+  /*
+   * La imagen, que es como se reparte de verdad.
+   *
+   * Por WhatsApp o por correo se pega una imagen; un enlace de sesenta
+   * caracteres se corta al copiarlo o llega convertido en texto muerto. Se
+   * comprueba que el PNG se genera y que lleva el nombre escrito, porque un QR
+   * suelto es indistinguible de otro.
+   */
+  test("el QR se copia y se descarga como imagen", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto(`/empresa/sesiones/${citaId}`);
+    await page
+      .getByRole("button", { name: /generar pases de acceso/i })
+      .click();
+
+    const fila = page.getByRole("listitem").filter({ hasText: "Sin Cuenta" });
+    await fila.getByRole("button", { name: /ver qr/i }).click();
+
+    /*
+     * Copiar va PRIMERO, y no da igual el orden.
+     *
+     * Descargar abre el diálogo del navegador y el documento pierde el foco;
+     * después, leer el portapapeles devuelve vacío aunque la copia haya
+     * funcionado. La prueba fallaba por eso y señalaba a la copia, que estaba
+     * bien.
+     */
+    await fila.getByRole("button", { name: /copiar imagen/i }).click();
+    await expect(fila.getByText("Copiada")).toBeVisible();
+
+    const tipo = await page.evaluate(async () => {
+      const [item] = await navigator.clipboard.read();
+      return item?.types.join(",") ?? "";
+    });
+    expect(tipo).toContain("image/png");
+
+    const descarga = page.waitForEvent("download");
+    await fila.getByRole("button", { name: /descargar/i }).click();
+    const archivo = await descarga;
+    expect(archivo.suggestedFilename()).toMatch(/^pase-sin-cuenta\.png$/);
+  });
+
   test("el enlace que reparte lleva a la invitación", async ({
     page,
     context,
