@@ -360,8 +360,16 @@ export default function LandingPage() {
           <RedDeNodos />
           <MarcaDeAgua />
 
-          <div className="relative mx-auto grid w-full max-w-[1120px] gap-10 px-5 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16 lg:py-24">
-            <div className="entrada flex flex-col gap-6">
+          {/*
+            En móvil la firma va DEBAJO del retrato, no encima.
+            Es una línea de crédito —quién firma, qué es, dónde— y encima de la
+            foto quedaba flotando entre el llamado a la acción y una imagen sin
+            relación aparente. Debajo se lee como lo que es: el pie de esa
+            fotografía. En escritorio se queda en su columna, bajo los botones,
+            porque ahí la foto está al lado y no debajo.
+          */}
+          <div className="relative mx-auto grid w-full max-w-[1120px] gap-x-16 gap-y-8 px-5 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:py-24">
+            <div className="entrada order-1 flex flex-col gap-6 lg:col-start-1 lg:row-start-1">
               <h1 className="text-h1 text-balance">
                 Evaluación psicotécnica para decidir a quién contratas
               </h1>
@@ -400,14 +408,15 @@ export default function LandingPage() {
                   Escribir por WhatsApp
                 </a>
               </div>
-
-              <p className="text-text-muted text-sm">
-                {PROFESIONAL.nombre} · {PROFESIONAL.titulo} · Cartagena y en
-                línea
-              </p>
             </div>
 
-            <Retrato />
+            <div className="order-2 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+              <Retrato />
+            </div>
+
+            <p className="text-text-muted order-3 text-sm lg:col-start-1 lg:row-start-2 lg:-mt-2">
+              {PROFESIONAL.nombre} · {PROFESIONAL.titulo} · Cartagena y en línea
+            </p>
           </div>
         </section>
 
