@@ -145,6 +145,45 @@ El código ya no se queda esperando: la conexión abandona a los cinco segundos.
 Sin ese tope, confirmar una cita se quedaba pensando hasta que la plataforma
 mataba la petición, por un correo que además no es crítico.
 
+### Con el relé del propio proveedor
+
+Si el VPS es de un proveedor que vende su propio relé de salida —InterServer y
+su mail.baby, por ejemplo— eso resuelve el bloqueo: el puerto está abierto
+hacia su relé y los correos salen con la reputación de ellos, no con la de una
+IP recién estrenada.
+
+Ahí el camino correcto es **SMTP**, que es justo el que el código usa cuando no
+hay `RESEND_API_KEY`: en un servidor propio el proceso vive, así que el grupo
+de conexiones se reutiliza y no se paga el saludo en cada envío.
+
+Sigue haciendo falta lo mismo del paso 1: **verificar el dominio** con los SPF
+y DKIM que indique ese relé. Sin eso el correo sale, pero llega a spam — y una
+invitación en spam es una persona que no se presenta a su evaluación.
+
+Un aviso sobre la entrega: los relés económicos comparten IP entre muchos
+clientes, así que su reputación no depende solo de ti. Merece la pena mandar
+una invitación de prueba a una cuenta de Gmail y a una de Outlook antes de
+usarlo con gente real, y mirar en qué carpeta cae.
+
+### Lo que un VPS no resuelve solo: las copias
+
+Esto es lo que hay que decidir ANTES de elegir servidor propio, y no tiene que
+ver con el correo.
+
+Aquí hay historias clínicas y evaluaciones psicológicas de personas
+identificadas. Un servicio alojado trae copias y recuperación a un punto en el
+tiempo; en un VPS eso se monta:
+
+- Copia diaria (`pg_dump`) **fuera del servidor**. Una copia en el mismo disco
+  no es una copia: el caso del que protege es justamente perder ese disco.
+- **Probar la restauración**, no solo que el archivo exista. Una copia que
+  nadie ha restaurado nunca es una suposición.
+- Retención pensada: cuánto hacia atrás se puede volver si algo se corrompió
+  hace semanas y nadie lo notó.
+
+Y alguien tiene que actualizar Postgres, el sistema y el certificado. No es
+difícil; es constante.
+
 ### Si Supabase también va en el VPS
 
 Con Supabase alojado, el SMTP de autenticación se configura desde su panel. Si
