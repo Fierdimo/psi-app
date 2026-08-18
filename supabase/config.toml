@@ -46,3 +46,48 @@ enable_signup = true
 # poder acceder a información clínica.
 enable_confirmations = true
 double_confirm_changes = true
+
+# -----------------------------------------------------------------------------
+# Las plantillas, en español y con la marca.
+#
+# Sin esto llega el texto por defecto de Supabase: «Confirm your email address»,
+# en inglés y desde una dirección de ejemplo. Es el PRIMER correo que recibe
+# alguien que se registra, así que decidía la primera impresión de la
+# plataforma sin que nadie lo hubiera escrito.
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# El remitente.
+#
+# Sin esto, GoTrue firma como «Admin <admin@email.com>»: una dirección de
+# ejemplo que llegaba al buzón de quien se registra.
+#
+# EN PRODUCCIÓN hay que activar `enabled` y rellenar host, usuario y clave con
+# los de un proveedor de envío. Mientras esté en `false`, los correos se quedan
+# en Mailpit —que es lo que se quiere en local— pero el nombre y la dirección
+# del remitente ya son los de verdad, así que se ve lo mismo que verá el
+# destinatario final. Ver `docs/DESPLIEGUE.md`.
+# -----------------------------------------------------------------------------
+[auth.email.smtp]
+enabled = false
+host = "env(SMTP_HOST)"
+port = 587
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASS)"
+admin_email = "no-responder@jbrpsicometrias.com"
+sender_name = "JBR Psicometrías"
+
+[auth.email.template.confirmation]
+subject = "Confirma tu correo · JBR Psicometrías"
+content_path = "./supabase/templates/confirmacion.html"
+
+[auth.email.template.recovery]
+subject = "Restablece tu contraseña · JBR Psicometrías"
+content_path = "./supabase/templates/recuperacion.html"
+
+[auth.email.template.email_change]
+subject = "Confirma tu correo nuevo · JBR Psicometrías"
+content_path = "./supabase/templates/cambio-de-correo.html"
+
+[auth.email.template.invite]
+subject = "Te invitaron a JBR Psicometrías"
+content_path = "./supabase/templates/invitacion.html"

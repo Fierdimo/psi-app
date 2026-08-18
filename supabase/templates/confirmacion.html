@@ -1,0 +1,34 @@
+<!--
+  Plantilla de correo de AUTENTICACIÓN.
+
+  Estos correos NO los envía la aplicación: los envía Supabase (GoTrue) al
+  registrarse, al pedir una contraseña nueva o al cambiar de dirección. Por eso
+  viven aquí y no junto a los transaccionales de `src/lib/correo`.
+
+  Sin estas plantillas llegaba el texto por defecto de Supabase, en INGLÉS y
+  desde una dirección de ejemplo: el primer correo que recibe alguien que se
+  registra decía «Confirm your email address» y venía de admin@email.com.
+
+  Los estilos van en línea y con colores literales: un correo se abre fuera de
+  la aplicación, donde no existen ni las variables CSS ni la hoja de estilos.
+  Aun así son los mismos tokens del sistema.
+-->
+<!doctype html>
+<html lang="es"><body style="margin:0;padding:24px;background:#F7F9FC;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
+  <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border:1px solid #DDE3ED;border-radius:12px;padding:28px">
+    <p style="margin:0 0 20px;color:#1C2C84;font-size:17px;font-weight:600">JBR Psicometrías</p>
+    <h1 style="margin:0 0 12px;color:#16233A;font-size:21px;font-weight:600">Confirma tu correo</h1>
+    <p style="margin:0 0 20px;color:#33415C;font-size:15px;line-height:1.6">Creaste una cuenta en JBR Psicometrías. Confirma esta dirección para poder entrar: es la que usaremos para avisarte de tus citas y de tus evaluaciones.</p>
+    <p style="margin:0 0 20px">
+      <a href="{{ .ConfirmationURL }}"
+         style="display:inline-block;background:#2F49D4;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:8px">
+        Confirmar mi correo
+      </a>
+    </p>
+    <p style="margin:0 0 6px;color:#64748B;font-size:13px;line-height:1.5">
+      Si el botón no funciona, copia esta dirección en tu navegador:
+    </p>
+    <p style="margin:0 0 20px;color:#64748B;font-size:12px;word-break:break-all">{{ .ConfirmationURL }}</p>
+    <p style="margin:0;color:#64748B;font-size:13px;line-height:1.5">Si no fuiste tú, ignora este mensaje: sin confirmar, la cuenta no se activa.</p>
+  </div>
+</body></html>

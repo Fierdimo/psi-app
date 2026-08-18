@@ -8,3 +8,10 @@ supabase/migrations
 .impeccable
 .agents
 .codex
+
+# Plantillas de correo de Supabase: llevan sintaxis Go ({{ .ConfirmationURL }})
+# que el formateador no entiende, y sus estilos van en línea a propósito.
+supabase/templates
+
+# Estado efímero de `supabase start`, no código nuestro.
+supabase/.temp

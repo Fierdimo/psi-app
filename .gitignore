@@ -63,3 +63,6 @@ AGENTS.md
 .github/hooks/
 skills-lock.json
 .impeccable/
+
+# Estado efímero de `supabase start`.
+supabase/.temp
