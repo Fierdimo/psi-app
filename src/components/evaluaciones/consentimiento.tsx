@@ -42,8 +42,8 @@ export function Consentimiento({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border-border bg-surface rounded-xl border p-6">
-        <h2 className="text-fg text-lg font-semibold">
+      <div className="border-line bg-panel rounded-xl border p-6">
+        <h2 className="text-text-strong text-lg font-semibold">
           Antes de empezar, tu consentimiento
         </h2>
 
@@ -59,7 +59,9 @@ export function Consentimiento({
             la empresa que encargó la evaluación, y con nadie más.
           </p>
           <p>
-            <strong className="text-fg">Tu participación es voluntaria.</strong>{" "}
+            <strong className="text-text-strong">
+              Tu participación es voluntaria.
+            </strong>{" "}
             Puedes negarte ahora, o aceptar ahora y retirar tu consentimiento
             más adelante. Si lo retiras, tu informe no se publica. Y si vuelves
             a cambiar de idea, puedes aceptar otra vez: esta decisión no se

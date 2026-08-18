@@ -67,7 +67,7 @@ export default async function MisEvaluacionesPage() {
               <li key={a.id}>
                 <Link
                   href={`/evaluacion/${a.id}`}
-                  className="border-line bg-surface hover:border-primary flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+                  className="border-line bg-panel hover:border-accent flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
                 >
                   <div>
                     <p className="text-text-strong font-medium">

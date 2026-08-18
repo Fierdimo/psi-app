@@ -1,4 +1,4 @@
-import { ClipboardList } from "lucide-react";
+import { ChevronRight, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -8,6 +8,7 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
+import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
 import { exigirProfesional } from "@/lib/auth/perfil";
 import { capitalizar, fechaLarga } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -93,6 +94,19 @@ export default async function EvaluacionesPage() {
     })
     .sort((a, b) => (ORDEN[a.status] ?? 9) - (ORDEN[b.status] ?? 9));
 
+  /*
+   * TODAS las confirmadas, no solo las que faltan por asignar.
+   *
+   * Es la lista de la que salen los accesos de abajo: quien llega a la sesión
+   * sin haber recibido su enlace lo necesita esté o no asignado el
+   * instrumento, y esas dos cosas no van juntas.
+   */
+  const confirmadas = (sesiones ?? []).map((s) => ({
+    id: s.id,
+    starts_at: s.starts_at,
+    titular: uno<{ nombre: string }>(s.organizacion)?.nombre ?? "Sesión",
+  }));
+
   const sinAsignar = (sesiones ?? [])
     .filter((s) => (s.asignaciones ?? []).length === 0)
     .map((s) => ({
@@ -165,7 +179,7 @@ export default async function EvaluacionesPage() {
               <li key={f.id}>
                 <Link
                   href={`/profesional/evaluaciones/${f.id}`}
-                  className="border-line bg-surface hover:border-primary flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+                  className="border-line bg-panel hover:border-accent flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
                 >
                   <div>
                     <p className="text-text-strong font-medium">{f.nombre}</p>
@@ -180,6 +194,61 @@ export default async function EvaluacionesPage() {
             );
           })}
         </ul>
+      )}
+
+      {/*
+        Los accesos, a mano y en el sitio donde se está mirando.
+
+        El caso es concreto: la persona se presenta a su sesión, no recibió el
+        correo o lo perdió, y está delante del profesional. Antes había que
+        salir a la agenda, buscar la sesión y entrar en su detalle; ahora se
+        despliega aquí y se le enseña el QR.
+
+        Van al FINAL y plegados. Esta pantalla promete en su primera línea que
+        lo que espera revisión aparece primero, y una lista de accesos por
+        delante la desmiente. Son la excepción —alguien que llegó sin su
+        enlace—, no lo que se viene a mirar.
+
+        Con `details`: funciona sin JavaScript y el teclado lo maneja solo.
+      */}
+      {confirmadas.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-h3">Accesos de los convocados</h2>
+            <p className="text-text-muted mt-1 text-sm">
+              Por si alguien llega sin su enlace. Despliega la sesión y enséñale
+              su código.
+            </p>
+          </div>
+
+          <ul className="flex flex-col gap-2">
+            {confirmadas.map((s) => (
+              <li
+                key={s.id}
+                className="border-line bg-panel rounded-lg border p-4"
+              >
+                <details className="group flex flex-col gap-3">
+                  <summary className="text-text-strong hover:text-accent ease-psi flex cursor-pointer list-none items-center gap-2 font-medium transition-colors duration-150">
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="ease-psi size-4 shrink-0 transition-transform duration-150 group-open:rotate-90"
+                    />
+                    <span>{s.titular}</span>
+                    <span className="text-text-muted text-sm font-normal">
+                      {capitalizar(fechaLarga(s.starts_at, zona))}
+                    </span>
+                  </summary>
+
+                  <PasesDeSesion
+                    citaId={s.id}
+                    titulo="Accesos de esta sesión"
+                    nota="Cada persona tiene el suyo desde que confirmaste la sesión, y es el mismo que sale por correo. Enséñale el QR y que lo escanee con su teléfono."
+                  />
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </Pantalla>
   );

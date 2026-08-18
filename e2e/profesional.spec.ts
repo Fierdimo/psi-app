@@ -244,6 +244,28 @@ test.describe.serial("Sesiones de empresa", () => {
   test("el profesional confirma una sesión de empresa sin que reviente", async ({
     page,
   }) => {
+    /*
+     * La sesión de la semilla, devuelta a «solicitada».
+     *
+     * Esta prueba la confirma y no la deshacía, así que a la segunda ejecución
+     * no había ninguna solicitud pendiente y fallaba diciendo que no
+     * encontraba la tarjeta —un error que apunta a la vista, no a la falta de
+     * limpieza, y se busca en el sitio equivocado. Ya pasó dos veces.
+     *
+     * Se deja preparada al empezar y no al terminar: la prueba siguiente la
+     * quiere ya confirmada, y encadenarlas es deliberado.
+     */
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    await db
+      .from("appointments")
+      .update({ status: "solicitada" })
+      .eq("id", "88888888-0000-4000-8000-0000000000aa");
+
     await entrarComo(page, CUENTAS.profesional);
 
     // Desde su propia entrada del menú, no rebuscando en el calendario.
@@ -290,6 +312,34 @@ test.describe.serial("Sesiones de empresa", () => {
   }) => {
     // La prueba anterior de este bloque `serial` ya la confirmó: asignar solo
     // tiene sentido sobre una sesión que va a ocurrir.
+
+    /*
+     * Y se retiran las evaluaciones que dejó la ejecución anterior.
+     *
+     * Sin esto, la sesión ya tenía instrumento asignado y no aparecía en
+     * «Confirmadas, sin evaluación asignada», que es lo primero que esta
+     * prueba comprueba. Como la anterior, se limpia al empezar: recoger al
+     * final rompería el encadenamiento del bloque `serial`.
+     */
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { data: convocados } = await db
+      .from("appointment_attendees")
+      .select("person_id")
+      .eq("appointment_id", SESION_DE_EMPRESA);
+
+    await db
+      .from("assignments")
+      .delete()
+      .in(
+        "person_id",
+        (convocados ?? []).map((c) => c.person_id),
+      );
+
     await entrarComo(page, CUENTAS.profesional);
 
     /*
@@ -398,5 +448,32 @@ test.describe.serial("Sesiones de empresa", () => {
      */
     await page.reload();
     await expect(page.getByText(/puede empezar cuando quiera/i)).toBeVisible();
+  });
+
+  /*
+   * El acceso, donde el profesional lo va a necesitar.
+   *
+   * El caso es concreto: la persona se presenta a su sesión, no recibió el
+   * correo o lo perdió, y está delante. Antes había que salir a la agenda,
+   * buscar la sesión y entrar en su detalle; desde la pantalla de evaluaciones
+   * no había forma de llegar a su enlace.
+   */
+  test("los accesos se despliegan desde Evaluaciones", async ({ page }) => {
+    await entrarComo(page, CUENTAS.profesional, "/profesional");
+    await page.goto("/profesional/evaluaciones");
+
+    const sesion = page.getByRole("group").first();
+    await expect(sesion).toBeVisible();
+
+    // Plegados: están en el documento pero no a la vista, que es lo que evita
+    // que roben la pantalla a lo que sí espera revisión.
+    await expect(page.getByText(/accesos de esta sesión/i)).toBeHidden();
+
+    await sesion.locator("summary").click();
+
+    await expect(page.getByText(/accesos de esta sesión/i)).toBeVisible();
+    await expect(
+      sesion.getByRole("button", { name: /ver qr/i }).first(),
+    ).toBeVisible();
   });
 });

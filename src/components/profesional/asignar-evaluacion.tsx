@@ -111,10 +111,10 @@ function FilaAsignacion({
   const abierta = asignacion.habilitado_at !== null;
 
   return (
-    <li className="border-border bg-surface rounded-lg border p-4">
+    <li className="border-line bg-panel rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-fg font-medium">{asignacion.quien}</p>
+          <p className="text-text-strong font-medium">{asignacion.quien}</p>
           <p className="text-muted text-sm">{asignacion.instrumento}</p>
         </div>
 

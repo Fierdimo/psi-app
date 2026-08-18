@@ -161,7 +161,7 @@ export function RevisionInforme({
               name="nota_global"
               rows={3}
               defaultValue={notaGlobal ?? ""}
-              className="border-line bg-surface text-text-body rounded-lg border p-3 text-sm"
+              className="border-line bg-panel text-text-body rounded-lg border p-3 text-sm"
               placeholder="Lo que quieras decir sobre el conjunto. Opcional."
             />
           </label>
@@ -213,7 +213,7 @@ function Apartado({
       : String(valor.valor);
 
   return (
-    <div className="border-line bg-surface rounded-lg border p-4">
+    <div className="border-line bg-panel rounded-lg border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-text-strong font-medium">{parametro.etiqueta}</h3>
         {puntaje !== null && parametro.kind !== "texto" ? (
