@@ -101,6 +101,28 @@ test.describe.serial("Pases de acceso", () => {
     await db.from("organization_people").delete().eq("documento", "PASE-0001");
   });
 
+  /*
+   * Se llega desde el listado, no escribiendo la dirección.
+   *
+   * La tarjeta solo enlazaba mientras la sesión era una solicitud —para
+   * editarla—, así que una vez confirmada la pantalla de los pases existía y
+   * no había forma de entrar en ella. Esta prueba es el camino que hace la
+   * empresa de verdad.
+   */
+  test("desde el listado se llega a los pases", async ({ page }) => {
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/sesiones");
+
+    await page
+      .getByRole("link", { name: /repartir accesos/i })
+      .first()
+      .click();
+
+    await expect(
+      page.getByRole("button", { name: /generar pases de acceso/i }),
+    ).toBeVisible();
+  });
+
   test("la empresa saca el pase de cada convocado", async ({ page }) => {
     await entrarComo(page, CUENTAS.empresa);
     await page.goto(`/empresa/sesiones/${citaId}`);

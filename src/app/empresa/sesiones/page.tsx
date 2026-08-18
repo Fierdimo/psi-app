@@ -37,6 +37,20 @@ const ESTADOS: Record<
   rechazada: { texto: "Rechazada", tone: "danger" },
 };
 
+/**
+ * Lo que se puede hacer dentro de cada sesión, dicho desde fuera.
+ *
+ * Sin esto, todas las tarjetas invitaban igual y había que entrar para
+ * descubrir si tocaba corregir la fecha o repartir los accesos. Los estados sin
+ * entrada aquí caen en «Ver»: una sesión cancelada se puede consultar, pero no
+ * hay nada que hacer con ella.
+ */
+const ACCION: Record<string, string> = {
+  solicitada: "Editar",
+  confirmada: "Repartir accesos",
+  realizada: "Repartir accesos",
+};
+
 export default async function SesionesPage() {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
@@ -87,40 +101,43 @@ export default async function SesionesPage() {
               tone: "neutral" as const,
             };
             return (
-              <li
-                key={s.id}
-                className="border-line bg-panel flex flex-wrap items-start justify-between gap-4 rounded-lg border p-5 shadow-xs"
-              >
-                <div className="flex flex-col gap-1">
-                  <p className="text-text-strong font-medium">
-                    {fechaLarga(s.starts_at, zona)}
-                  </p>
-                  <p className="text-text-muted tabular text-sm">
-                    {rangoHorario(s.starts_at, s.ends_at, zona)}
-                  </p>
-                  {s.patient_note && (
-                    <p className="text-text-body max-w-[62ch] pt-1 text-sm">
-                      {s.patient_note}
+              <li key={s.id}>
+                {/*
+                  La tarjeta ENTERA abre la sesión, en cualquier estado.
+
+                  Antes solo enlazaba mientras era solicitud, para editarla. El
+                  resultado era que una sesión confirmada —justo cuando hay algo
+                  que hacer, repartir los accesos— no tenía por dónde entrarse:
+                  la pantalla existía y no había forma de llegar a ella.
+
+                  Lo que se puede hacer dentro cambia con el estado, y por eso
+                  se anuncia aquí: «Editar» mientras la fecha aún se mueve,
+                  «Repartir accesos» cuando ya está en firme.
+                */}
+                <Link
+                  href={`/empresa/sesiones/${s.id}`}
+                  className="border-line bg-panel hover:border-accent ease-psi flex flex-wrap items-start justify-between gap-4 rounded-lg border p-5 shadow-xs transition-colors duration-150"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="text-text-strong font-medium">
+                      {fechaLarga(s.starts_at, zona)}
                     </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  {/*
-                    Editar solo mientras siga siendo una solicitud.
-                    Confirmada, la fecha es un compromiso de dos y a los
-                    convocados ya se les avisó: cambiarla por detrás haría que
-                    alguien se presentara el día que no era.
-                  */}
-                  {s.status === "solicitada" && (
-                    <Link
-                      href={`/empresa/sesiones/${s.id}`}
-                      className="text-accent-on-soft hover:text-accent text-sm font-medium"
-                    >
-                      Editar
-                    </Link>
-                  )}
-                  <Badge tone={estado.tone}>{estado.texto}</Badge>
-                </div>
+                    <p className="text-text-muted tabular text-sm">
+                      {rangoHorario(s.starts_at, s.ends_at, zona)}
+                    </p>
+                    {s.patient_note && (
+                      <p className="text-text-body max-w-[62ch] pt-1 text-sm">
+                        {s.patient_note}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-accent-on-soft text-sm font-medium">
+                      {ACCION[s.status] ?? "Ver"}
+                    </span>
+                    <Badge tone={estado.tone}>{estado.texto}</Badge>
+                  </div>
+                </Link>
               </li>
             );
           })}

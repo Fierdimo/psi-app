@@ -54,25 +54,40 @@ export default async function InicioEmpresaPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <article className="border-line bg-panel flex flex-col gap-2 rounded-lg border p-6 shadow-xs">
+        {/*
+          La próxima sesión SE ABRE.
+
+          Era un dato y nada más, y resulta que es la tarjeta desde la que hace
+          falta actuar: una sesión confirmada es exactamente aquella cuyos
+          accesos hay que repartir. Sin enlace, había que adivinar que eso vive
+          dentro de «Sesiones».
+        */}
+        <ArticuloOEnlace
+          href={proxima ? `/empresa/sesiones/${proxima.id}` : null}
+        >
           <span className="bg-accent-soft text-accent grid size-10 place-items-center rounded-md">
             <CalendarDays aria-hidden="true" className="size-5" />
           </span>
           <h2 className="text-h4">Próxima sesión</h2>
           {proxima ? (
-            <p className="text-text-body">
-              {fechaLarga(proxima.starts_at, zona)}
-              <br />
-              <span className="tabular">
-                {rangoHorario(proxima.starts_at, proxima.ends_at, zona)}
+            <>
+              <p className="text-text-body">
+                {fechaLarga(proxima.starts_at, zona)}
+                <br />
+                <span className="tabular">
+                  {rangoHorario(proxima.starts_at, proxima.ends_at, zona)}
+                </span>
+              </p>
+              <span className="text-accent-on-soft text-sm font-medium">
+                Repartir accesos
               </span>
-            </p>
+            </>
           ) : (
             <p className="text-text-muted">
               No hay ninguna sesión confirmada todavía.
             </p>
           )}
-        </article>
+        </ArticuloOEnlace>
 
         <article className="border-line bg-panel flex flex-col gap-2 rounded-lg border p-6 shadow-xs">
           <span className="bg-accent-soft text-accent grid size-10 place-items-center rounded-md">
@@ -127,5 +142,34 @@ export default async function InicioEmpresaPage() {
         </Link>
       </div>
     </Pantalla>
+  );
+}
+
+/**
+ * La misma tarjeta, con enlace o sin él.
+ *
+ * Sin sesión confirmada no hay adónde ir, y una tarjeta que se ve pulsable y
+ * no lleva a ninguna parte se prueba dos veces antes de aceptarlo. Las dos
+ * versiones comparten el aspecto para que la rejilla no se descuadre.
+ */
+function ArticuloOEnlace({
+  href,
+  children,
+}: {
+  href: string | null;
+  children: React.ReactNode;
+}) {
+  const aspecto =
+    "border-line bg-panel flex flex-col items-start gap-2 rounded-lg border p-6 shadow-xs";
+
+  if (!href) return <article className={aspecto}>{children}</article>;
+
+  return (
+    <Link
+      href={href}
+      className={`${aspecto} hover:border-accent ease-psi transition-colors duration-150`}
+    >
+      {children}
+    </Link>
   );
 }
