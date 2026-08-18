@@ -13,15 +13,40 @@ import { CUENTAS } from "./preparar";
  */
 
 test.describe("Acceso público", () => {
-  test("la landing presenta al profesional y ofrece crear cuenta", async ({
+  test("la landing dice a qué viene y empuja a crear cuenta", async ({
     page,
   }) => {
     await page.goto("/");
+
+    /*
+     * El titular es lo que se ofrece, no quién lo firma.
+     *
+     * Antes encabezaba el nombre del profesional: una tarjeta de presentación
+     * donde hacía falta una propuesta. Su nombre sigue en la página, debajo,
+     * que es donde se lee cuando ya interesa lo que hay.
+     */
     await expect(
-      page.getByRole("heading", { level: 1, name: /banquez/i }),
+      page.getByRole("heading", { level: 1, name: /evaluación psicotécnica/i }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "Crear cuenta" }).first().click();
+    await expect(page.getByText(/Banquez/).first()).toBeVisible();
+
+    await page
+      .getByRole("link", { name: /crear cuenta de empresa/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/registro/);
+  });
+
+  test("la entrada de quien ya tiene cuenta está, y es discreta", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Un enlace, no un botón: no compite con la acción que la página busca.
+    const entrar = page.getByRole("link", { name: "Entrar" }).first();
+    await expect(entrar).toBeVisible();
+    await entrar.click();
+    await expect(page).toHaveURL(/\/ingresar/);
   });
 
   /*
@@ -40,15 +65,18 @@ test.describe("Acceso público", () => {
       await page.goto("/");
 
       await expect(
-        page.getByRole("heading", { level: 1, name: /banquez/i }),
+        page.getByRole("heading", {
+          level: 1,
+          name: /evaluación psicotécnica/i,
+        }),
       ).toBeVisible();
       // Una de cada banda, incluida la última, que es la que más lejos queda
       // del pliegue y la primera en desaparecer si algo vuelve a esconderse.
       await expect(
-        page.getByText(/Me destaco por hacer las cosas/),
+        page.getByText(/Lo que resuelvo para tu empresa/),
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: /Hablemos de lo que necesitas/ }),
+        page.getByRole("heading", { name: /Cuéntame qué necesitas evaluar/ }),
       ).toBeVisible();
 
       // La entrada es una animación CSS con `fill-mode: backwards`: mientras
