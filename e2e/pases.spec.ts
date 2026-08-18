@@ -7,10 +7,10 @@ import { CUENTAS } from "./preparar";
 /**
  * Los pases de acceso, en manos de la empresa.
  *
- * Cubre el caso que no se ve desde la base: que la pantalla de una sesión ya
- * confirmada —que antes era un callejón, «esto ya no se edita»— ofrezca lo
- * único que la empresa puede hacer en ese momento, y que el enlace de quien
- * todavía no tiene cuenta funcione de verdad al abrirlo.
+ * Cubre lo que no se ve desde la base: que la pantalla de una sesión ya
+ * confirmada —que antes era un callejón, «esto ya no se edita»— traiga los
+ * pases hechos, sin botón que pulsar, y que el enlace de quien todavía no
+ * tiene cuenta abra su invitación de verdad.
  */
 
 function admin() {
@@ -93,6 +93,18 @@ test.describe.serial("Pases de acceso", () => {
     await db
       .from("appointment_attendees")
       .insert({ appointment_id: citaId, person_id: persona!.id });
+
+    /*
+     * La sesión se inserta ya confirmada, saltándose `confirmar_cita`, que es
+     * quien prepara los accesos. Se hace aquí lo que ella habría hecho: sin
+     * esto la prueba comprobaría una pantalla vacía y pasaría por otro motivo.
+     */
+    const { error: sinPases } = await db.rpc("preparar_invitaciones", {
+      p_appointment_id: citaId,
+    });
+    if (sinPases) {
+      throw new Error(`no se prepararon los accesos: ${sinPases.message}`);
+    }
   });
 
   test.afterAll(async () => {
@@ -118,19 +130,15 @@ test.describe.serial("Pases de acceso", () => {
       .first()
       .click();
 
+    // Sin pulsar nada: los pases existen desde que se confirmó la sesión.
     await expect(
-      page.getByRole("button", { name: /generar pases de acceso/i }),
+      page.getByText(/pases de acceso de esta sesión/i),
     ).toBeVisible();
   });
 
   test("la empresa saca el pase de cada convocado", async ({ page }) => {
     await entrarComo(page, CUENTAS.empresa);
     await page.goto(`/empresa/sesiones/${citaId}`);
-
-    // La pantalla de una sesión confirmada ya no es solo un aviso.
-    await page
-      .getByRole("button", { name: /generar pases de acceso/i })
-      .click();
 
     const fila = page.getByRole("listitem").filter({ hasText: "Sin Cuenta" });
     await expect(fila).toBeVisible();
@@ -156,9 +164,6 @@ test.describe.serial("Pases de acceso", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await entrarComo(page, CUENTAS.empresa);
     await page.goto(`/empresa/sesiones/${citaId}`);
-    await page
-      .getByRole("button", { name: /generar pases de acceso/i })
-      .click();
 
     const fila = page.getByRole("listitem").filter({ hasText: "Sin Cuenta" });
     await fila.getByRole("button", { name: /ver qr/i }).click();
@@ -192,9 +197,6 @@ test.describe.serial("Pases de acceso", () => {
   }) => {
     await entrarComo(page, CUENTAS.empresa);
     await page.goto(`/empresa/sesiones/${citaId}`);
-    await page
-      .getByRole("button", { name: /generar pases de acceso/i })
-      .click();
 
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 

@@ -7,7 +7,7 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { FormularioSesion } from "@/components/empresa/formulario-sesion";
-import { PasesDeAcceso } from "@/components/empresa/pases-de-acceso";
+import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import {
   ahoraEn,
@@ -98,7 +98,13 @@ export default async function EditarSesionPage({
             Y solo con la sesión en pie: repartir accesos de una cancelada o
             rechazada es mandar a alguien a presentarse a nada.
           */}
-          {repartible && <PasesDeAcceso citaId={sesion.id} />}
+          {repartible && (
+            <PasesDeSesion
+              citaId={sesion.id}
+              titulo="Pases de acceso de esta sesión"
+              nota="Entrégale a cada persona el suyo, y solo el suyo: quien tenga el enlace puede entrar como ella. Están listos desde que el profesional confirmó la sesión."
+            />
+          )}
 
           <Alert tone="info" title="Esta sesión ya no se edita">
             El profesional ya respondió, así que la fecha es un compromiso de

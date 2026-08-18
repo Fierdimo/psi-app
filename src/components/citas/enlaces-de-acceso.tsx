@@ -15,11 +15,9 @@ import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
  * ahorrarse el servicio de envío. Sin esto, un correo que no llega es una
  * persona que no puede presentarse a su evaluación.
  *
- * Se enseñan UNA vez, y se dice por qué: el testigo solo existe en claro este
- * instante porque en la base queda su hash. No es una limitación que haya que
- * disculpar —es lo que impide que alguien con acceso a la base entre en nombre
- * de otra persona— pero sí hay que avisarla y ofrecer la salida: generarlos de
- * nuevo crea otros.
+ * El enlace de cada persona es el MISMO que le llega por correo: uno solo por
+ * invitación, que vive hasta que se acepta. Antes se fabricaba uno nuevo en
+ * cada consulta y quien comparaba los dos creía que uno estaba roto.
  */
 export function EnlacesDeAcceso({
   enlaces,
@@ -48,6 +46,7 @@ export function EnlacesDeAcceso({
    * nombre delante para que quien reparta sepa cuál es cuál.
    */
   const listaEntera = enlaces
+    .filter((e) => !e.sinPase)
     .map((e) => `${e.nombre}${e.correo ? ` (${e.correo})` : ""}\n${e.enlace}`)
     .join("\n\n");
 
@@ -58,7 +57,7 @@ export function EnlacesDeAcceso({
           <h3 className="text-text-strong font-medium">{titulo}</h3>
           <p className="text-text-muted text-sm">
             {nota ??
-              "Solo se pueden ver ahora: en la base queda cifrado. Si alguien no recibe su correo, pásale el suyo por donde sueles hablarle. Si los pierdes, vuelve a generarlos."}
+              "Están listos desde que se confirmó la sesión. Si alguien no recibe su correo, pásale el suyo por donde sueles hablarle."}
           </p>
         </div>
 
@@ -113,50 +112,58 @@ export function EnlacesDeAcceso({
               </span>
             </span>
 
-            {/*
+            {e.sinPase ? (
+              <span className="text-text-muted shrink-0 text-sm">
+                Sin pase todavía · pídeselo al profesional
+              </span>
+            ) : (
+              <>
+                {/*
               El QR es para la entrega en persona: se enseña en pantalla y la
               persona lo escanea con su teléfono. Es la forma de que el acceso
               llegue A SU DUEÑO sin pasar por las manos de nadie más, que es
               justo lo que el consentimiento necesita.
             */}
-            <button
-              type="button"
-              onClick={() =>
-                setAbierto((a) => (a === e.enlace ? null : e.enlace))
-              }
-              aria-expanded={abierto === e.enlace}
-              className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
-            >
-              <QrCode aria-hidden="true" className="size-3.5" />
-              {abierto === e.enlace ? "Ocultar" : "Ver QR"}
-            </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAbierto((a) => (a === e.enlace ? null : e.enlace))
+                  }
+                  aria-expanded={abierto === e.enlace}
+                  className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
+                >
+                  <QrCode aria-hidden="true" className="size-3.5" />
+                  {abierto === e.enlace ? "Ocultar" : "Ver QR"}
+                </button>
 
-            <button
-              type="button"
-              onClick={() => copiar(e.enlace, e.enlace)}
-              className="border-line-interactive text-accent-on-soft hover:bg-accent-soft ease-psi inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
-            >
-              {copiado === e.enlace ? (
-                <>
-                  <Check aria-hidden="true" className="size-3.5" />
-                  Copiado
-                </>
-              ) : (
-                <>
-                  <Copy aria-hidden="true" className="size-3.5" />
-                  Copiar enlace
-                </>
-              )}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => copiar(e.enlace, e.enlace)}
+                  className="border-line-interactive text-accent-on-soft hover:bg-accent-soft ease-psi inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
+                >
+                  {copiado === e.enlace ? (
+                    <>
+                      <Check aria-hidden="true" className="size-3.5" />
+                      Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy aria-hidden="true" className="size-3.5" />
+                      Copiar enlace
+                    </>
+                  )}
+                </button>
 
-            {abierto === e.enlace && (
-              <div className="w-full pt-1">
-                <Qr
-                  valor={e.enlace}
-                  nombre={e.nombre}
-                  yaTieneCuenta={e.yaTieneCuenta}
-                />
-              </div>
+                {abierto === e.enlace && (
+                  <div className="w-full pt-1">
+                    <Qr
+                      valor={e.enlace}
+                      nombre={e.nombre}
+                      yaTieneCuenta={e.yaTieneCuenta}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </li>
         ))}

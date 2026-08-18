@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(15);
+select plan(19);
 
 delete from public.appointment_changes;
 delete from public.invitations;
@@ -97,26 +97,39 @@ select public.confirmar_cita(
 );
 
 -- =============================================================================
--- CONFIRMAR NO INVITA
+-- CONFIRMAR PREPARA LOS ACCESOS, PERO NO ESCRIBE A NADIE
 --
--- Son dos actos del profesional, no uno. Confirmar dice «acepto la sesión»;
--- emitir dice «ya pueden empezar». Entre los dos suele haber un trámite, y
--- nadie debe recibir un correo por el simple hecho de que se aceptara la
--- fecha. Esto se afirma aquí para que nunca se conviertan en uno solo por
--- comodidad.
+-- Siguen siendo dos actos del profesional. Lo que cambió es dónde nace el
+-- acceso: antes lo fabricaba el botón de emitir, y por eso solo existía en
+-- claro ese instante; ahora nace con la sesión confirmada y está a la vista
+-- desde entonces.
+--
+-- Lo que NO puede pasar sigue igual: que aceptar una fecha le mande un correo
+-- a alguien. Eso lo decide `emitir_invitaciones`, que es otro acto y otra
+-- pantalla.
 -- =============================================================================
 select tests_servidor();
 
 select is(
   (select count(*)::int from public.invitations),
-  0,
-  'Confirmar la sesión NO envía ninguna invitación por sí solo'
+  1,
+  'Confirmar deja preparado el acceso de quien no tiene cuenta'
+);
+
+select isnt(
+  (select token from public.invitations),
+  null,
+  'Y su testigo queda guardado, que es lo que permite enseñarlo sin regenerarlo'
 );
 
 select tests_como(:'doctor');
 
 -- =============================================================================
--- EL TESTIGO SE ENTREGA UNA VEZ Y SE GUARDA CIFRADO
+-- EL TESTIGO SE ENTREGA Y SE GUARDA, CON SU HASH AL LADO
+--
+-- El hash se conserva aunque ya no sea el único rastro: es por donde
+-- `aceptar_invitacion` busca, y lo que permite reconocer un enlace ya usado y
+-- responder «ya fue aceptada» en vez de «no es válida».
 -- =============================================================================
 create temporary table entregado as
 select * from public.emitir_invitaciones(
@@ -141,7 +154,7 @@ select is(
   (select count(*)::int from public.invitations i, entregado e
    where i.token_hash = e.token),
   0,
-  'El testigo en claro NO está guardado en la tabla'
+  'La columna del hash guarda el hash, no el testigo'
 );
 
 select is(
@@ -153,13 +166,40 @@ select is(
 
 select tests_como(:'doctor');
 
--- Reemitir no duplica: nadie debe recibir dos correos por lo mismo.
-select is(
-  (select count(*)::int from public.emitir_invitaciones(
-    (select id from public.appointments where organization_id = :'acme'))),
-  0,
-  'Volver a emitir no crea una segunda invitación viva'
+/*
+ * Reemitir REENVÍA lo mismo, y por eso ahora sí devuelve a la persona.
+ *
+ * Antes creaba un testigo por pulsación y devolvía solo los nuevos, así que la
+ * segunda vez no salía nadie: no había forma de reenviar un correo perdido, que
+ * es justo cuando se vuelve a pulsar. El enlace tiene que ser EL MISMO, o el
+ * QR que se enseñó por otro lado deja de coincidir.
+ */
+create temporary table reemitido as
+select * from public.emitir_invitaciones(
+  (select id from public.appointments where organization_id = :'acme')
 );
+
+select is(
+  (select count(*)::int from reemitido),
+  1,
+  'Volver a emitir devuelve a la misma persona, para reenviarle el correo'
+);
+
+select is(
+  (select token from reemitido),
+  (select token from entregado),
+  'Y con el mismo enlace: no se fabrica un acceso nuevo por pulsar'
+);
+
+select tests_servidor();
+
+select is(
+  (select count(*)::int from public.invitations where accepted_at is null),
+  1,
+  'Sin invitaciones de más en la tabla'
+);
+
+select tests_como(:'doctor');
 
 -- =============================================================================
 -- ACEPTAR
@@ -197,6 +237,16 @@ select throws_ok(
   'P0001',
   'Esta invitación ya fue aceptada.',
   'Una invitación no se acepta dos veces'
+);
+
+select tests_servidor();
+
+-- Ya cumplió: guardarlo en claro a partir de aquí sería riesgo sin ninguna
+-- contrapartida.
+select is(
+  (select token from public.invitations where accepted_at is not null),
+  null,
+  'Al aceptarse, el testigo en claro se borra'
 );
 
 -- =============================================================================

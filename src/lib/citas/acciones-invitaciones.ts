@@ -20,9 +20,11 @@ import type { EstadoFormulario } from "@/lib/validacion/auth";
  * esto dice «ya pueden crear su cuenta». Entre uno y otro suele estar el pago,
  * y aceptar una fecha no puede hacer que a nadie le llegue un correo.
  *
- * Los testigos existen en claro SOLO aquí, el rato que tarda el envío. En la
- * base queda su hash, así que esta función es la única oportunidad de ponerlos
- * en un correo: si el envío falla, hay que emitir de nuevo.
+ * Manda el MISMO enlace que ya está a la vista en los pases de la sesión, así
+ * que volver a pulsar reenvía en vez de crear otro acceso. Antes cada
+ * pulsación fabricaba un testigo nuevo —y la segunda no mandaba nada, porque
+ * la persona ya tenía una invitación viva— que es exactamente lo que hacía
+ * falta cuando alguien decía «no me llegó el correo».
  */
 export async function emitirInvitaciones(
   _estado: EstadoFormulario,
@@ -55,7 +57,7 @@ export async function emitirInvitaciones(
     return {
       ok: true,
       mensaje:
-        "No había nadie a quien invitar: todos los convocados ya tienen cuenta o su invitación sigue vigente.",
+        "No hay a quién escribir: todos los convocados ya tienen cuenta, o los que faltan no tienen correo cargado. Sus pases siguen aquí para entregarlos a mano.",
     };
   }
 
@@ -87,15 +89,8 @@ export async function emitirInvitaciones(
     "Una empresa";
 
   let enviados = 0;
-  const enlaces: { nombre: string; correo: string; enlace: string }[] = [];
 
   for (const persona of lista) {
-    enlaces.push({
-      nombre: persona.nombre ?? persona.email,
-      correo: persona.email,
-      enlace: `${origen}/invitacion/${persona.token}`,
-    });
-
     const { enviado } = await enviarCorreo(
       { correo: persona.email, nombre: persona.nombre },
       invitacionEvaluacion(
@@ -122,38 +117,23 @@ export async function emitirInvitaciones(
   revalidatePath(`/profesional/citas/${cita}`);
   revalidatePath("/profesional/agenda");
 
-  /*
-   * Se distingue emitido de enviado, y no es un matiz.
-   *
-   * En local no hay clave de Resend, así que no sale ningún correo pero las
-   * invitaciones SÍ quedan creadas y sus enlaces son válidos. Decir «se
-   * enviaron 3» cuando no salió ninguno haría esperar en vano; decir que
-   * fallaron, cuando las invitaciones existen, invitaría a reemitir y a que
-   * llegaran dos correos el día que sí haya clave.
-   */
   const una = lista.length === 1;
   const cuantas = una ? "1 invitación" : `${lista.length} invitaciones`;
 
   /*
-   * Los enlaces se devuelven SIEMPRE, salgan o no los correos.
+   * Emitido y enviado no son lo mismo, y se dicen por separado.
    *
-   * El testigo solo existe en claro este instante: en la base queda su hash y
-   * de ahí no se vuelve. Si el correo no llega —dirección vieja, carpeta de
-   * spam, o sencillamente no hay servicio de correo contratado— esta es la
-   * única oportunidad de entregar el acceso, y la sesión es presencial: se
-   * puede pasar por el canal que ya se use, o enseñarlo el día de la prueba.
-   *
-   * Reemitir crea testigos nuevos, así que perder estos no deja a nadie fuera:
-   * cuesta otro clic, no una persona sin evaluar.
+   * Sin clave de correo configurada no sale ninguno, pero los accesos siguen
+   * existiendo y están a la vista en la misma pantalla: se pueden repartir a
+   * mano. Decir «se enviaron 3» cuando no salió ninguno haría esperar en vano.
    */
   return {
     ok: true,
-    enlaces,
     mensaje:
       enviados === lista.length
         ? `${cuantas} ${una ? "enviada" : "enviadas"} por correo.`
-        : `${cuantas} ${una ? "creada" : "creadas"}, ${enviados} ${enviados === 1 ? "enviada" : "enviadas"} por correo. ` +
-          `Las que no salieron siguen siendo válidas: entrégalas tú desde aquí.`,
+        : `${enviados} de ${lista.length} ${lista.length === 1 ? "enviada" : "enviadas"} por correo. ` +
+          `Las que no salieron no se pierden: sus pases están aquí arriba para entregarlos a mano.`,
   };
 }
 

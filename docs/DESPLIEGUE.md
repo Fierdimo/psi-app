@@ -212,12 +212,15 @@ pierde exactamente y qué no.
 **Lo que sigue funcionando.** Cada sesión confirmada puede repartir sus accesos
 a mano, con un enlace y un QR por convocado:
 
-- El **profesional**, desde la sesión, con «Invitar a los convocados»: los
-  enlaces aparecen en pantalla salgan o no los correos.
-- La **empresa**, desde `/empresa/sesiones/[id]`, con «Generar pases de
-  acceso». Es la vía que mejor escala: la empresa ya tiene su canal con su
-  gente —intranet, grupo del turno, el jefe de área— y llega antes que un
-  correo desde fuera.
+Los accesos **se crean al confirmar la sesión** y están a la vista desde
+entonces, sin nada que pulsar:
+
+- El **profesional**, en la sesión, los ve junto al botón «Invitar a los
+  convocados» —que ya solo manda correos, con el mismo enlace que muestra el
+  QR—.
+- La **empresa**, en `/empresa/sesiones/[id]`. Es la vía que mejor escala: ya
+  tiene su canal con su gente —intranet, grupo del turno, el jefe de área— y
+  llega antes que un correo desde fuera.
 
 Quien no tiene cuenta recibe su invitación; quien ya la tiene aparece marcada y
 su pase lleva a la entrada normal, porque su evaluación le espera dentro. El QR
@@ -228,8 +231,14 @@ su teléfono.
 como esa persona. Puesto en manos de la empresa, la empresa **puede** crear la
 cuenta de su empleado y, con ella, aceptar el consentimiento y responder la
 prueba en su lugar. No hay forma de evitarlo: quien tiene el enlace tiene el
-acceso. Por eso los pases se generan al pulsar —nunca al abrir la pantalla— y
-`access_passes_log` guarda quién los pidió y cuándo.
+acceso. Y para que estén siempre a la vista, el testigo **se guarda en claro**
+en `invitations.token` mientras la invitación siga pendiente; se borra al
+aceptarse. Quien pueda volcar la base puede entrar como cualquier invitado que
+aún no haya activado su cuenta.
+
+Eso pesa menos de lo que parece: en esa misma base hay historias clínicas,
+respuestas de pruebas y informes con nombre y cédula. Quien la vuelque ya tiene
+lo que el testigo protegía. La migración `20260818100000` lo argumenta entero.
 
 Si esa cesión no es aceptable para un cliente concreto, la salida es que los
 reparta el profesional el día de la sesión, en persona: el acceso llega a su

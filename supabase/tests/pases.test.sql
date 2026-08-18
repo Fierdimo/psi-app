@@ -9,15 +9,17 @@
 -- Y se comprueba lo segundo: que la empresa reciba también a los que YA tienen
 -- cuenta, sin testigo. Si esa gente faltara de la lista, quien reparte
 -- cincuenta pases no sabría si a esas personas se les olvidó el suyo.
+--
+-- Lo tercero es lo que hace que no haya botón: LEER NO CREA NADA. Mirar la
+-- pantalla dos veces tiene que dejar la tabla exactamente igual.
 -- =============================================================================
 
 begin;
 
 create extension if not exists pgtap;
 
-select plan(11);
+select plan(13);
 
-delete from public.access_passes_log;
 delete from public.appointment_changes;
 delete from public.invitations;
 delete from public.appointment_attendees;
@@ -138,7 +140,9 @@ select throws_ok(
 );
 
 -- =============================================================================
--- LA EMPRESA SACA LOS SUYOS
+-- LA EMPRESA LOS ENCUENTRA HECHOS
+--
+-- Nadie los generó: existen desde que el profesional confirmó.
 -- =============================================================================
 select tests_como(:'jefe_acme');
 
@@ -181,16 +185,43 @@ select is(
 );
 
 -- =============================================================================
--- LO QUE QUEDA GUARDADO
+-- LEER NO CREA NADA
+--
+-- Es la propiedad que permite quitar el botón: si consultar fabricara
+-- invitaciones, cada visita a la pantalla dejaría otra viva y una persona
+-- acabaría con diez enlaces válidos.
 -- =============================================================================
 select tests_servidor();
+
+create temporary table antes as
+select count(*)::int as n from public.invitations;
+
+select tests_como(:'jefe_acme');
+select * from public.pases_de_acceso(:'cita_acme');
+select * from public.pases_de_acceso(:'cita_acme');
+
+select tests_servidor();
+
+select is(
+  (select count(*)::int from public.invitations),
+  (select n from antes),
+  'Consultar los pases dos veces no crea ninguna invitación'
+);
+
+select is(
+  (select token from public.invitations i
+   join public.organization_people op on op.id = i.person_id
+   where op.documento = '222'),
+  (select token from pases where documento = '222'),
+  'Y el testigo sigue siendo el mismo que se enseñó la primera vez'
+);
 
 select is(
   (select count(*)::int from public.invitations i, pases p
    where p.documento = '222'
      and i.token_hash = encode(sha256(convert_to(p.token, 'UTF8')), 'hex')),
   1,
-  'De la invitación se guarda el hash, nunca el testigo'
+  'El pase que se enseña es el de la invitación que hay en la tabla'
 );
 
 select is(
@@ -199,12 +230,14 @@ select is(
   'A quien ya tiene cuenta no se le crea ninguna invitación'
 );
 
--- Quién tuvo la llave tiene que poder responderse: la empresa puede entrar
--- como su empleado con ese enlace, y esa pregunta se hace después, no antes.
+-- El testigo guardado y el hash tienen que corresponderse, o el enlace que se
+-- enseña no abriría nada.
 select is(
-  (select emitido_por from public.access_passes_log),
-  :'jefe_acme',
-  'Queda anotado quién pidió los pases'
+  (select count(*)::int from public.invitations
+   where token is not null
+     and token_hash = encode(sha256(convert_to(token, 'UTF8')), 'hex')),
+  1,
+  'El testigo guardado es el que corresponde a su hash'
 );
 
 select finish();

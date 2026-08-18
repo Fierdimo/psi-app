@@ -10,6 +10,7 @@ import {
 import { AsignarEvaluacion } from "@/components/profesional/asignar-evaluacion";
 import { BotonInvitaciones } from "@/components/profesional/boton-invitaciones";
 import { Convocados } from "@/components/profesional/convocados";
+import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -235,10 +236,19 @@ export default async function CitaProfesionalPage({
             <div className="flex flex-col gap-1">
               <h2 className="text-h4">Acceso de los convocados</h2>
               <p className="text-text-muted text-sm">
-                Cada persona recibe un enlace para crear su cuenta y aceptar su
+                Cada persona tiene su enlace para crear la cuenta y aceptar su
                 consentimiento. Quien ya tenga cuenta no necesita nada.
               </p>
             </div>
+
+            {/*
+              Los pases se ven, no se piden.
+
+              Existen desde que confirmaste la sesión. El botón de abajo hace lo
+              único que sigue siendo un acto: mandarlos por correo.
+            */}
+            <PasesDeSesion citaId={cita.id} />
+
             <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
           </div>
         )}

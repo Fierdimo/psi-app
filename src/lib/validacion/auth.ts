@@ -82,11 +82,15 @@ export type EnlaceDeAcceso = {
    * repetirlo donde no toca enseña a ignorarlo.
    */
   yaTieneCuenta?: boolean;
+  /**
+   * Sin cuenta y sin invitación viva. No debería pasar —se preparan al
+   * confirmar la sesión— pero omitir a esa persona de la lista la dejaría sin
+   * pase y sin nadie que lo notara.
+   */
+  sinPase?: boolean;
 };
 
 export type EstadoFormulario = {
-  /** Accesos que solo existen en claro este instante. */
-  enlaces?: readonly EnlaceDeAcceso[];
   ok: boolean;
   /** Mensaje general del formulario. */
   mensaje?: string;

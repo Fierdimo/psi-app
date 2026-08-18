@@ -5,7 +5,6 @@ import { useActionState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { EnlacesDeAcceso } from "@/components/citas/enlaces-de-acceso";
 import { emitirInvitaciones } from "@/lib/citas/acciones-invitaciones";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
@@ -18,8 +17,9 @@ const INICIAL: EstadoFormulario = { ok: false };
  * esto abre la puerta a los convocados. Entre las dos cosas suele estar el
  * pago, y aceptar una fecha no debe hacer que a nadie le llegue un correo.
  *
- * Reemitir es seguro: la base no crea una segunda invitación a quien ya tiene
- * una viva, así que nadie recibe dos correos por lo mismo.
+ * Reemitir es seguro y además es útil: manda el MISMO enlace que ya está a la
+ * vista en los pases, así que sirve para cuando alguien dice «no me llegó».
+ * Antes creaba un testigo nuevo cada vez y el segundo intento no mandaba nada.
  */
 export function BotonInvitaciones({
   citaId,
@@ -43,10 +43,6 @@ export function BotonInvitaciones({
         >
           {estado.mensaje}
         </Alert>
-      )}
-
-      {estado.enlaces && estado.enlaces.length > 0 && (
-        <EnlacesDeAcceso enlaces={estado.enlaces} />
       )}
 
       <form action={accion} className="flex flex-wrap items-center gap-3">
