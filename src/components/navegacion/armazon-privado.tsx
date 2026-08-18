@@ -118,6 +118,27 @@ export function ArmazonPrivado({
         </main>
       </div>
 
+      {/*
+        El crédito, una sola vez y al final.
+        Aquí dentro no está para convencer a nadie —quien entra ya es cliente—
+        sino para que quede constancia de quién mantiene esto. Por eso va en el
+        tono más bajo de la escala y después de todo el contenido, no
+        compitiendo con la barra de navegación.
+      */}
+      <footer className="border-line mx-auto w-full max-w-[1800px] border-t px-4 py-5 sm:px-6">
+        <p className="text-text-muted text-micro">
+          Desarrollado por{" "}
+          <a
+            href="https://nexias.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-accent ease-psi font-medium transition-colors duration-150"
+          >
+            Nexias
+          </a>
+        </p>
+      </footer>
+
       {conNavegacion ? <BarraInferior area={area} /> : null}
     </div>
   );
