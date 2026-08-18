@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Estado efímero de `supabase start`: código generado por el CLI que ni es
+    // nuestro ni se versiona.
+    "supabase/.temp/**",
   ]),
 ]);
 

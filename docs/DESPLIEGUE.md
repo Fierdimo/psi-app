@@ -9,10 +9,15 @@ Hay **dos vías de correo distintas**, y confundirlas cuesta una tarde:
 |                   | Quién lo envía    | Cuándo                                                                            | Qué falta                       |
 | ----------------- | ----------------- | --------------------------------------------------------------------------------- | ------------------------------- |
 | **Autenticación** | Supabase (GoTrue) | Verificar el correo al registrarse, recuperar contraseña, cambiar de dirección    | SMTP en el proyecto de Supabase |
-| **Transaccional** | Nuestro código    | Cita confirmada o rechazada, recordatorio de víspera, invitación a una evaluación | `RESEND_API_KEY` en el entorno  |
+| **Transaccional** | Nuestro código    | Cita confirmada o rechazada, recordatorio de víspera, invitación a una evaluación | Las mismas credenciales SMTP    |
 
-Las dos pueden salir por el **mismo proveedor** y conviene que así sea: un solo
-dominio verificado, un solo sitio donde mirar si algo no llega.
+Las dos salen **por el mismo camino y con las mismas credenciales**: SMTP. Una
+sola configuración, un solo dominio verificado y un solo sitio donde mirar
+cuando algo no llega.
+
+En local eso significa que **todos los correos se ven en Mailpit**, también los
+transaccionales. Antes solo se escribían en la consola del servidor, así que no
+había forma de ver cómo quedaba una invitación sin desplegarla.
 
 ---
 
@@ -67,18 +72,25 @@ address»— que era el primer correo que recibía alguien al registrarse.
 
 ## 3 · Correos transaccionales
 
-Dos variables de entorno donde corra la aplicación:
+Las mismas credenciales del paso anterior, en el entorno donde corra la
+aplicación:
 
 ```bash
-RESEND_API_KEY="re_..."
+SMTP_HOST="smtp.resend.com"
+SMTP_PORT="587"
+SMTP_USER="resend"
+SMTP_PASS="re_..."
 CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
 ```
 
-Sin la clave, `enviarCorreo` **no falla**: registra el intento y sigue. Es
+En local ya vienen apuntando a Mailpit (`127.0.0.1:54325`), que no pide
+usuario ni clave.
+
+Sin `SMTP_HOST`, `enviarCorreo` **no falla**: registra el intento y sigue. Es
 deliberado —una cita confirmada no debe deshacerse porque el correo no salga—
 pero significa que la ausencia de configuración **no se nota** salvo por lo que
 no llega. La pantalla de invitaciones sí lo dice: informa de cuántas se
-crearon y cuántas se enviaron, y son números distintos cuando falta la clave.
+crearon y cuántas se enviaron, y son números distintos cuando falta.
 
 ---
 
@@ -91,7 +103,7 @@ En este orden, que es el de las dependencias:
 2. **Recuperar contraseña**, desde `/recuperar`.
 3. **Invitación a una evaluación.** Confirmar una sesión de empresa y pulsar
    «Invitar a los convocados»: tiene que decir _«N invitaciones enviadas por
-   correo»_. Si dice _«N creadas, 0 enviadas»_, falta `RESEND_API_KEY`.
+   correo»_. Si dice _«N creadas, 0 enviadas»_, falta la configuración SMTP.
 4. **Recordatorio de víspera.** Lo dispara `/api/tareas/recordatorios` con el
    secreto `TAREAS_SECRETO`; hay que programarlo una vez al día.
 

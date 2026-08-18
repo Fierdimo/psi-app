@@ -56,10 +56,6 @@ export default async function SesionesPage() {
 
   const personas = gente ?? [];
 
-  // Mañana. El margen exacto lo impone la base; esto solo evita ofrecer un día
-  // que se va a rechazar.
-  const fechaMinima = ahoraEn(zona).plus({ days: 1 }).toISODate() ?? "";
-
   return (
     <Pantalla>
       <EncabezadoPagina

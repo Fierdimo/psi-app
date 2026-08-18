@@ -41,7 +41,18 @@ function bloqueDeCita(cita: DatosCita) {
 }
 
 /** Envoltorio HTML sobrio, con los colores de marca y sin imágenes externas. */
-function envolver(titulo: string, cuerpo: string, cita?: DatosCita) {
+/*
+ * El pie por defecto habla de «tus citas en tu espacio privado», y eso no vale
+ * para todos: a quien recibe una invitación todavía no le existe ese espacio
+ * —lo crea con ese mismo correo—. Se vio al poder abrir el correo de verdad,
+ * no leyendo el código.
+ */
+function envolver(
+  titulo: string,
+  cuerpo: string,
+  cita?: DatosCita,
+  pie?: string,
+) {
   const bloque = cita
     ? `<div style="background:#EEF3FF;border-left:3px solid #2F49D4;border-radius:6px;padding:16px;margin:20px 0">
          <p style="margin:0;color:#16233A;font-size:17px;font-weight:600">
@@ -60,13 +71,16 @@ function envolver(titulo: string, cuerpo: string, cita?: DatosCita) {
   return `<!doctype html>
 <html lang="es"><body style="margin:0;padding:24px;background:#F7F9FC;font-family:-apple-system,Segoe UI,Roboto,sans-serif">
   <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border:1px solid #DDE3ED;border-radius:12px;padding:28px">
-    <p style="margin:0 0 20px;color:#1C2C84;font-size:17px;font-weight:600">Psi</p>
+    <p style="margin:0 0 20px;color:#1C2C84;font-size:17px;font-weight:600">JBR Psicometrías</p>
     <h1 style="margin:0 0 12px;color:#16233A;font-size:21px;font-weight:600">${titulo}</h1>
     <p style="margin:0;color:#33415C;font-size:15px;line-height:1.6">${cuerpo}</p>
     ${bloque}
-    <p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+    ${
+      pie ??
+      `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
       Puedes consultar y gestionar tus citas en tu espacio privado.
-    </p>
+    </p>`
+    }
   </div>
 </body></html>`;
 }
@@ -244,6 +258,9 @@ export function invitacionEvaluacion(
      <br><br>
      <span style="color:#64748B;font-size:13px">Si no reconoces esta convocatoria, no hagas nada: sin tu consentimiento no se te evalúa.</span>`,
     cita,
+    `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+       El enlace es solo tuyo: no lo reenvíes.
+     </p>`,
   );
 
   return {
