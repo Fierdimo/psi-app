@@ -5,18 +5,29 @@ import nodemailer from "nodemailer";
 import type { Correo } from "./plantillas";
 
 /**
- * Envío de correo transaccional, por SMTP.
+ * Envío de correo transaccional.
  *
- * EL MISMO CAMINO QUE LOS CORREOS DE AUTENTICACIÓN. Antes esto hablaba con la
- * API de Resend mientras Supabase enviaba los suyos por SMTP: dos proveedores
- * que configurar, dos sitios donde mirar cuando algo no llega, y dos formas de
- * fallar. Con SMTP hay una sola credencial y un solo camino, y además funciona
- * con cualquier proveedor en vez de atarnos a uno.
+ * DOS CAMINOS, Y EL SITIO DONDE CORRA DECIDE CUÁL. No es indecisión: cada uno
+ * es el correcto en un sitio distinto, y la decisión de dónde alojar esto no
+ * debería obligar a reescribir el envío.
  *
- * Lo que se gana en desarrollo es lo que más se nota: los correos ya no se
- * escriben en la consola, sino que CAEN EN MAILPIT junto a los de
- * autenticación. Antes era imposible ver cómo quedaba una invitación sin
+ *   · Con `RESEND_API_KEY` se usa la API HTTP. Es lo que conviene en
+ *     serverless —Vercel y parecidos—: allí no hay proceso vivo que reutilice
+ *     conexiones, así que cada correo por SMTP paga otra vez el saludo, el TLS
+ *     y la autenticación. Una tanda de quince invitaciones lo nota.
+ *
+ *   · Si no, se usa SMTP. Es lo que conviene en un servidor propio, donde el
+ *     grupo de conexiones sí se reutiliza, y lo que permite cambiar de
+ *     proveedor sin tocar código.
+ *
+ * En desarrollo gana SMTP porque no hay clave: los correos caen en el Mailpit
+ * que levanta `supabase start`, junto a los de registro. Antes solo se
+ * escribían en la consola y era imposible ver cómo quedaba una invitación sin
  * desplegarla.
+ *
+ * Los de AUTENTICACIÓN los envía Supabase por su lado, siempre por SMTP. Con
+ * el mismo proveedor y el mismo dominio, sigue habiendo un solo sitio donde
+ * mirar cuando algo no llega.
  *
  * Dos decisiones que se conservan:
  *
@@ -78,16 +89,68 @@ function obtenerTransporte() {
   return transporte;
 }
 
+const ENDPOINT_HTTP = "https://api.resend.com/emails";
+
+/** Envío por la API HTTP del proveedor. Una petición, sin conexión que mantener. */
+async function enviarPorHttp(
+  clave: string,
+  remitente: string,
+  destinatario: Destinatario,
+  correo: Correo,
+): Promise<{ enviado: boolean }> {
+  try {
+    const respuesta = await fetch(ENDPOINT_HTTP, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${clave}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: remitente,
+        to: [destinatario.correo],
+        subject: correo.asunto,
+        text: correo.texto,
+        html: correo.html,
+      }),
+      // Mismo motivo que los topes del SMTP: un envío lento no puede dejar
+      // esperando a quien acaba de confirmar una cita.
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!respuesta.ok) {
+      // Se registra el estado, no el cuerpo: la respuesta puede incluir el
+      // destinatario, y un correo de paciente no debe acabar en los registros.
+      console.error(`[correo] el proveedor respondió ${respuesta.status}`);
+      return { enviado: false };
+    }
+
+    return { enviado: true };
+  } catch (error) {
+    console.error(
+      "[correo] no se pudo contactar con el proveedor:",
+      error instanceof Error ? error.message : "fallo desconocido",
+    );
+    return { enviado: false };
+  }
+}
+
 export async function enviarCorreo(
   destinatario: Destinatario,
   correo: Correo,
 ): Promise<{ enviado: boolean }> {
+  const remitenteConfigurado = process.env.CORREO_REMITENTE;
+  const claveHttp = process.env.RESEND_API_KEY;
+
+  if (claveHttp && remitenteConfigurado) {
+    return enviarPorHttp(claveHttp, remitenteConfigurado, destinatario, correo);
+  }
+
   const transporte = obtenerTransporte();
   const remitente = process.env.CORREO_REMITENTE;
 
   if (!transporte || !remitente) {
     console.info(
-      `[correo] sin SMTP_HOST o CORREO_REMITENTE — no se envía nada.\n` +
+      `[correo] sin RESEND_API_KEY ni SMTP_HOST — no se envía nada.\n` +
         `  para: ${destinatario.correo}\n  asunto: ${correo.asunto}`,
     );
     return { enviado: false };

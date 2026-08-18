@@ -72,8 +72,17 @@ address»— que era el primer correo que recibía alguien al registrarse.
 
 ## 3 · Correos transaccionales
 
-Las mismas credenciales del paso anterior, en el entorno donde corra la
-aplicación:
+**Dónde corra esto decide el camino**, y el código elige solo:
+
+| Dónde                    | Qué configurar   | Por qué                                                                                                                                                    |
+| ------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel u otro serverless | `RESEND_API_KEY` | No hay proceso vivo que reutilice conexiones: cada correo por SMTP volvería a pagar saludo, TLS y autenticación. Una tanda de quince invitaciones lo nota. |
+| Servidor propio o VPS    | `SMTP_*`         | El grupo de conexiones sí se reutiliza, y permite cambiar de proveedor sin tocar código.                                                                   |
+
+Con clave HTTP presente se usa esa; si no, SMTP. En local no hay clave, así que
+se usa SMTP y todo cae en Mailpit.
+
+Para el camino SMTP, las mismas credenciales del paso anterior:
 
 ```bash
 SMTP_HOST="smtp.resend.com"
@@ -86,7 +95,14 @@ CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
 En local ya vienen apuntando a Mailpit (`127.0.0.1:54325`), que no pide
 usuario ni clave.
 
-Sin `SMTP_HOST`, `enviarCorreo` **no falla**: registra el intento y sigue. Es
+Para el camino HTTP basta una variable:
+
+```bash
+RESEND_API_KEY="re_..."
+CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
+```
+
+Sin ninguna de las dos, `enviarCorreo` **no falla**: registra el intento y sigue. Es
 deliberado —una cita confirmada no debe deshacerse porque el correo no salga—
 pero significa que la ausencia de configuración **no se nota** salvo por lo que
 no llega. La pantalla de invitaciones sí lo dice: informa de cuántas se
