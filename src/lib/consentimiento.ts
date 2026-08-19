@@ -11,7 +11,18 @@
  */
 export const CONSENTIMIENTO = {
   clave: "consentimiento_informado",
-  version: "2026-08-11",
+  /*
+   * 2026-08-19: se sube porque el texto dejó de ser cierto.
+   *
+   * Decía que aquí no se guardaba contenido clínico, y desde que existe el
+   * motor de evaluaciones se guardan las respuestas de las pruebas y los
+   * informes. Callaba además lo que más importa saber antes de responder: que
+   * la empresa que encarga una evaluación recibe el informe.
+   *
+   * Subir la versión hace que todo el mundo vuelva a pasar por la pantalla de
+   * aceptación, que es exactamente lo que corresponde: nadie aceptó esto.
+   */
+  version: "2026-08-19",
 } as const;
 
 /**
@@ -27,17 +38,27 @@ export const SECCIONES_CONSENTIMIENTO = [
   {
     titulo: "Qué datos recogemos",
     cuerpo:
-      "Tu nombre, correo electrónico, teléfono, fecha de nacimiento y documento de identidad, junto con las citas que solicitas o se te asignan. No registramos aquí el contenido de tus sesiones: las notas clínicas son responsabilidad de tu profesional y no viven en esta plataforma.",
+      "Tu nombre, correo electrónico, teléfono, fecha de nacimiento y documento de identidad, junto con las citas que solicitas o se te asignan. Si participas en una evaluación, también tus respuestas al instrumento, los resultados que calcula el sistema y el informe que firma el profesional. Lo que NO vive aquí son las notas de tus sesiones: esas las lleva tu profesional por sus propios medios.",
+  },
+  {
+    titulo: "Son datos sensibles",
+    cuerpo:
+      "La información sobre tu salud y tu evaluación psicológica es un dato sensible: la ley exige tu autorización expresa para tratarla y no estás obligado a darla. Puedes negarte, y puedes retirar tu autorización más adelante.",
   },
   {
     titulo: "Para qué los usamos",
     cuerpo:
-      "Únicamente para gestionar tu atención: agendar citas, avisarte de cambios y permitir que tu profesional organice su consulta. No se usan para publicidad, no se venden y no se comparten con terceros ajenos a tu atención.",
+      "Únicamente para gestionar tu atención —agendar citas, avisarte de cambios— y, si participas en un proceso de evaluación, para aplicar el instrumento, calificarlo y emitir el informe. No se usan para publicidad, no se venden y no se comparten con terceros ajenos a tu atención.",
   },
   {
     titulo: "Quién puede verlos",
     cuerpo:
-      "Tú y tu profesional. Nadie más. Ningún otro paciente puede ver tu información, y el sistema está construido para que eso no dependa de la buena voluntad de nadie: la propia base de datos rechaza cualquier intento de acceso ajeno.",
+      "Tú y tu profesional. Ningún otro paciente puede ver tu información, y el sistema está construido para que eso no dependa de la buena voluntad de nadie: la propia base de datos rechaza cualquier intento de acceso ajeno.",
+  },
+  {
+    titulo: "Si una empresa encarga tu evaluación",
+    cuerpo:
+      "Esa empresa recibe el informe completo que firma el profesional: es la finalidad por la que la encargó. Lo que no recibe es tu hoja de respuestas —qué marcaste en cada pregunta no sale de la consulta—. Se te vuelve a decir, y se te pide consentimiento otra vez, antes de empezar cada evaluación concreta.",
   },
   {
     titulo: "Confidencialidad en las notificaciones",
@@ -47,7 +68,7 @@ export const SECCIONES_CONSENTIMIENTO = [
   {
     titulo: "Tus derechos",
     cuerpo:
-      "Puedes consultar, corregir o descargar tus datos en cualquier momento desde «Mis datos», y solicitar la eliminación de tu cuenta. Ten en cuenta que tu profesional puede tener la obligación legal de conservar cierta información clínica durante un plazo determinado, aun después de que cierres tu cuenta.",
+      "Puedes consultar, corregir o descargar tus datos en cualquier momento desde «Mis datos», y solicitar la eliminación de tu cuenta. Ten en cuenta que la normativa de historia clínica obliga a conservar la información clínica quince años desde tu última atención: durante ese plazo permanece archivada y bajo secreto profesional aunque cierres tu cuenta.",
   },
   {
     titulo: "Retirar este consentimiento",

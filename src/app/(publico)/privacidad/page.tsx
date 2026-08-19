@@ -4,6 +4,11 @@ import {
   PaginaLegal,
   type SeccionLegal,
 } from "@/components/legal/pagina-legal";
+import {
+  identificacionDelResponsable,
+  RESPONSABLE,
+  RETENCION_ANOS,
+} from "@/lib/legal/responsable";
 
 export const metadata: Metadata = {
   title: "Política de privacidad",
@@ -11,61 +16,95 @@ export const metadata: Metadata = {
 };
 
 /**
- * BORRADOR — pendiente de revisión legal.
+ * Política de tratamiento de datos personales.
  *
- * Los datos de atención psicológica son categoría especial bajo las leyes de
- * habeas data de la región. Antes del lanzamiento hay que precisar: país de
- * ejercicio, identidad del responsable del tratamiento, plazo concreto de
- * retención y canal formal para ejercer derechos (PLAN.md §14).
+ * Redactada sobre la Ley 1581 de 2012 y el Decreto 1074 de 2015: identidad del
+ * responsable, finalidades, tratamiento de datos sensibles, derechos del
+ * titular y canal para ejercerlos con sus plazos. Los datos de salud son
+ * categoría sensible (art. 5), así que su tratamiento exige autorización
+ * expresa y advertir que responderlas es facultativo.
+ *
+ * SE AMPLIÓ AL MOTOR DE EVALUACIONES. La versión anterior decía que aquí no se
+ * guardaba contenido clínico, y dejó de ser cierto el día que la plataforma
+ * empezó a guardar las respuestas de las pruebas y a emitir informes. Callar
+ * que la empresa que encarga una evaluación ve el informe completo era el
+ * hueco más grave: es exactamente lo que una persona necesita saber ANTES de
+ * responder.
  */
 const SECCIONES: readonly SeccionLegal[] = [
   {
-    titulo: "Quién es responsable de tus datos",
-    cuerpo:
-      "El profesional titular de la consulta es el responsable del tratamiento de tus datos personales. La plataforma es la herramienta que usa para gestionarlos y no los utiliza para ninguna finalidad propia.",
+    titulo: "Quién responde por tus datos",
+    cuerpo: [
+      `${identificacionDelResponsable()}, es el responsable del tratamiento de tus datos personales.`,
+      `Puedes escribirle a ${RESPONSABLE.correo} o llamar al ${RESPONSABLE.telefono}. Esa dirección es también el canal para ejercer tus derechos, y quien la atiende es el propio profesional.`,
+    ],
   },
   {
     titulo: "Qué datos tratamos",
     cuerpo: [
-      "Datos de identificación y contacto: nombre, apellidos, correo electrónico, teléfono, fecha de nacimiento y documento de identidad.",
-      "Datos de gestión de la atención: las citas que solicitas o se te asignan, su estado y las fechas en que cambiaron.",
-      "Datos técnicos mínimos: la fecha, la dirección IP y el navegador desde el que aceptaste el consentimiento informado, que conservamos como prueba de esa aceptación.",
+      "De identificación y contacto: nombre, apellidos, documento de identidad, correo electrónico, teléfono y fecha de nacimiento.",
+      "De gestión de la atención: las citas que solicitas o se te asignan, su estado y las fechas en que cambiaron.",
+      "De evaluación psicológica, cuando participas en una: tus respuestas a los instrumentos aplicados, los resultados que calcula el sistema y el informe que firma el profesional.",
+      "Técnicos mínimos: la fecha, la dirección IP y el navegador desde el que aceptaste el consentimiento informado, que conservamos como prueba de esa aceptación.",
     ],
   },
   {
-    titulo: "Qué NO tratamos aquí",
-    cuerpo:
-      "El contenido de tus sesiones no se almacena en esta plataforma. Las notas clínicas son responsabilidad de tu profesional y se conservan por sus propios medios, sujetas al secreto profesional.",
+    titulo: "Son datos sensibles, y eso cambia las reglas",
+    cuerpo: [
+      "La información relacionada con tu salud y con tu evaluación psicológica es un dato sensible bajo la Ley 1581 de 2012. Por eso su tratamiento solo ocurre con tu autorización expresa, dada al aceptar el consentimiento informado y, en el caso de una evaluación, al consentirla específicamente antes de empezarla.",
+      "No estás obligado a autorizar el tratamiento de datos sensibles. Puedes negarte, y puedes retirar tu consentimiento después. Lo que no podemos es aplicarte una evaluación sin él.",
+    ],
   },
   {
-    titulo: "Con qué base legal",
+    titulo: "Para qué los usamos",
     cuerpo:
-      "Con tu autorización expresa, otorgada al aceptar el consentimiento informado, y para la ejecución de la relación de atención que mantienes con el profesional.",
+      "Para gestionar tu atención —agendar citas, avisarte de cambios— y, si participas en un proceso de evaluación, para aplicar el instrumento, calificarlo y emitir el informe que se te entrega a ti y a quien lo encargó. Para nada más: no hay publicidad, no se venden, y en tu espacio privado no hay analítica de terceros.",
   },
   {
-    titulo: "Con quién se comparten",
+    titulo: "Quién ve tu informe de evaluación",
+    cuerpo: [
+      "Cuando una empresa encarga tu evaluación, esa empresa recibe el informe completo. Es la finalidad por la que la encargó y se te dice antes de que respondas nada, en el consentimiento de esa evaluación concreta.",
+      "Lo que la empresa NO recibe es tu hoja de respuestas: qué marcaste en cada pregunta no sale de la consulta. Contrató un informe profesional, no el material en bruto.",
+      "Ningún resultado llega a nadie de forma automática. El profesional lo revisa y lo firma antes de que exista para alguien más, y si retiras tu consentimiento antes de esa firma, el informe no se publica.",
+    ],
+  },
+  {
+    titulo: "Con quién más se comparten",
     cuerpo:
-      "Con nadie ajeno a tu atención. No vendemos datos, no los cedemos con fines comerciales y no hay publicidad ni analítica de terceros en el área privada de la plataforma. Los proveedores de infraestructura que alojan la base de datos actúan como encargados del tratamiento y están sujetos a obligaciones de confidencialidad.",
+      "Con nadie ajeno a tu atención. Los proveedores que alojan la base de datos y envían los correos actúan como encargados del tratamiento, solo procesan lo necesario para prestar ese servicio y están sujetos a obligaciones de confidencialidad. Fuera de eso, solo se entregarían datos ante un requerimiento de autoridad competente, en los casos y con las formalidades que la ley exige.",
   },
   {
     titulo: "Cuánto tiempo se conservan",
-    cuerpo:
-      "PENDIENTE DE DEFINIR. El plazo se fijará atendiendo a las obligaciones profesionales de conservación de historia clínica aplicables, que pueden exigir mantener cierta información aun después de que cierres tu cuenta.",
+    cuerpo: [
+      `La información clínica y de evaluación se conserva ${RETENCION_ANOS} años contados desde tu última atención, que es el plazo que impone la normativa de historia clínica. No es una decisión nuestra y manda sobre una solicitud de borrado: si pides eliminar tu cuenta, se cierra tu acceso y se suprime lo que no esté sujeto a ese deber, pero la historia clínica permanece archivada y bajo secreto profesional hasta cumplirlo.`,
+      "Los datos que solo sirven para contactarte se suprimen cuando dejan de hacer falta.",
+    ],
   },
   {
-    titulo: "Tus derechos",
-    cuerpo:
-      "Puedes acceder a tus datos, rectificarlos, obtener una copia y solicitar su supresión. Las tres primeras acciones están disponibles directamente en «Mis datos» dentro de tu espacio privado. Para la supresión, la solicitud se tramita desde la misma sección.",
+    titulo: "Tus derechos y cómo ejercerlos",
+    cuerpo: [
+      "Puedes conocer, actualizar y rectificar tus datos; pedir prueba de la autorización que diste; ser informado sobre el uso que se les ha dado; presentar quejas ante la Superintendencia de Industria y Comercio; y revocar la autorización o pedir la supresión cuando no exista un deber legal de conservar.",
+      "Acceder, corregir y descargar tus datos lo puedes hacer tú mismo, ahora, desde «Mis datos» en tu espacio privado. Para lo demás, escribe a " +
+        RESPONSABLE.correo +
+        ". Las consultas se responden en un máximo de diez días hábiles y los reclamos en quince días hábiles, prorrogables por una sola vez, como fija la ley.",
+    ],
   },
   {
     titulo: "Cómo protegemos la información",
-    cuerpo:
-      "El tráfico viaja cifrado y los datos se almacenan cifrados en reposo. El control de acceso no depende del código de la aplicación: está implementado en la propia base de datos, de modo que ningún paciente puede acceder a la información de otro aunque una parte del sistema fallara. Toda modificación de una cita queda registrada con su autor y su fecha.",
+    cuerpo: [
+      "El tráfico viaja cifrado y los datos se almacenan cifrados en reposo. El control de acceso no depende del código de la aplicación: está implementado en la propia base de datos, de modo que ninguna persona puede alcanzar la información de otra aunque una parte del sistema fallara.",
+      "Cada cambio de estado de una cita queda registrado con su autor y su fecha, y lo mismo ocurre con las aceptaciones de consentimiento.",
+    ],
   },
   {
     titulo: "Confidencialidad de las notificaciones",
     cuerpo:
-      "Los correos que te enviamos contienen únicamente fecha, hora y modalidad de tu cita. Nunca mencionan el motivo de consulta ni ningún contenido clínico, porque el asunto de un correo puede ser visible para terceros en la pantalla de un teléfono.",
+      "Los correos que te enviamos contienen únicamente fecha, hora y modalidad de tu cita, o el aviso de que tienes una evaluación disponible. Nunca mencionan el motivo de consulta, ningún resultado ni ningún contenido clínico, porque el asunto de un correo puede quedar visible en la pantalla de un teléfono que esté mirando otra persona.",
+  },
+  {
+    titulo: "Cambios en esta política",
+    cuerpo:
+      "Si cambia de forma relevante, te lo pediremos de nuevo al entrar y quedará registro de qué versión aceptaste y cuándo. La versión vigente es la que encabeza este documento.",
   },
 ];
 
@@ -73,8 +112,8 @@ export default function PrivacidadPage() {
   return (
     <PaginaLegal
       titulo="Política de privacidad"
-      entradilla="Qué datos recogemos, para qué los usamos y qué puedes hacer con ellos."
-      version="2026-08-11 · borrador"
+      entradilla="Qué datos recogemos, para qué los usamos, quién los ve y qué puedes hacer con ellos."
+      version="2026-08-19"
       secciones={SECCIONES}
     />
   );
