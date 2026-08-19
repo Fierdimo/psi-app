@@ -149,6 +149,97 @@ export async function calificarEvaluacion(
 
   const asignacion = String(formData.get("asignacion") ?? "");
   const supabase = await crearClienteServidor();
+  const salida = await calificarUna(supabase, asignacion);
+
+  if (!salida.ok) return salida;
+
+  revalidatePath(`/profesional/evaluaciones/${asignacion}`);
+  revalidatePath("/profesional/evaluaciones");
+
+  return {
+    ok: true,
+    mensaje:
+      "Calificada. Revisa lo que propone el motor antes de publicarla: todavía no la ve nadie.",
+  };
+}
+
+/**
+ * Calificar VARIAS de una vez.
+ *
+ * Calificar es mecánico: el motor lee las respuestas y propone. Con veinte
+ * evaluaciones enviadas, hacerlo de una en una son veinte entradas al detalle
+ * y veinte vueltas, sin ninguna decisión por el camino — el trabajo de verdad
+ * viene después, al leer lo que propuso.
+ *
+ * NO existe el equivalente para publicar, y es deliberado. Publicar es la
+ * firma: dice que leíste ese informe y respondes por él. Un botón que firma
+ * veinte de golpe convierte esa afirmación en un clic, y lo que se publica
+ * llega a la empresa que encargó la evaluación.
+ *
+ * Cada una va por su lado: si el motor revienta con una —respuestas
+ * incompletas, un instrumento sin motor— las demás se califican igual y se
+ * dice cuántas fallaron. Detenerse en la primera dejaría el lote a medias sin
+ * que se sepa dónde.
+ */
+export async function calificarVarias(
+  _estado: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  await exigirProfesional();
+
+  const asignaciones = formData
+    .getAll("asignacion")
+    .map(String)
+    .filter(Boolean);
+
+  if (asignaciones.length === 0) {
+    return { ok: false, mensaje: "No seleccionaste ninguna evaluación." };
+  }
+
+  const supabase = await crearClienteServidor();
+
+  let hechas = 0;
+  const fallos: string[] = [];
+
+  for (const asignacion of asignaciones) {
+    const salida = await calificarUna(supabase, asignacion);
+    if (salida.ok) hechas += 1;
+    else fallos.push(salida.mensaje ?? "fallo desconocido");
+    revalidatePath(`/profesional/evaluaciones/${asignacion}`);
+  }
+
+  revalidatePath("/profesional/evaluaciones");
+
+  if (hechas === 0) {
+    return {
+      ok: false,
+      mensaje: `No se pudo calificar ninguna. ${fallos[0] ?? ""}`.trim(),
+    };
+  }
+
+  const cuantas = `${hechas} ${hechas === 1 ? "evaluación calificada" : "evaluaciones calificadas"}`;
+
+  return {
+    ok: true,
+    mensaje:
+      fallos.length === 0
+        ? `${cuantas}. Ninguna la ve nadie todavía: revísalas antes de firmarlas.`
+        : `${cuantas}, ${fallos.length} sin calificar. La primera falló así: ${fallos[0]}`,
+  };
+}
+
+/**
+ * El trabajo de calificar una, sin nada alrededor.
+ *
+ * Vive aparte para que hacerlo en lote sea exactamente lo mismo que hacerlo de
+ * una en una. Duplicarlo habría dejado dos caminos que se separan al primer
+ * arreglo que se aplique solo a uno.
+ */
+async function calificarUna(
+  supabase: Awaited<ReturnType<typeof crearClienteServidor>>,
+  asignacion: string,
+): Promise<EstadoFormulario> {
+  if (!asignacion) return { ok: false, mensaje: "Evaluación no válida." };
 
   const { data: datos, error: errorDatos } = await supabase
     .from("assignments")
@@ -219,14 +310,7 @@ export async function calificarEvaluacion(
 
   if (error) return { ok: false, mensaje: limpiar(error) };
 
-  revalidatePath(`/profesional/evaluaciones/${asignacion}`);
-  revalidatePath("/profesional/evaluaciones");
-
-  return {
-    ok: true,
-    mensaje:
-      "Calificada. Revisa lo que propone el motor antes de publicarla: todavía no la ve nadie.",
-  };
+  return { ok: true };
 }
 
 /** Lo que el profesional escribe encima de lo que propuso el motor. */

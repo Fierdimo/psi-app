@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -8,51 +8,64 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
-import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
+import {
+  FiltroEvaluaciones,
+  VISTAS,
+  type Vista,
+} from "@/components/profesional/filtro-evaluaciones";
+import {
+  TablaEvaluaciones,
+  type FilaEvaluacion,
+} from "@/components/profesional/tabla-evaluaciones";
 import { exigirProfesional } from "@/lib/auth/perfil";
-import { capitalizar, fechaLarga } from "@/lib/fechas/formato";
+import { ahoraEn, capitalizar, fechaLarga } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Evaluaciones" };
 
-/** Primero lo que espera por ti, y dentro de eso lo más antiguo. */
-const ORDEN: Record<string, number> = {
-  enviada: 0,
-  calificada: 1,
-  en_curso: 2,
-  asignada: 3,
-  publicada: 4,
-};
+/**
+ * Cuántas filas por página.
+ *
+ * Veinticinco caben en una pantalla de escritorio sin desplazarse mucho y son
+ * pocas para el teléfono, que es donde se mira entre sesión y sesión. Subirlo
+ * no ahorra clics: quien tiene doscientas no las recorre, las busca.
+ */
+const POR_PAGINA = 25;
 
-const ETIQUETA: Record<
-  string,
-  { texto: string; tono: "success" | "warning" | "neutral" }
-> = {
-  enviada: { texto: "Por calificar", tono: "warning" },
-  calificada: { texto: "Por publicar", tono: "warning" },
-  en_curso: { texto: "Respondiendo", tono: "neutral" },
-  asignada: { texto: "Asignada", tono: "neutral" },
-  publicada: { texto: "Publicada", tono: "success" },
-};
-
-export default async function EvaluacionesPage() {
+export default async function EvaluacionesPage({
+  searchParams,
+}: PageProps<"/profesional/evaluaciones">) {
   const perfil = await exigirProfesional();
   const zona = perfil.timezone;
 
+  const parametros = await searchParams;
+  const pedida = String(parametros.estado ?? "");
+  const vista: Vista = VISTAS.some((v) => v.clave === pedida)
+    ? (pedida as Vista)
+    : "revisar";
+  const busqueda = String(parametros.q ?? "").trim();
+  const pagina = Math.max(1, Number(parametros.pagina ?? 1) || 1);
+
   const supabase = await crearClienteServidor();
 
-  /*
-   * Las sesiones confirmadas a las que todavía no se les asignó nada.
-   *
-   * Sin esto, confirmar una solicitud la hacía desaparecer de la vista: la
-   * sesión existía en el calendario y en Evaluaciones no había rastro, así que
-   * había que acordarse de volver a la agenda a buscarla. El paso siguiente a
-   * confirmar es asignar, y tiene que verse desde donde se asigna.
-   */
   const uno = <T,>(v: unknown): T | null =>
     Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
 
-  type Nombre = { nombre: string; apellidos: string | null };
+  type Nombre = {
+    nombre: string;
+    apellidos: string | null;
+    documento?: string | null;
+  };
+
+  /*
+   * Las sesiones confirmadas que TODAVÍA NO HAN OCURRIDO.
+   *
+   * Antes se traían todas las confirmadas, y una sesión sigue en ese estado
+   * después de celebrarse: la lista de accesos crecía para siempre con
+   * sesiones de hace meses cuyos enlaces ya no sirve enseñar a nadie. Lo que
+   * hace falta a mano es lo de hoy y lo que viene.
+   */
+  const ahoraISO = ahoraEn(zona).toUTC().toISO()!;
 
   const { data: sesiones } = await supabase
     .from("appointments")
@@ -60,52 +73,135 @@ export default async function EvaluacionesPage() {
       "id, starts_at, organizacion:organizations(nombre), asignaciones:assignments(id)",
     )
     .eq("status", "confirmada")
+    .gte("ends_at", ahoraISO)
     /*
      * Solo las sesiones de empresa.
      *
      * Una sesión corporativa ES una sesión de evaluación: si está confirmada y
      * no tiene instrumento, falta un paso. Una cita de terapia no: la mayoría
      * no lleva prueba, y marcarlas todas como «falta asignar» convertiría este
-     * aviso en ruido que se aprende a ignorar. A un paciente se le asigna
-     * desde el detalle de su cita, cuando toca.
+     * aviso en ruido que se aprende a ignorar.
      */
     .not("organization_id", "is", null)
     .order("starts_at");
 
-  const { data } = await supabase
-    .from("assignments")
-    .select(
-      "id, status, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos), organizacion:organizations(nombre)",
-    )
-    .order("assigned_at", { ascending: true });
-
-  const filas = (data ?? [])
-    .map((a) => {
-      const quien = uno<Nombre>(a.persona) ?? uno<Nombre>(a.paciente);
-      return {
-        id: a.id,
-        status: a.status,
-        nombre: quien
-          ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")
-          : "Sin nombre",
-        instrumento: uno<{ nombre: string }>(a.assessment)?.nombre ?? "",
-        empresa: uno<{ nombre: string }>(a.organizacion)?.nombre ?? null,
-      };
-    })
-    .sort((a, b) => (ORDEN[a.status] ?? 9) - (ORDEN[b.status] ?? 9));
-
   /*
-   * TODAS las confirmadas, no solo las que faltan por asignar.
+   * La búsqueda se resuelve en dos pasos, y no con un `or` sobre las
+   * relaciones.
    *
-   * Es la lista de la que salen los accesos de abajo: quien llega a la sesión
-   * sin haber recibido su enlace lo necesita esté o no asignado el
-   * instrumento, y esas dos cosas no van juntas.
+   * Se busca por nombre, documento o empresa, y esos datos viven en tres
+   * tablas distintas: la ficha que cargó la empresa, el perfil de un paciente
+   * particular, y la organización. PostgREST solo filtra por una relación
+   * embebida si se fuerza el cruce, lo que además descartaría las evaluaciones
+   * de pacientes que no tienen empresa. Buscar primero los identificadores y
+   * filtrar por ellos es más consultas, pero devuelve lo correcto.
    */
-  const confirmadas = (sesiones ?? []).map((s) => ({
-    id: s.id,
-    starts_at: s.starts_at,
-    titular: uno<{ nombre: string }>(s.organizacion)?.nombre ?? "Sesión",
-  }));
+  let personas: string[] | null = null;
+  let pacientes: string[] | null = null;
+  let organizaciones: string[] | null = null;
+
+  if (busqueda) {
+    const patron = `%${busqueda}%`;
+
+    const [{ data: fichas }, { data: perfiles }, { data: empresas }] =
+      await Promise.all([
+        supabase
+          .from("organization_people")
+          .select("id")
+          .or(
+            `nombre.ilike.${patron},apellidos.ilike.${patron},documento.ilike.${patron}`,
+          ),
+        supabase
+          .from("profiles")
+          .select("id")
+          .or(
+            `nombre.ilike.${patron},apellidos.ilike.${patron},documento.ilike.${patron}`,
+          ),
+        supabase.from("organizations").select("id").ilike("nombre", patron),
+      ]);
+
+    personas = (fichas ?? []).map((f) => f.id);
+    pacientes = (perfiles ?? []).map((p) => p.id);
+    organizaciones = (empresas ?? []).map((e) => e.id);
+  }
+
+  const conFiltros = <T,>(consulta: T): T => {
+    let q = consulta as never as {
+      in: (col: string, vals: string[]) => unknown;
+      or: (filtro: string) => unknown;
+    };
+
+    const estados = VISTAS.find((v) => v.clave === vista)!.estados;
+    if (estados.length > 0) q = q.in("status", estados) as typeof q;
+
+    if (busqueda) {
+      /*
+       * Una lista vacía en `in` no filtra nada en PostgREST, así que se
+       * sustituye por un identificador imposible. Sin esto, buscar algo que no
+       * existe en fichas pero sí en empresas devolvía TODAS las evaluaciones.
+       */
+      const nada = "00000000-0000-0000-0000-000000000000";
+      const lista = (ids: string[] | null) =>
+        ids && ids.length > 0 ? ids.join(",") : nada;
+
+      q = q.or(
+        `person_id.in.(${lista(personas)}),patient_id.in.(${lista(pacientes)}),organization_id.in.(${lista(organizaciones)})`,
+      ) as typeof q;
+    }
+
+    return q as never as T;
+  };
+
+  const desde = (pagina - 1) * POR_PAGINA;
+
+  const [{ data, count }, porRevisar, enMarcha] = await Promise.all([
+    conFiltros(
+      supabase
+        .from("assignments")
+        .select(
+          "id, status, assigned_at, person_id, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos, documento), organizacion:organizations(nombre)",
+          { count: "exact" },
+        ),
+    )
+      /*
+       * Lo que lleva más tiempo esperando, primero.
+       *
+       * En «Publicadas» el orden natural es el contrario —lo último firmado es
+       * lo que se vuelve a mirar— pero esa pestaña se usa buscando, no
+       * recorriendo, así que un solo orden para todas evita explicar dos.
+       */
+      .order("assigned_at", { ascending: vista !== "publicadas" })
+      .range(desde, desde + POR_PAGINA - 1),
+
+    // Los contadores de las pestañas, sin traerse las filas.
+    supabase
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["enviada", "calificada"]),
+    supabase
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["asignada", "en_curso"]),
+  ]);
+
+  const filas: FilaEvaluacion[] = (data ?? []).map((a) => {
+    const quien = uno<Nombre>(a.persona) ?? uno<Nombre>(a.paciente);
+    return {
+      id: a.id,
+      status: a.status,
+      nombre: quien
+        ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")
+        : "Sin nombre",
+      documento: quien?.documento ?? null,
+      instrumento: uno<{ nombre: string }>(a.assessment)?.nombre ?? "",
+      empresa: uno<{ nombre: string }>(a.organizacion)?.nombre ?? null,
+      fecha: a.assigned_at,
+      personaId: a.person_id ?? null,
+    };
+  });
+
+  const total = count ?? 0;
+  const ultima = Math.max(1, Math.ceil(total / POR_PAGINA));
 
   const sinAsignar = (sesiones ?? [])
     .filter((s) => (s.asignaciones ?? []).length === 0)
@@ -114,6 +210,15 @@ export default async function EvaluacionesPage() {
       starts_at: s.starts_at,
       titular: uno<{ nombre: string }>(s.organizacion)?.nombre ?? "Sesión",
     }));
+
+  const enlace = (destino: number) => ({
+    pathname: "/profesional/evaluaciones",
+    query: {
+      ...(vista === "revisar" ? {} : { estado: vista }),
+      ...(busqueda ? { q: busqueda } : {}),
+      ...(destino > 1 ? { pagina: destino } : {}),
+    },
+  });
 
   return (
     <Pantalla>
@@ -152,103 +257,72 @@ export default async function EvaluacionesPage() {
         </section>
       ) : null}
 
+      <FiltroEvaluaciones
+        vista={vista}
+        busqueda={busqueda}
+        cuentas={{
+          revisar: porRevisar.count ?? 0,
+          curso: enMarcha.count ?? 0,
+        }}
+      />
+
       {filas.length === 0 ? (
-        sinAsignar.length > 0 ? (
-          // Decir «no has asignado ninguna» debajo de una lista de sesiones que
-          // esperan asignación se contradice a sí mismo.
+        busqueda ? (
           <p className="text-text-muted text-sm">
-            Cuando asignes un instrumento, cada persona aparecerá aquí con su
-            estado.
+            Nada coincide con «{busqueda}» aquí. Prueba en otra pestaña: la
+            búsqueda se conserva al cambiar.
           </p>
-        ) : (
+        ) : vista === "revisar" ? (
           <EstadoVacio
             icono={ClipboardList}
-            titulo="Todavía no has asignado ninguna evaluación"
-            descripcion="Se asignan desde el detalle de una sesión confirmada: eliges el instrumento una vez y queda para todos los convocados."
+            titulo="No hay nada esperando tu revisión"
+            descripcion="Cuando alguien envíe su prueba aparecerá aquí para que la califiques. Lo que sigue en marcha está en la pestaña de al lado."
             enlace={{ href: "/profesional/agenda", texto: "Ir a la agenda" }}
           />
+        ) : (
+          <p className="text-text-muted text-sm">
+            No hay ninguna evaluación en este estado.
+          </p>
         )
       ) : (
-        <ul className="flex flex-col gap-2">
-          {filas.map((f) => {
-            const etiqueta = ETIQUETA[f.status] ?? {
-              texto: f.status,
-              tono: "neutral" as const,
-            };
-            return (
-              <li key={f.id}>
-                <Link
-                  href={`/profesional/evaluaciones/${f.id}`}
-                  className="border-line bg-panel hover:border-accent flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
-                >
-                  <div>
-                    <p className="text-text-strong font-medium">{f.nombre}</p>
-                    <p className="text-text-muted text-sm">
-                      {f.instrumento}
-                      {f.empresa ? ` · ${f.empresa}` : ""}
-                    </p>
-                  </div>
-                  <Badge tone={etiqueta.tono}>{etiqueta.texto}</Badge>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        <div className="flex flex-col gap-3">
+          <TablaEvaluaciones filas={filas} />
 
-      {/*
-        Los accesos, a mano y en el sitio donde se está mirando.
+          {/*
+            La paginación aparece solo cuando hace falta, y dice el total.
+            «Página 1 de 1» debajo de tres filas es ruido; «121 evaluaciones»
+            en cambio es lo que responde a «¿cuántas llevo?».
+          */}
+          {ultima > 1 && (
+            <nav
+              aria-label="Paginación"
+              className="flex flex-wrap items-center justify-between gap-3"
+            >
+              <span className="text-text-muted text-sm">
+                {total} en total · página {pagina} de {ultima}
+              </span>
 
-        El caso es concreto: la persona se presenta a su sesión, no recibió el
-        correo o lo perdió, y está delante del profesional. Antes había que
-        salir a la agenda, buscar la sesión y entrar en su detalle; ahora se
-        despliega aquí y se le enseña el QR.
-
-        Van al FINAL y plegados. Esta pantalla promete en su primera línea que
-        lo que espera revisión aparece primero, y una lista de accesos por
-        delante la desmiente. Son la excepción —alguien que llegó sin su
-        enlace—, no lo que se viene a mirar.
-
-        Con `details`: funciona sin JavaScript y el teclado lo maneja solo.
-      */}
-      {confirmadas.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div>
-            <h2 className="text-h3">Accesos de los convocados</h2>
-            <p className="text-text-muted mt-1 text-sm">
-              Por si alguien llega sin su enlace. Despliega la sesión y enséñale
-              su código.
-            </p>
-          </div>
-
-          <ul className="flex flex-col gap-2">
-            {confirmadas.map((s) => (
-              <li
-                key={s.id}
-                className="border-line bg-panel rounded-lg border p-4"
-              >
-                <details className="group flex flex-col gap-3">
-                  <summary className="text-text-strong hover:text-accent ease-psi flex cursor-pointer list-none items-center gap-2 font-medium transition-colors duration-150">
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="ease-psi size-4 shrink-0 transition-transform duration-150 group-open:rotate-90"
-                    />
-                    <span>{s.titular}</span>
-                    <span className="text-text-muted text-sm font-normal">
-                      {capitalizar(fechaLarga(s.starts_at, zona))}
-                    </span>
-                  </summary>
-
-                  <PasesDeSesion
-                    citaId={s.id}
-                    titulo="Accesos de esta sesión"
-                    nota="Cada persona tiene el suyo desde que confirmaste la sesión, y es el mismo que sale por correo. Enséñale el QR y que lo escanee con su teléfono."
-                  />
-                </details>
-              </li>
-            ))}
-          </ul>
-        </section>
+              <div className="flex items-center gap-2">
+                {pagina > 1 && (
+                  <Link
+                    href={enlace(pagina - 1)}
+                    className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
+                  >
+                    Anterior
+                  </Link>
+                )}
+                {pagina < ultima && (
+                  <Link
+                    href={enlace(pagina + 1)}
+                    className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
+                  >
+                    Siguiente
+                  </Link>
+                )}
+              </div>
+            </nav>
+          )}
+        </div>
       )}
     </Pantalla>
   );

@@ -113,8 +113,12 @@ export function EnlacesDeAcceso({
             </span>
 
             {e.sinPase ? (
+              /* El motivo, no una disculpa: los accesos nacen al confirmar la
+                 sesión, así que «no hay» solo significa que esta persona
+                 todavía no está convocada a ninguna. Decirlo evita buscar el
+                 fallo en otro sitio. */
               <span className="text-text-muted shrink-0 text-sm">
-                Sin pase todavía · pídeselo al profesional
+                Sin pase: no está convocada a ninguna sesión confirmada
               </span>
             ) : (
               <>

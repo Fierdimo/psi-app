@@ -25,7 +25,13 @@ select plan(11);
 -- El orden importa: appointments.professional_id no tiene ON DELETE CASCADE
 -- —a propósito, no queremos que borrar un perfil evapore historial clínico—
 -- así que las citas se borran antes que los perfiles.
+--
+-- Y `assignments.assigned_by` apunta al profesional por el mismo motivo, así
+-- que las evaluaciones van delante. Faltaba: la prueba reventaba al borrar los
+-- perfiles en cuanto quedaba alguna evaluación en la base, y el error hablaba
+-- de una clave foránea en vez de decir que faltaba una línea aquí.
 -- -----------------------------------------------------------------------------
+delete from public.assignments;
 delete from public.appointment_changes;
 delete from public.appointments;
 delete from public.consents;

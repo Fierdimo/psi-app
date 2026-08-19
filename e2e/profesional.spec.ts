@@ -390,6 +390,16 @@ test.describe.serial("Sesiones de empresa", () => {
     await expect(
       page.getByText(/confirmadas, sin evaluación asignada/i),
     ).toHaveCount(0);
+
+    /*
+     * Recién asignada NO está en la pestaña por defecto, y es correcto: esa
+     * es «Por revisar» y nadie ha respondido todavía. Vive en «En marcha»,
+     * que es donde se mira quién va contestando.
+     *
+     * Antes la lista era una sola y todo caía junto; con dos años de uso eso
+     * es lo que la volvía inservible.
+     */
+    await page.getByRole("link", { name: /en marcha/i }).click();
     await expect(page.getByText("Ana María Restrepo").first()).toBeVisible();
 
     await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
@@ -451,29 +461,110 @@ test.describe.serial("Sesiones de empresa", () => {
   });
 
   /*
-   * El acceso, donde el profesional lo va a necesitar.
+   * La cola de evaluaciones, cuando ya no es corta.
    *
-   * El caso es concreto: la persona se presenta a su sesión, no recibió el
-   * correo o lo perdió, y está delante. Antes había que salir a la agenda,
-   * buscar la sesión y entrar en su detalle; desde la pantalla de evaluaciones
-   * no había forma de llegar a su enlace.
+   * Era una lista de tarjetas sin filtro ni tope: con veinte pendientes había
+   * que desplazarse para compararlas, y con dos años de uso no se podía ni
+   * abrir. Se comprueba lo que la hace manejable —tabla, filtro, paginación— y
+   * la acción que evita veinte vueltas al detalle.
    */
-  test("los accesos se despliegan desde Evaluaciones", async ({ page }) => {
+  test("la cola se filtra, se pagina y se califica en lote", async ({
+    page,
+  }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    await db.from("organization_people").delete().like("documento", "COLA%");
+    const { data: gente } = await db
+      .from("organization_people")
+      .insert(
+        Array.from({ length: 30 }, (_, i) => ({
+          organization_id: "77777777-7777-7777-7777-777777777777",
+          documento: `COLA${String(i).padStart(3, "0")}`,
+          nombre: "Persona",
+          apellidos: `De la cola ${i + 1}`,
+          email: `cola${i}@caribe.test`,
+          vinculo: "aspirante" as const,
+        })),
+      )
+      .select("id");
+
+    await db.from("assignments").insert(
+      (gente ?? []).map((g) => ({
+        assessment_id: prueba!.id,
+        person_id: g.id,
+        organization_id: "77777777-7777-7777-7777-777777777777",
+        assigned_by: doctor!.id,
+        status: "enviada" as const,
+      })),
+    );
+
     await entrarComo(page, CUENTAS.profesional, "/profesional");
     await page.goto("/profesional/evaluaciones");
 
-    const sesion = page.getByRole("group").first();
-    await expect(sesion).toBeVisible();
+    // Veinticinco por página, no las treinta: la lista tiene tope.
+    await expect(page.locator("tbody tr")).toHaveCount(25);
+    await expect(page.getByText(/30 en total · página 1 de 2/)).toBeVisible();
 
-    // Plegados: están en el documento pero no a la vista, que es lo que evita
-    // que roben la pantalla a lo que sí espera revisión.
-    await expect(page.getByText(/accesos de esta sesión/i)).toBeHidden();
+    // El acceso de una persona concreta, en su fila.
+    await page
+      .getByRole("button", { name: /^acceso$/i })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByRole("button", { name: "Cerrar", exact: true }).click();
 
-    await sesion.locator("summary").click();
+    // Buscar acota sin cambiar de pestaña.
+    await page.getByLabel(/buscar una evaluación/i).fill("COLA007");
+    await page.getByRole("button", { name: /^buscar$/i }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
 
-    await expect(page.getByText(/accesos de esta sesión/i)).toBeVisible();
+    await page.goto("/profesional/evaluaciones");
+
+    /*
+     * Y calificar varias de una vez, que es lo que ahorra veinte vueltas.
+     *
+     * Estas treinta no tienen respuestas —nadie contestó nada—, así que el
+     * motor no puede con ninguna. Eso es justo lo que se quiere comprobar
+     * aquí: que el lote NO se detiene en la primera que falla y que informa,
+     * en vez de quedarse callado o a medias sin decir dónde. Que el motor
+     * califique bien lo verifican las pruebas de base y las unitarias, con
+     * respuestas de verdad.
+     */
+    await page.getByLabel(/seleccionar todas/i).check();
+    await page.getByRole("button", { name: /calificar las elegidas/i }).click();
+
     await expect(
-      sesion.getByRole("button", { name: /ver qr/i }).first(),
-    ).toBeVisible();
+      page.getByText(/no se pudo calificar ninguna|calificad/i).first(),
+    ).toBeVisible({ timeout: 60000 });
+
+    // Publicar en lote NO se ofrece, y no es un olvido: publicar es la firma.
+    await expect(
+      page.getByRole("button", { name: /publicar las elegidas/i }),
+    ).toHaveCount(0);
+
+    await db
+      .from("assignments")
+      .delete()
+      .in(
+        "person_id",
+        (gente ?? []).map((g) => g.id),
+      );
+    await db.from("organization_people").delete().like("documento", "COLA%");
   });
 });
