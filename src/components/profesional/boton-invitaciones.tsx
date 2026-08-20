@@ -11,24 +11,19 @@ import type { EstadoFormulario } from "@/lib/validacion/auth";
 const INICIAL: EstadoFormulario = { ok: false };
 
 /**
- * Emisión de invitaciones de una sesión de evaluación.
+ * Mandar los enlaces por correo.
  *
  * Va aparte de confirmar a propósito (SPEC §9.2): confirmar acepta la sesión,
- * esto abre la puerta a los convocados. Entre las dos cosas suele estar el
- * pago, y aceptar una fecha no debe hacer que a nadie le llegue un correo.
+ * esto avisa a la gente. Entre las dos cosas suele estar el pago, y aceptar una
+ * fecha no debe hacer que a nadie le llegue un correo.
  *
- * Reemitir es seguro y además es útil: manda el MISMO enlace que ya está a la
- * vista en los pases, así que sirve para cuando alguien dice «no me llegó».
- * Antes creaba un testigo nuevo cada vez y el segundo intento no mandaba nada.
+ * Volver a pulsar REENVÍA: manda el mismo enlace que está a la vista en cada
+ * fila, que es justo lo que hace falta cuando alguien dice «no me llegó».
+ *
+ * Ya no se llama «invitar» ni se cuenta a quién le falta cuenta: nadie crea
+ * cuenta para esto. El enlace lleva directo a la prueba.
  */
-export function BotonInvitaciones({
-  citaId,
-  pendientes,
-}: {
-  citaId: string;
-  /** Convocados que todavía no tienen cuenta. */
-  pendientes: number;
-}) {
+export function BotonInvitaciones({ citaId }: { citaId: string }) {
   const [estado, accion, enviando] = useActionState(
     emitirInvitaciones,
     INICIAL,
@@ -39,7 +34,7 @@ export function BotonInvitaciones({
       {estado.mensaje && (
         <Alert
           tone={estado.ok ? "success" : "danger"}
-          title={estado.ok ? "Invitaciones" : "No se pudieron emitir"}
+          title={estado.ok ? "Correos" : "No se pudieron enviar"}
         >
           {estado.mensaje}
         </Alert>
@@ -50,18 +45,11 @@ export function BotonInvitaciones({
         <Button
           type="submit"
           variant="secondary"
-          loading={enviando ? "Emitiendo…" : undefined}
-          disabled={pendientes === 0}
+          loading={enviando ? "Enviando…" : undefined}
         >
           <Send aria-hidden="true" className="size-4" />
-          Invitar a los convocados
+          Enviar los enlaces por correo
         </Button>
-
-        <span className="text-text-muted text-sm">
-          {pendientes === 0
-            ? "Todos los convocados ya tienen cuenta."
-            : `${pendientes} ${pendientes === 1 ? "persona necesita" : "personas necesitan"} crear su cuenta.`}
-        </span>
       </form>
     </div>
   );

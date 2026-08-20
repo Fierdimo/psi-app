@@ -183,16 +183,6 @@ export default async function CitaProfesionalPage({
       cita.status,
     );
 
-  /*
-   * A cuánta gente se le escribe, sin mirar quién tiene cuenta.
-   *
-   * Antes se contaban los que no la tenían: hoy todos reciben su enlace, y
-   * además ese dato ya no se lee desde la aplicación —saber quién tiene cuenta
-   * en esta plataforma puede significar que es paciente, y no es información
-   * que deba viajar a ninguna pantalla de gestión.
-   */
-  const aQuienEscribir = convocados.length;
-
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-4 py-8 sm:px-6">
       <Link
@@ -325,11 +315,12 @@ export default async function CitaProfesionalPage({
               una fila: mandarlos todos por correo de una vez.
             */}
             <p className="text-text-muted text-sm">
-              Cada persona tiene su enlace desde que confirmaste. Lo tienes en
-              su fila, arriba, junto a su hora.
+              Cada persona tiene su enlace desde que confirmaste, y lo tienes en
+              su fila. Esto se lo manda por correo a quien tenga dirección
+              cargada; volver a pulsarlo reenvía el mismo enlace.
             </p>
 
-            <BotonInvitaciones citaId={cita.id} pendientes={aQuienEscribir} />
+            <BotonInvitaciones citaId={cita.id} />
           </div>
         )}
 

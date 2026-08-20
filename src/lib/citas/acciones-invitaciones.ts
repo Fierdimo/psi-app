@@ -57,7 +57,7 @@ export async function emitirInvitaciones(
     return {
       ok: true,
       mensaje:
-        "No hay a quién escribir: todos los convocados ya tienen cuenta, o los que faltan no tienen correo cargado. Sus pases siguen aquí para entregarlos a mano.",
+        "No hay a quién escribir: ningún convocado tiene correo cargado. Sus enlaces están en su fila, para entregarlos a mano.",
     };
   }
 
@@ -124,7 +124,9 @@ export async function emitirInvitaciones(
   revalidatePath("/profesional/agenda");
 
   const una = lista.length === 1;
-  const cuantas = una ? "1 invitación" : `${lista.length} invitaciones`;
+  // «Correos», no «invitaciones»: nadie se registra para esto, el enlace lleva
+  // directo a la prueba.
+  const cuantas = una ? "1 correo" : `${lista.length} correos`;
 
   /*
    * Emitido y enviado no son lo mismo, y se dicen por separado.
@@ -137,9 +139,9 @@ export async function emitirInvitaciones(
     ok: true,
     mensaje:
       enviados === lista.length
-        ? `${cuantas} ${una ? "enviada" : "enviadas"} por correo.`
-        : `${enviados} de ${lista.length} ${lista.length === 1 ? "enviada" : "enviadas"} por correo. ` +
-          `Las que no salieron no se pierden: sus pases están aquí arriba para entregarlos a mano.`,
+        ? `${cuantas} ${una ? "enviado" : "enviados"}.`
+        : `${enviados} de ${lista.length} ${lista.length === 1 ? "enviado" : "enviados"}. ` +
+          `Los que no salieron no se pierden: su enlace está en su fila, para entregarlo a mano.`,
   };
 }
 
