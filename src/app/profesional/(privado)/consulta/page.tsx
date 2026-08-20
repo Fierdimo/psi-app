@@ -4,6 +4,7 @@ import {
   EncabezadoPagina,
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
+import { FormularioHorario } from "@/components/profesional/formulario-horario";
 import { exigirProfesional } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -42,7 +43,9 @@ export default async function ConsultaPage() {
 
   const { data: ajustes } = await supabase
     .from("clinic_settings")
-    .select("min_notice_hours, default_duration_minutes, cancellation_policy")
+    .select(
+      "min_notice_hours, default_duration_minutes, cancellation_policy, jornada_inicio, jornada_fin, pausa_inicio, pausa_fin, dias_laborables",
+    )
     .maybeSingle();
 
   return (
@@ -60,14 +63,47 @@ export default async function ConsultaPage() {
               ? `${ajustes?.min_notice_hours} horas`
               : "Sin margen: se puede pedir para hoy"
           }
-          explicacion="Una solicitud con menos margen se rechaza en la base, no en el formulario. Es lo que impide que te agenden para dentro de diez minutos."
+          explicacion={
+            (ajustes?.min_notice_hours ?? 0) > 0
+              ? "Una solicitud con menos margen se rechaza en la base, no en el formulario."
+              : "Se puede agendar hasta el último momento. Lo único que sigue cerrado es el pasado: nadie puede pedir una cita para una hora que ya ocurrió."
+          }
         />
         <Ajuste
-          etiqueta="Duración por defecto"
+          etiqueta="Duración de cada cita"
           valor={`${ajustes?.default_duration_minutes ?? 60} minutos`}
-          explicacion="Lo que se propone al agendar. Una sesión de evaluación grupal suele necesitar más y se ajusta al crearla."
+          explicacion="El tamaño de bloque de tu agenda. De aquí sale cuánta gente cabe en un día, y ya no lo decide quien pide la cita."
         />
       </dl>
+
+      {/*
+        El horario, editable.
+
+        Antes esta pantalla solo miraba, y decía que para cambiar algo había que
+        abrir la base de datos. Con la duración pasando a ser decisión del
+        profesional —y no de quien pide— eso dejó de ser un inconveniente y pasó
+        a ser un bloqueo: sin esta pantalla no hay forma de declarar la jornada.
+      */}
+      <section className="border-line bg-panel flex flex-col gap-4 rounded-lg border p-6">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-h4">Tu jornada</h2>
+          <p className="text-text-muted max-w-[62ch] text-sm">
+            De aquí salen las franjas que se pueden agendar. Quien pide una cita
+            elige una de ellas; ya no escribe la hora y la duración que quiera.
+          </p>
+        </div>
+
+        <FormularioHorario
+          horario={{
+            jornada_inicio: ajustes?.jornada_inicio ?? "08:00",
+            jornada_fin: ajustes?.jornada_fin ?? "17:00",
+            default_duration_minutes: ajustes?.default_duration_minutes ?? 60,
+            pausa_inicio: ajustes?.pausa_inicio ?? null,
+            pausa_fin: ajustes?.pausa_fin ?? null,
+            dias_laborables: ajustes?.dias_laborables ?? [1, 2, 3, 4, 5],
+          }}
+        />
+      </section>
 
       <div className="border-line bg-panel flex flex-col gap-2 rounded-lg border p-6">
         <h2 className="text-h4">Política de cancelación</h2>
@@ -76,12 +112,6 @@ export default async function ConsultaPage() {
             "Todavía sin definir. Mientras no exista, la plataforma no muestra ninguna condición al cancelar, que es preferible a inventar una."}
         </p>
       </div>
-
-      <p className="text-text-muted text-sm">
-        Editar estos valores desde aquí todavía no está construido: hoy se
-        cambian en la base. Se muestran porque son la explicación de por qué una
-        solicitud se rechaza, y eso no debería obligarte a abrir Studio.
-      </p>
     </Pantalla>
   );
 }

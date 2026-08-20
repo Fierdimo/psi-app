@@ -56,12 +56,22 @@ grant select, insert, delete on public.result_values to service_role;
 -- -----------------------------------------------------------------------------
 -- Parámetros de la consulta.
 -- -----------------------------------------------------------------------------
+-- La siembra sembraba 24 horas de antelación mínima y deshacía en silencio lo
+-- que la migración 0034 había puesto en cero: reconstruir la base local
+-- devolvía la regla que se acababa de quitar, y las pruebas la delataban en un
+-- archivo que no tenía nada que ver.
 update public.clinic_settings
-set min_notice_hours = 24,
+set min_notice_hours = 0,
     default_duration_minutes = 60,
+    jornada_inicio = '08:00',
+    jornada_fin    = '17:00',
+    pausa_inicio   = '12:00',
+    pausa_fin      = '13:00',
+    dias_laborables = '{1,2,3,4,5}',
     cancellation_policy =
       'Puedes cancelar o reprogramar hasta 24 horas antes de tu cita. '
-      'Dentro de ese margen, comunícate directamente con la consulta.';
+      'Dentro de ese margen, comunícate directamente con la consulta.'
+where id;
 
 -- -----------------------------------------------------------------------------
 -- Usuarios de prueba. Contraseña de todos: `psi-local-2026`
