@@ -41,28 +41,44 @@ export async function ContenidoDeSesion({
 
   const supabase = await crearClienteServidor();
 
-  const [{ data: sesion }, { data: personas }, { data: convocados }] =
-    await Promise.all([
-      supabase
-        .from("appointments")
-        .select(
-          "id, starts_at, ends_at, status, modality, location, patient_note",
-        )
-        .eq("id", id)
-        .maybeSingle(),
-      supabase
-        .from("organization_people")
-        .select("id, nombre, apellidos, documento, cargo, vinculo")
-        .order("nombre"),
-      supabase
-        .from("appointment_attendees")
-        .select("person_id")
-        .eq("appointment_id", id),
-    ]);
+  const [
+    { data: sesion },
+    { data: personas },
+    { data: convocados },
+    { data: ajustes },
+  ] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select(
+        "id, starts_at, ends_at, status, modality, location, patient_note",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("organization_people")
+      .select("id, nombre, apellidos, documento, cargo, vinculo")
+      .order("nombre"),
+    supabase
+      .from("appointment_attendees")
+      .select("person_id")
+      .eq("appointment_id", id),
+    supabase.from("clinic_settings").select("min_notice_hours").maybeSingle(),
+  ]);
 
   if (!sesion) notFound();
 
-  const fechaMinima = ahoraEn(perfil.timezone).plus({ days: 1 }).toISODate()!;
+  /*
+   * La antelación mínima la fija la consulta, no esta pantalla.
+   *
+   * Aquí estaba escrito «mañana» a pelo, así que aunque el ajuste dijera cero
+   * el calendario seguía sin dejar elegir hoy. Una regla que vive en dos
+   * sitios es una regla que un día dirá dos cosas distintas, y la que gana es
+   * la que el usuario ve.
+   */
+  const margen = ajustes?.min_notice_hours ?? 0;
+  const fechaMinima = ahoraEn(perfil.timezone)
+    .plus({ hours: margen })
+    .toISODate()!;
 
   const repartible =
     sesion.status === "confirmada" || sesion.status === "realizada";

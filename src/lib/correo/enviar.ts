@@ -84,6 +84,8 @@ function obtenerTransporte() {
       greetingTimeout: 5000,
       socketTimeout: 10000,
     });
+
+    avisarSiGoogleVaAReescribirElRemitente(host, usuario);
   }
 
   return transporte;
@@ -181,5 +183,35 @@ export async function enviarCorreo(
       error instanceof Error ? error.message : "fallo desconocido",
     );
     return { enviado: false };
+  }
+}
+
+/**
+ * Gmail no deja mentir sobre quién envía.
+ *
+ * Si el `From` no es la cuenta autenticada —ni un alias verificado en «Enviar
+ * como»— Google lo REESCRIBE en silencio: el correo sale igual, pero quien lo
+ * recibe ve la dirección de la cuenta, no la de la marca. No hay error, no hay
+ * rebote, y se descubre cuando un paciente responde a una dirección que no era.
+ *
+ * Se avisa al crear el transporte, una sola vez, porque es la clase de fallo
+ * que nadie va a buscar en los registros: todo parece funcionar.
+ */
+function avisarSiGoogleVaAReescribirElRemitente(
+  host: string,
+  usuario: string | undefined,
+) {
+  if (!/gmail\.com|google\.com/i.test(host) || !usuario) return;
+
+  const remitente = process.env.CORREO_REMITENTE ?? "";
+  // El remitente puede venir como «Nombre <correo@dominio>» o pelado.
+  const direccion = (remitente.match(/<([^>]+)>/)?.[1] ?? remitente).trim();
+
+  if (direccion && direccion.toLowerCase() !== usuario.toLowerCase()) {
+    console.warn(
+      `[correo] CORREO_REMITENTE (${direccion}) no coincide con SMTP_USER ` +
+        `(${usuario}). Google reescribirá el remitente y quien reciba verá ` +
+        `${usuario}. Usa esa misma dirección, o verifícala en «Enviar como».`,
+    );
   }
 }

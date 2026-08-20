@@ -37,16 +37,46 @@ pantalla de quien lo genera y no funciona en el teléfono de quien lo recibe.
 
 ---
 
-## 1 · Verificar el dominio
+## 1 · La cuenta de Google
 
-Sin esto, cualquier proveedor entrega al spam o directamente rechaza.
+El correo sale por Google. Dos formas, y no dan lo mismo:
 
-En [Resend](https://resend.com) → **Domains** → añadir el dominio (por ejemplo
-`jbrpsicometrias.com`) y copiar los registros DNS que muestre —SPF, DKIM y, si
-lo ofrece, DMARC— al panel donde esté el dominio.
+|                                  | Remitente                          | Límite diario | Reputación                                     |
+| -------------------------------- | ---------------------------------- | ------------- | ---------------------------------------------- |
+| **Workspace con dominio propio** | `no-responder@jbrpsicometrias.com` | ~2.000        | SPF y DKIM propios, alineados con el dominio   |
+| **Gmail gratuito**               | `psicologojbr@gmail.com`           | ~500          | La de Google; no puedes firmar por `gmail.com` |
 
-Hasta que el dominio aparezca como verificado, **no sigas**: lo demás no
-funcionará y parecerá un fallo del código.
+Con Workspace, en el panel de administración se añade el dominio y se copian
+los registros DNS que indique —SPF, DKIM y, si lo ofrece, DMARC—. Sin eso el
+correo sale pero llega a spam, **y una invitación en spam es una persona que no
+se presenta a su evaluación**.
+
+Con Gmail gratuito funciona igual de bien técnicamente, pero el remitente será
+la dirección personal. Para invitar a los empleados de una empresa cliente eso
+resta seriedad; para arrancar, sirve.
+
+### La contraseña de aplicación
+
+`SMTP_PASS` **no es la contraseña de la cuenta**. Hay que crear una contraseña
+de aplicación de 16 caracteres, y para que esa opción exista hay que tener
+activada la verificación en dos pasos. Sin ella, Google rechaza el acceso y el
+error no dice por qué.
+
+Cuenta de Google → **Seguridad** → **Verificación en dos pasos** → al final,
+**Contraseñas de aplicaciones**.
+
+### El remitente tiene que ser la cuenta
+
+`CORREO_REMITENTE` debe llevar la **misma dirección** que `SMTP_USER`. Si no,
+Google la reescribe: el correo llega igual, pero quien lo recibe ve la cuenta
+autenticada en vez de la de la marca. No hay error ni rebote — se descubre
+cuando alguien responde a una dirección que no era.
+
+Si quieres enviar desde un alias, verifícalo antes en Gmail →
+**Configuración** → **Cuentas** → **Enviar como**.
+
+La aplicación avisa de este desajuste al arrancar, y `pnpm correo:probar` lo
+comprueba antes de gastar un envío.
 
 ---
 
@@ -55,74 +85,61 @@ funcionará y parecerá un fallo del código.
 Son los que bloquean el registro: sin ellos nadie confirma su dirección y
 ninguna cuenta se activa.
 
-Supabase envía estos correos por su cuenta con un remitente compartido y un
-**límite muy bajo por hora**, pensado para probar, no para atender gente. Hay
-que darle un SMTP propio.
+Supabase los envía por su cuenta con un remitente compartido y un **límite muy
+bajo por hora**, pensado para probar, no para atender gente. Hay que darle el
+SMTP de Google.
 
 En el panel del proyecto → **Authentication → Emails → SMTP Settings**:
 
 | Campo        | Valor                              |
 | ------------ | ---------------------------------- |
-| Host         | `smtp.resend.com`                  |
+| Host         | `smtp.gmail.com`                   |
 | Puerto       | `587`                              |
-| Usuario      | `resend`                           |
-| Contraseña   | la clave de API de Resend          |
-| Sender email | `no-responder@jbrpsicometrias.com` |
+| Usuario      | la dirección completa              |
+| Contraseña   | la contraseña de aplicación        |
+| Sender email | **la misma dirección del usuario** |
 | Sender name  | `JBR Psicometrías`                 |
 
 El mismo bloque está preparado en `supabase/config.toml` bajo
 `[auth.email.smtp]`, con `enabled = false` para que en local sigan cayendo en
-Mailpit. Si prefieres gestionarlo desde el repositorio en vez de desde el
-panel, pon `enabled = true` y define `SMTP_HOST`, `SMTP_USER` y `SMTP_PASS` en
-el entorno.
+Mailpit.
 
 **El remitente y el nombre solo surten efecto con SMTP activo.** En local
 seguirás viendo `Admin <admin@email.com>`: es el valor por defecto de GoTrue y
 no significa que esté mal configurado.
 
 Las plantillas ya están en español y con la marca, en `supabase/templates/`.
-Sin ellas llegaba el texto por defecto de Supabase —«Confirm your email
-address»— que era el primer correo que recibía alguien al registrarse.
 
 ---
 
 ## 3 · Correos transaccionales
 
-**Dónde corra esto decide el camino**, y el código elige solo:
-
-| Dónde                    | Qué configurar   | Por qué                                                                                                                                                    |
-| ------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vercel u otro serverless | `RESEND_API_KEY` | No hay proceso vivo que reutilice conexiones: cada correo por SMTP volvería a pagar saludo, TLS y autenticación. Una tanda de quince invitaciones lo nota. |
-| Servidor propio o VPS    | `SMTP_*`         | El grupo de conexiones sí se reutiliza, y permite cambiar de proveedor sin tocar código.                                                                   |
-
-Con clave HTTP presente se usa esa; si no, SMTP. En local no hay clave, así que
-se usa SMTP y todo cae en Mailpit.
-
-Para el camino SMTP, las mismas credenciales del paso anterior:
+Los envía la aplicación por SMTP, con **las mismas credenciales** del paso
+anterior. Un solo sitio donde mirar cuando algo no llega.
 
 ```bash
-SMTP_HOST="smtp.resend.com"
+SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
-SMTP_USER="resend"
-SMTP_PASS="re_..."
+SMTP_USER="no-responder@jbrpsicometrias.com"
+SMTP_PASS="xxxx xxxx xxxx xxxx"
 CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
 ```
 
-En local ya vienen apuntando a Mailpit (`127.0.0.1:54325`), que no pide
-usuario ni clave.
+En local ya vienen apuntando a Mailpit (`127.0.0.1:54325`), que no pide usuario
+ni clave.
 
-Para el camino HTTP basta una variable:
+**Google no tiene API HTTP de envío**, así que el camino de `RESEND_API_KEY`
+que el código todavía sabe usar queda sin efecto: si no defines esa variable
+—y no vas a definirla— se usa SMTP. Eso importa si algún día esto corre en
+Vercel: allí no hay proceso vivo que reutilice conexiones, así que cada correo
+vuelve a pagar saludo, TLS y autenticación, y una tanda de quince invitaciones
+lo nota. En un servidor propio no pasa: el grupo de conexiones se reutiliza.
 
-```bash
-RESEND_API_KEY="re_..."
-CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
-```
-
-Sin ninguna de las dos, `enviarCorreo` **no falla**: registra el intento y sigue. Es
+Sin configuración, `enviarCorreo` **no falla**: registra el intento y sigue. Es
 deliberado —una cita confirmada no debe deshacerse porque el correo no salga—
 pero significa que la ausencia de configuración **no se nota** salvo por lo que
 no llega. La pantalla de invitaciones sí lo dice: informa de cuántas se
-crearon y cuántas se enviaron, y son números distintos cuando falta.
+enviaron, y son números distintos cuando falta.
 
 ---
 
@@ -141,10 +158,12 @@ Tres consecuencias prácticas:
 
 - **No instales un servidor de correo en el VPS.** Un Postfix propio enviando
   desde una IP recién estrenada acaba en spam o en listas negras: no hay
-  reputación que lo respalde. Hay que salir por un relé —el mismo del paso 2—,
-  que es justo lo que hace la configuración actual.
-- **Si 587 está bloqueado, prueba 2525.** Casi todos los relés lo ofrecen
-  precisamente porque los proveedores no suelen filtrarlo.
+  reputación que lo respalde. Hay que salir por Google, que es justo lo que hace
+  la configuración actual.
+- **Si 587 está bloqueado, prueba 465** (SSL directo). Google ofrece esos dos y
+  ningún otro: el 2525 que aceptan los relés comerciales aquí no existe. Si
+  ambos están cerrados, no hay puerto alternativo — hay que pedir el desbloqueo
+  o mover el envío a otro sitio.
 - **Puede que haya que pedir el desbloqueo.** Varios proveedores lo abren si se
   les escribe explicando para qué; otros no lo hacen en cuentas nuevas.
 

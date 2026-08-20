@@ -17,12 +17,26 @@ export async function ContenidoNuevaSesion() {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
-  const { data: personas } = await supabase
-    .from("organization_people")
-    .select("id, nombre, apellidos, documento, cargo, vinculo")
-    .order("nombre");
+  const [{ data: personas }, { data: ajustes }] = await Promise.all([
+    supabase
+      .from("organization_people")
+      .select("id, nombre, apellidos, documento, cargo, vinculo")
+      .order("nombre"),
+    supabase.from("clinic_settings").select("min_notice_hours").maybeSingle(),
+  ]);
 
-  const fechaMinima = ahoraEn(perfil.timezone).plus({ days: 1 }).toISODate()!;
+  /*
+   * La antelación mínima la fija la consulta, no esta pantalla.
+   *
+   * Aquí estaba escrito «mañana» a pelo, así que aunque el ajuste dijera cero
+   * el calendario seguía sin dejar elegir hoy. Una regla que vive en dos
+   * sitios es una regla que un día dirá dos cosas distintas, y la que gana es
+   * la que el usuario ve.
+   */
+  const margen = ajustes?.min_notice_hours ?? 0;
+  const fechaMinima = ahoraEn(perfil.timezone)
+    .plus({ hours: margen })
+    .toISODate()!;
 
   return (
     <Pantalla>

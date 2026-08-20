@@ -111,7 +111,7 @@ export default async function DetalleCitaPage({
     .select("min_notice_hours, cancellation_policy")
     .single();
 
-  const margen = parametros?.min_notice_hours ?? 24;
+  const margen = parametros?.min_notice_hours ?? 0;
   const fechaMinima = ahoraEn(zona).plus({ hours: margen }).toISODate()!;
 
   return (

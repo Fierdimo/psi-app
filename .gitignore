@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# …salvo la plantilla, que existe justo para compartirse: el patrón de arriba
+# la barría con los secretos y nadie fuera de esta máquina la había visto nunca.
+!.env.example
 
 # vercel
 .vercel

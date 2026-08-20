@@ -38,7 +38,7 @@ export default async function SolicitarCitaPage() {
     .select("min_notice_hours, default_duration_minutes, cancellation_policy")
     .single();
 
-  const margen = parametros?.min_notice_hours ?? 24;
+  const margen = parametros?.min_notice_hours ?? 0;
   const duracion = parametros?.default_duration_minutes ?? 60;
 
   // La fecha mínima se calcula en la zona del paciente: en otra zona, «mañana»

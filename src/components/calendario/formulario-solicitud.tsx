@@ -54,7 +54,15 @@ export function FormularioSolicitud({
           min={fechaMinima}
           defaultValue={fechaMinima}
           error={estado.errores?.fecha}
-          help={`Con al menos ${margenHoras} horas de anticipación.`}
+          /*
+           * Con el margen en cero no se dice «con al menos 0 horas», que suena
+           * a error. Se dice lo que sí ayuda: que hoy también vale.
+           */
+          help={
+            margenHoras > 0
+              ? `Con al menos ${margenHoras} horas de anticipación.`
+              : "Puedes pedirla incluso para hoy, a una hora que no haya pasado."
+          }
         />
 
         <Select

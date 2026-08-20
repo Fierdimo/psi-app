@@ -37,6 +37,31 @@ console.log(`Servidor: ${host}:${puerto}`);
 console.log(`Remitente: ${remitente}`);
 console.log(`Destino:  ${destino}\n`);
 
+/*
+ * La trampa de Gmail, comprobada antes de enviar.
+ *
+ * Si el remitente no es la cuenta autenticada, Google lo reescribe sin avisar:
+ * el correo llega, pero con otra dirección. Se detecta aquí porque el envío de
+ * prueba «funcionaría» igual y no habría nada que mirar.
+ */
+const esGoogle = /gmail\.com|google\.com/i.test(host);
+const direccionRemitente = (
+  remitente.match(/<([^>]+)>/)?.[1] ?? remitente
+).trim();
+
+if (
+  esGoogle &&
+  usuario &&
+  direccionRemitente.toLowerCase() !== usuario.toLowerCase()
+) {
+  console.warn(
+    `⚠ CORREO_REMITENTE (${direccionRemitente}) no es la cuenta autenticada\n` +
+      `  (${usuario}). Google reescribirá el remitente y quien lo reciba verá\n` +
+      `  ${usuario}. Usa esa misma dirección, o verifícala en Gmail →\n` +
+      `  Configuración → Cuentas → «Enviar como».\n`,
+  );
+}
+
 const transporte = nodemailer.createTransport({
   host,
   port: puerto,
@@ -49,15 +74,34 @@ const transporte = nodemailer.createTransport({
 
 try {
   await transporte.verify();
-  console.log("✓ El servidor acepta la conexión y las credenciales.");
+  /*
+   * Sin credenciales, `verify()` solo comprueba que hay alguien al otro lado.
+   * Decir «y las credenciales» ahí era mentira, y de la peor clase: la que
+   * tranquiliza. El envío fallaba tres líneas después con un error de
+   * autenticación que ya no encajaba con lo que la pantalla acababa de afirmar.
+   */
+  console.log(
+    usuario && clave
+      ? "✓ El servidor acepta la conexión y las credenciales."
+      : "✓ El servidor acepta la conexión. SIN credenciales: no se ha " +
+          "comprobado el acceso.",
+  );
 } catch (error) {
   console.error("✗ No se pudo conectar:", error.message);
   console.error(
-    "\nLo más probable, en este orden:\n" +
-      "  1. El proveedor del VPS bloquea la salida por ese puerto. Prueba 587,\n" +
-      "     y si tampoco, 2525: casi todos los relés lo ofrecen justo por esto.\n" +
-      "  2. Usuario o clave equivocados.\n" +
-      "  3. El cortafuegos del propio servidor.",
+    esGoogle
+      ? "\nCon Google, en este orden:\n" +
+          "  1. La clave NO es la de la cuenta. Hay que crear una contraseña de\n" +
+          "     aplicación (16 caracteres), y eso exige tener la verificación en\n" +
+          "     dos pasos activada. Sin ella, Google rechaza el acceso.\n" +
+          "  2. El proveedor del VPS bloquea la salida por ese puerto. Prueba 587,\n" +
+          "     y si tampoco, 465.\n" +
+          "  3. El cortafuegos del propio servidor."
+      : "\nLo más probable, en este orden:\n" +
+          "  1. El proveedor del VPS bloquea la salida por ese puerto. Prueba 587,\n" +
+          "     y si tampoco, 2525: casi todos los relés lo ofrecen justo por esto.\n" +
+          "  2. Usuario o clave equivocados.\n" +
+          "  3. El cortafuegos del propio servidor.",
   );
   process.exit(1);
 }

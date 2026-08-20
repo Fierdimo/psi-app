@@ -55,7 +55,11 @@ export default async function ConsultaPage() {
       <dl className="grid gap-4 sm:grid-cols-2">
         <Ajuste
           etiqueta="Anticipación mínima"
-          valor={`${ajustes?.min_notice_hours ?? 24} horas`}
+          valor={
+            (ajustes?.min_notice_hours ?? 0) > 0
+              ? `${ajustes?.min_notice_hours} horas`
+              : "Sin margen: se puede pedir para hoy"
+          }
           explicacion="Una solicitud con menos margen se rechaza en la base, no en el formulario. Es lo que impide que te agenden para dentro de diez minutos."
         />
         <Ajuste
