@@ -260,10 +260,7 @@ export default async function CitaProfesionalPage({
               <div className="flex flex-col gap-1">
                 <h2 className="text-h4">Organizar el día</h2>
                 <p className="text-text-muted text-sm">
-                  La hora que propuso la empresa no te obliga: coloca a cada
-                  persona en el bloque que quieras, deja huecos, y pasa a parte
-                  del grupo a otro día si te conviene. Da igual que tengan
-                  cuenta o no.
+                  Elige a qué hora empieza el primero; el resto va detrás.
                 </p>
               </div>
 

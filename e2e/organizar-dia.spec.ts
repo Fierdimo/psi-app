@@ -53,7 +53,17 @@ test.describe.serial("Organizar el día", () => {
     await page.getByLabel("Día").fill(martesQueViene());
 
     const empezar = page.getByLabel(/empezar a las/i);
-    await expect(empezar).toBeEnabled({ timeout: 20000 });
+
+    /*
+     * Se espera a que HAYA horas, no a que el control se encienda.
+     *
+     * Las franjas llegan del servidor: leer la lista antes deja solo el «—
+     * elige —», la prueba elegía una opción inexistente y el fallo aparecía
+     * tres líneas después, en el mensaje de guardado, que no tenía la culpa.
+     */
+    await expect
+      .poll(async () => empezar.locator("option").count(), { timeout: 20000 })
+      .toBeGreaterThan(1);
 
     /*
      * Un solo control resuelve el caso normal.

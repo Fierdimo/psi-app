@@ -138,24 +138,20 @@ export function BandejaSolicitudes({
                   )}
 
                   {/*
-                    La hora que pide la empresa es una PROPUESTA, y hasta ahora
-                    nada lo decía.
+                    El enlace basta.
 
-                    Desde aquí solo se podía confirmar o rechazar, así que la
-                    sesión entraba en la agenda tal y como la había escrito la
-                    empresa. El tablero para repartir a cada persona existía a
-                    un clic —en el detalle— pero nada anunciaba que estuviera
-                    ahí, y quien responde una solicitud no va a entrar «a ver»
-                    por si acaso.
+                    Antes esto no existía y la sesión entraba en la agenda tal y
+                    como la escribió la empresa: el tablero estaba a un clic, en
+                    el detalle, y nada lo anunciaba. Llevaba además una frase
+                    explicando que la hora propuesta no obliga — sobra: quien
+                    lee «Organizar el día» junto a una solicitud ya sabe qué va
+                    a encontrar.
                   */}
                   {deEmpresa && (
-                    <p className="text-text-muted pt-1 text-sm">
-                      La hora que propone la empresa no te obliga: puedes
-                      repartir a cada persona en el bloque que quieras, incluso
-                      en otro día.{" "}
+                    <p className="pt-1">
                       <Link
                         href={`/profesional/citas/${cita.id}`}
-                        className="text-accent-on-soft hover:text-accent font-medium underline underline-offset-4"
+                        className="text-accent-on-soft hover:text-accent text-sm font-medium underline underline-offset-4"
                       >
                         Organizar el día
                       </Link>
