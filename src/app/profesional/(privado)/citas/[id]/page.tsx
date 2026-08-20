@@ -10,6 +10,7 @@ import {
 import { AsignarEvaluacion } from "@/components/profesional/asignar-evaluacion";
 import { BotonInvitaciones } from "@/components/profesional/boton-invitaciones";
 import { Convocados } from "@/components/profesional/convocados";
+import { OrganizadorDelDia } from "@/components/profesional/organizador-del-dia";
 import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +144,28 @@ export default async function CitaProfesionalPage({
     .map((c) => c.persona)
     .filter((p) => p !== null);
 
+  /*
+   * El reparto se pide aparte, por RPC.
+   *
+   * La consulta de la cita ya trae a los convocados, pero sin su hora: añadir
+   * las columnas ahí habría obligado a que cada pantalla que lee convocados
+   * cargara también el reparto. Esta es la única que lo necesita.
+   */
+  const { data: repartoBruto } = deEmpresa
+    ? await supabase.rpc("reparto_de_sesion", { p_appointment_id: cita.id })
+    : { data: null };
+
+  const reparto = (repartoBruto ?? []) as {
+    person_id: string;
+    nombre: string;
+    apellidos: string | null;
+    documento: string | null;
+    starts_at: string | null;
+  }[];
+
+  // El día por el que se empieza a mirar: el que propuso la empresa.
+  const fechaDeLaSesion = enZona(cita.starts_at, zona).toISODate()!;
+
   // Quien todavía no tiene cuenta es a quien hay que invitar.
   const sinCuenta = convocados.filter(
     (p) => (p as { profile_id?: string | null }).profile_id == null,
@@ -215,6 +238,40 @@ export default async function CitaProfesionalPage({
             <p className="text-text-body text-sm">{cita.patient_note}</p>
           </div>
         )}
+
+        {/*
+          El tablero, ANTES de aceptar.
+
+          Aceptar una solicitud de empresa era decir «sí» a un bloque de tres
+          horas con diez nombres dentro, sin saber si cabían ni en qué orden. El
+          reparto es justo lo que hay que mirar para decidir, así que va aquí y
+          no detrás de la confirmación.
+
+          Sigue disponible después: el motivo por el que se mueve gente —una
+          urgencia, una ausencia— aparece casi siempre con la sesión ya
+          confirmada.
+        */}
+        {deEmpresa &&
+          ["solicitada", "reprogramacion_solicitada", "confirmada"].includes(
+            cita.status,
+          ) && (
+            <div className="border-line flex flex-col gap-3 border-t pt-5">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-h4">Organizar el día</h2>
+                <p className="text-text-muted text-sm">
+                  Coloca a cada convocado en su bloque. Puedes dejar huecos, y
+                  puedes pasar a parte del grupo a otro día.
+                </p>
+              </div>
+
+              <OrganizadorDelDia
+                citaId={cita.id}
+                convocados={reparto}
+                fechaInicial={fechaDeLaSesion}
+                zona={zona}
+              />
+            </div>
+          )}
 
         {deEmpresa && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">

@@ -15,13 +15,6 @@ import type { EstadoFormulario } from "@/lib/validacion/auth";
 
 const INICIAL: EstadoFormulario = { ok: false };
 
-const DURACIONES = [
-  { valor: "60", etiqueta: "1 hora" },
-  { valor: "120", etiqueta: "2 horas" },
-  { valor: "180", etiqueta: "3 horas" },
-  { valor: "240", etiqueta: "4 horas" },
-];
-
 /**
  * Solicitud de una sesión de evaluación.
  *
@@ -78,14 +71,6 @@ export function FormularioSesion({
     ? `${dosDigitos(inicio.getHours())}:${dosDigitos(inicio.getMinutes())}`
     : "09:00";
 
-  const duracionInicial = sesion
-    ? String(
-        Math.round(
-          (new Date(sesion.ends_at).getTime() - inicio!.getTime()) / 60000,
-        ),
-      )
-    : "120";
-
   if (personas.length === 0) {
     return (
       <Alert tone="info" title="Primero carga a las personas">
@@ -114,11 +99,18 @@ export function FormularioSesion({
         </Alert>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-3">
+      {/*
+        Ya no se pregunta la duración.
+
+        La elegía quien pedía —«dos horas», «cuarenta minutos»— y así la agenda
+        del profesional la componían terceros. Ahora el bloque lo declara él y
+        aquí se propone cuándo empezar: cuánto dura sale de a cuánta gente
+        convocas.
+      */}
+      <div className="grid gap-5 sm:grid-cols-2">
         <Field
           id="fecha"
           name="fecha"
-
           defaultValue={diaInicial}
           type="date"
           label="Día"
@@ -131,15 +123,8 @@ export function FormularioSesion({
           type="time"
           label="Hora de inicio"
           defaultValue={horaInicial}
+          help="El profesional puede repartir a tu gente en otras horas del día."
           error={estado.errores?.hora}
-        />
-        <Select
-          id="duracion"
-          name="duracion"
-          label="Duración"
-          opciones={DURACIONES}
-          defaultValue={duracionInicial}
-          error={estado.errores?.duracion}
         />
       </div>
 

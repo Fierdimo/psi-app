@@ -53,11 +53,6 @@ const esquemaPersona = z.object({
 const esquemaSesion = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Elige una fecha"),
   hora: z.string().regex(/^\d{2}:\d{2}$/, "Elige una hora"),
-  duracion: z.coerce
-    .number()
-    .int()
-    .min(30, "Una sesión dura al menos 30 minutos")
-    .max(480, "Ocho horas es el máximo"),
   nota: z
     .string()
     .trim()
@@ -126,7 +121,6 @@ export async function solicitarSesion(
   const datos = esquemaSesion.safeParse({
     fecha: formData.get("fecha"),
     hora: formData.get("hora"),
-    duracion: formData.get("duracion"),
     nota: formData.get("nota"),
   });
 
@@ -160,9 +154,28 @@ export async function solicitarSesion(
     return { ok: false, errores: { fecha: "Fecha u hora no válidas" } };
   }
 
-  const fin = inicio.plus({ minutes: datos.data.duracion });
-
   const supabase = await crearClienteServidor();
+
+  /*
+   * La duración ya no la elige quien pide.
+   *
+   * Antes la empresa escribía «dos horas» o «cuarenta minutos» a su gusto, así
+   * que la agenda del profesional la componían terceros. Ahora el bloque lo
+   * declara él, y lo que se reserva aquí es la ENVOLTURA: un bloque por
+   * persona convocada, seguidos desde la hora propuesta.
+   *
+   * Es una estimación a propósito, no un compromiso: el profesional reparte
+   * después, y al guardar el reparto la envoltura se recalcula sola con las
+   * horas reales. Lo que hace falta ahora es solo reservar un espacio creíble
+   * en el calendario para que la solicitud se vea.
+   */
+  const { data: ajustes } = await supabase
+    .from("clinic_settings")
+    .select("default_duration_minutes")
+    .maybeSingle();
+
+  const bloque = ajustes?.default_duration_minutes ?? 60;
+  const fin = inicio.plus({ minutes: bloque * personas.length });
 
   const { error } = await supabase.rpc("solicitar_cita_evaluacion", {
     p_starts_at: inicio.toUTC().toISO(),
@@ -243,8 +256,6 @@ export async function editarSolicitud(
 
   const dia = String(formData.get("dia") ?? "");
   const hora = String(formData.get("hora") ?? "");
-  const duracion = Number(formData.get("duracion") ?? 60);
-
   const inicio = DateTime.fromISO(`${dia}T${hora}`, { zone: perfil.timezone });
   if (!inicio.isValid)
     return { ok: false, mensaje: "Fecha u hora no válidas." };
@@ -255,10 +266,24 @@ export async function editarSolicitud(
   }
 
   const supabase = await crearClienteServidor();
+
+  // Misma envoltura que al solicitar: un bloque por persona. El formulario ya
+  // no pregunta la duración, así que leerla de ahí devolvía siempre 60 y una
+  // sesión de doce personas se anunciaba como si durara una hora.
+  const { data: ajustes } = await supabase
+    .from("clinic_settings")
+    .select("default_duration_minutes")
+    .maybeSingle();
+
+  const bloque = ajustes?.default_duration_minutes ?? 60;
+
   const { error } = await supabase.rpc("editar_solicitud_evaluacion", {
     p_cita: String(formData.get("cita") ?? ""),
     p_inicio: inicio.toUTC().toISO(),
-    p_fin: inicio.plus({ minutes: duracion }).toUTC().toISO(),
+    p_fin: inicio
+      .plus({ minutes: bloque * personas.length })
+      .toUTC()
+      .toISO(),
     p_modalidad: String(formData.get("modalidad") ?? "presencial"),
     p_lugar: String(formData.get("lugar") ?? "").trim() || null,
     p_nota: String(formData.get("nota") ?? "").trim() || null,
