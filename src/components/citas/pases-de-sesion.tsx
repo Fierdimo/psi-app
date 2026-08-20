@@ -63,11 +63,14 @@ export async function PasesDeSesion({
      */
     correo: f.email ?? (f.documento ? `Doc. ${f.documento}` : ""),
     /*
+     * El pase lleva DIRECTO a la prueba, no al registro: quien responde una
+     * psicotécnica de selección entra una vez y no vuelve.
+     *
      * Quien ya tiene cuenta no lleva testigo: su evaluación le espera dentro y
      * un enlace directo le pediría la contraseña igual. Lo que necesita saber
      * es que entre con su correo.
      */
-    enlace: f.token ? `${origen}/invitacion/${f.token}` : `${origen}/ingresar`,
+    enlace: f.token ? `${origen}/prueba/${f.token}` : `${origen}/ingresar`,
     yaTieneCuenta: f.tiene_cuenta,
     // Ni cuenta ni testigo. No debería ocurrir —se preparan al confirmar— pero
     // callarlo dejaría a esa persona sin pase y sin explicación.

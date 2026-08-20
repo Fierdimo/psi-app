@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { obtenerPerfil } from "@/lib/auth/perfil";
+import { cerrarYAvisar } from "@/lib/evaluaciones/cierre-automatico";
 import { crearClienteServidor } from "@/lib/supabase/server";
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
@@ -111,6 +112,16 @@ export async function enviarPrueba(
   });
 
   if (error) return { ok: false, mensaje: limpiar(error.message) };
+
+  /*
+   * Y se cierra sola, igual que por el camino del pase.
+   *
+   * El cliente pidió que al terminar el examen salga el informe, sin
+   * distinguir por dónde entró la persona. Tener una vía que publica y otra
+   * que espera firma sería peor que cualquiera de las dos: nadie sabría cuál
+   * le tocó a cada informe.
+   */
+  await cerrarYAvisar(asignacion);
 
   revalidatePath(`/evaluacion/${asignacion}`);
   redirect(`/evaluacion/${asignacion}?enviada=1`);

@@ -24,6 +24,10 @@ export const metadata: Metadata = {
  * categoría sensible (art. 5), así que su tratamiento exige autorización
  * expresa y advertir que responderlas es facultativo.
  *
+ * 2026-08-20: el informe pasa a emitirse SOLO al terminar la prueba, sin
+ * revisión previa. El documento decía lo contrario, y una política que
+ * describe un procedimiento que no ocurre no informa de nada.
+ *
  * SE AMPLIÓ AL MOTOR DE EVALUACIONES. La versión anterior decía que aquí no se
  * guardaba contenido clínico, y dejó de ser cierto el día que la plataforma
  * empezó a guardar las respuestas de las pruebas y a emitir informes. Callar
@@ -44,7 +48,7 @@ const SECCIONES: readonly SeccionLegal[] = [
     cuerpo: [
       "De identificación y contacto: nombre, apellidos, documento de identidad, correo electrónico, teléfono y fecha de nacimiento.",
       "De gestión de la atención: las citas que solicitas o se te asignan, su estado y las fechas en que cambiaron.",
-      "De evaluación psicológica, cuando participas en una: tus respuestas a los instrumentos aplicados, los resultados que calcula el sistema y el informe que firma el profesional.",
+      "De evaluación psicológica, cuando participas en una: tus respuestas a los instrumentos aplicados, los resultados que calcula el sistema y el informe que se emite a partir de ellos.",
       "Técnicos mínimos: la fecha, la dirección IP y el navegador desde el que aceptaste el consentimiento informado, que conservamos como prueba de esa aceptación.",
     ],
   },
@@ -65,7 +69,7 @@ const SECCIONES: readonly SeccionLegal[] = [
     cuerpo: [
       "Cuando una empresa encarga tu evaluación, esa empresa recibe el informe completo. Es la finalidad por la que la encargó y se te dice antes de que respondas nada, en el consentimiento de esa evaluación concreta.",
       "Lo que la empresa NO recibe es tu hoja de respuestas: qué marcaste en cada pregunta no sale de la consulta. Contrató un informe profesional, no el material en bruto.",
-      "Ningún resultado llega a nadie de forma automática. El profesional lo revisa y lo firma antes de que exista para alguien más, y si retiras tu consentimiento antes de esa firma, el informe no se publica.",
+      "El informe se calcula y se envía de forma AUTOMÁTICA en cuanto terminas la prueba, sin revisión previa de un profesional. Después puede revisarlo y corregirlo, y la empresa consulta siempre la versión vigente. Retirar tu consentimiento detiene el envío mientras no hayas enviado la prueba; una vez enviada, el informe ya salió.",
     ],
   },
   {
@@ -113,7 +117,7 @@ export default function PrivacidadPage() {
     <PaginaLegal
       titulo="Política de privacidad"
       entradilla="Qué datos recogemos, para qué los usamos, quién los ve y qué puedes hacer con ellos."
-      version="2026-08-19"
+      version="2026-08-20"
       secciones={SECCIONES}
     />
   );

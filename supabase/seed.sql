@@ -48,6 +48,9 @@ grant select on public.assessment_texts   to service_role;
 -- La preparación de las pruebas necesita crear una asignación: es lo que
 -- permite comprobar que la persona la encuentra en su cuenta.
 grant select, insert, update, delete on public.assignments to service_role;
+-- Solo para las pruebas: sembrar 68 respuestas por el navegador serían más de
+-- cien clics por ejecución. En producción `service_role` únicamente lee.
+grant insert, delete on public.responses to service_role;
 -- Y sus resultados: la prueba del área de empresa necesita firmar un informe
 -- para comprobar que aparece, sin recorrer la pantalla del profesional entera.
 grant select, insert, delete on public.results       to service_role;

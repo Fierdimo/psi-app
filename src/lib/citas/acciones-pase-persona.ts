@@ -53,7 +53,7 @@ export async function paseDePersona(
         (fila.documento ?? "Sin nombre"),
       correo: fila.email ?? (fila.documento ? `Doc. ${fila.documento}` : ""),
       enlace: fila.token
-        ? `${origen}/invitacion/${fila.token}`
+        ? `${origen}/prueba/${fila.token}`
         : `${origen}/ingresar`,
       yaTieneCuenta: fila.tiene_cuenta,
       sinPase: !fila.tiene_cuenta && !fila.token,

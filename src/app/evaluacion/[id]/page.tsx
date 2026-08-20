@@ -125,9 +125,13 @@ export default async function EvaluacionPage({
       />
 
       {enviada ? (
+        /* Decía que el profesional revisa antes y «por eso tardan». Ahora el
+           informe sale al enviar, así que esa frase dejaba esperando a quien ya
+           lo tenía delante. */
         <Alert tone="success" title="Enviaste tus respuestas">
-          Ya no tienes que hacer nada más. El profesional revisa los resultados
-          antes de que estén disponibles: no son automáticos, y por eso tardan.
+          Ya no tienes que hacer nada más. Tu informe se calcula al momento y ya
+          está disponible; si el profesional lo corrige, verás la versión
+          corregida aquí mismo.
         </Alert>
       ) : publicada ? (
         <Informe

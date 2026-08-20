@@ -104,7 +104,15 @@ export async function emitirInvitaciones(
         {
           nombre: persona.nombre,
           empresa,
-          enlace: `${origen}/invitacion/${persona.token}`,
+          /*
+           * El pase lleva DIRECTO a la prueba, no al registro.
+           *
+           * Antes iba a `/invitacion/…`, que pedía crear cuenta antes de dejar hacer
+           * nada. Para un candidato de selección eso eran tres pantallas —correo,
+           * contraseña, confirmar el correo— para algo que usa una sola vez, y cada una
+           * pierde gente en un proceso que la empresa quiere cerrar hoy.
+           */
+          enlace: `${origen}/prueba/${persona.token}`,
         },
       ),
     );

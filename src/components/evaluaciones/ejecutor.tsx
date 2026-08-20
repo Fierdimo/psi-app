@@ -3,6 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 
 import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
+import {
+  enviarConPase,
+  responderConPase,
+} from "@/lib/evaluaciones/acciones-pase";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/lib/evaluaciones/motor";
@@ -50,7 +54,20 @@ function contestado(item: Item, valor: unknown): boolean {
   return true;
 }
 
-export function Ejecutor({ asignacion, items, respuestas }: Props) {
+/**
+ * El mismo ejecutor sirve con cuenta y sin ella.
+ *
+ * Con `pase`, las respuestas van por las funciones que resuelven el testigo;
+ * sin él, por las que miran la sesión. Duplicar el componente habría dejado
+ * dos pantallas de examen que se separan al primer arreglo que se aplique solo
+ * a una — y esta es la pantalla donde la gente pasa media hora.
+ */
+export function Ejecutor({
+  asignacion,
+  items,
+  respuestas,
+  pase,
+}: Props & { pase?: string }) {
   const [valores, setValores] = useState<Record<string, unknown>>(respuestas);
   const [indice, setIndice] = useState(() => {
     // Se retoma donde se quedó. Si hubo una caída, volver a empezar sería
@@ -87,7 +104,11 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
     // Se guarda en cuanto se marca. La pantalla no espera al servidor: si algo
     // falla se avisa, pero la persona no se queda mirando un reloj en cada
     // una de las 68 preguntas.
-    responder(asignacion, item.id, valor).then((r) => {
+    const guardado = pase
+      ? responderConPase(pase, item.id, valor)
+      : responder(asignacion, item.id, valor);
+
+    guardado.then((r) => {
       if (!r.ok) {
         setFallo(
           r.mensaje ??
@@ -160,10 +181,14 @@ export function Ejecutor({ asignacion, items, respuestas }: Props) {
         ) : (
           <form
             action={(formData) =>
-              iniciarEnvio(
-                () =>
-                  enviarPrueba({ ok: false, mensaje: "" }, formData) as never,
-              )
+              iniciarEnvio(async () => {
+                if (pase) {
+                  const r = await enviarConPase(pase);
+                  if (!r.ok) setFallo(r.mensaje ?? "No se pudo enviar.");
+                  return;
+                }
+                await enviarPrueba({ ok: false, mensaje: "" }, formData);
+              })
             }
           >
             <input type="hidden" name="asignacion" value={asignacion} />

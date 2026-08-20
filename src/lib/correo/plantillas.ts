@@ -269,3 +269,42 @@ export function invitacionEvaluacion(
     html,
   };
 }
+
+/**
+ * El informe de una evaluación, camino de la empresa que la encargó.
+ *
+ * NO lleva el informe dentro. Lleva el aviso y el enlace, y por dos motivos:
+ * el correo viaja por servidores que no controlamos y un perfil psicológico
+ * con nombre y cédula no debería ir en el cuerpo de un mensaje; y en la
+ * plataforma el informe está siempre al día, mientras que una copia en un
+ * correo se queda congelada aunque después se corrija.
+ *
+ * El asunto tampoco dice nada del contenido: puede quedar a la vista en la
+ * pantalla de un teléfono que esté mirando otra persona.
+ */
+export function informeListo(
+  persona: string,
+  instrumento: string,
+  enlace: string,
+): Correo {
+  const titulo = "Ya está disponible un informe";
+
+  return {
+    asunto: "Informe disponible · JBR Psicometrías",
+    texto:
+      `El informe de ${persona} (${instrumento}) ya está disponible ` +
+      `en tu espacio de empresa.\n\n${enlace}\n\n` +
+      `Si necesitas comentarlo, escríbenos.`,
+    html: envolver(
+      titulo,
+      `El informe de <strong>${persona}</strong> (${instrumento}) ya está ` +
+        `disponible en tu espacio de empresa.`,
+      undefined,
+      `<p style="margin:20px 0 0"><a href="${enlace}" style="display:inline-block;background:#2440C4;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600">Ver el informe</a></p>
+    <p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+      El informe no viaja en este correo: se consulta en la plataforma, donde
+      está siempre al día.
+    </p>`,
+    ),
+  };
+}

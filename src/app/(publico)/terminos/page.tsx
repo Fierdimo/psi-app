@@ -69,7 +69,7 @@ const SECCIONES: readonly SeccionLegal[] = [
     titulo: "Las evaluaciones",
     cuerpo: [
       "Participar es voluntario y se consiente evaluación por evaluación, con su propósito y su destinatario a la vista antes de empezar. Puedes negarte, y puedes aceptar más tarde si cambias de idea.",
-      "Los resultados no son automáticos: el profesional los revisa y los firma antes de que existan para nadie. Cuando la evaluación la encargó una empresa, esa empresa recibe el informe firmado —no tus respuestas—, y eso se te dice antes de que respondas.",
+      "Al terminar la prueba, el informe se calcula y se envía automáticamente a la empresa que la encargó, sin revisión previa. El profesional puede revisarlo y corregirlo después, y la empresa consulta siempre la versión vigente. Lo que la empresa no recibe, ni antes ni después, es tu hoja de respuestas. Todo esto se te dice antes de que respondas.",
     ],
   },
   {
@@ -98,7 +98,7 @@ export default function TerminosPage() {
     <PaginaLegal
       titulo="Términos de uso"
       entradilla="Las condiciones de uso de la plataforma y qué puedes esperar de ella."
-      version="2026-08-19"
+      version="2026-08-20"
       secciones={SECCIONES}
     />
   );
