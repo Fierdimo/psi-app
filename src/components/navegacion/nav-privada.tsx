@@ -81,7 +81,7 @@ function EnlaceLateral({
   seccion: Seccion;
   activa: boolean;
 }) {
-  const { icono: Icono, etiqueta, href, placeholder } = seccion;
+  const { icono: Icono, etiqueta, href } = seccion;
 
   return (
     <Link
@@ -92,18 +92,10 @@ function EnlaceLateral({
         activa
           ? "bg-accent-soft text-accent-on-soft font-medium"
           : "text-text-body hover:bg-sunken",
-        placeholder && !activa && "text-text-muted",
       )}
     >
       <Icono aria-hidden="true" className="size-5 shrink-0" />
       <span className="flex-1">{etiqueta}</span>
-      {placeholder && (
-        <span
-          aria-label="Próximamente"
-          title="Próximamente"
-          className="bg-line-interactive size-1.5 shrink-0 rounded-full"
-        />
-      )}
     </Link>
   );
 }
@@ -193,12 +185,6 @@ export function BarraInferior({ area = "paciente" }: { area?: Area }) {
                     >
                       <Icono aria-hidden="true" className="size-4.5 shrink-0" />
                       <span className="flex-1">{seccion.etiqueta}</span>
-                      {seccion.placeholder && (
-                        <span
-                          aria-label="Próximamente"
-                          className="bg-line-interactive size-1.5 shrink-0 rounded-full"
-                        />
-                      )}
                     </Link>
                   </li>
                 );

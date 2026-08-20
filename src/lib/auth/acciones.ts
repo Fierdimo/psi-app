@@ -35,15 +35,9 @@ const CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos";
  * consentimiento informado cubre. Una invitación a una evaluación no lo es.
  */
 function esAreaDeAtencion(destino: string) {
-  return [
-    "/panel",
-    "/calendario",
-    "/mis-datos",
-    "/resultados",
-    "/sesiones",
-    "/recursos",
-    "/documentos",
-  ].some((r) => destino === r || destino.startsWith(`${r}/`));
+  return ["/panel", "/calendario", "/mis-datos", "/resultados"].some(
+    (r) => destino === r || destino.startsWith(`${r}/`),
+  );
 }
 
 /** Solo se acepta un destino interno, para no convertir el ingreso en un redirector abierto. */

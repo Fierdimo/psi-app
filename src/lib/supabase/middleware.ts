@@ -18,9 +18,6 @@ const RUTAS_PACIENTE = [
   "/calendario",
   "/mis-datos",
   "/resultados",
-  "/sesiones",
-  "/recursos",
-  "/documentos",
   "/consentimiento",
 ];
 

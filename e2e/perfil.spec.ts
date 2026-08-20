@@ -7,6 +7,14 @@ import { CUENTAS } from "./preparar";
  * Área privada del paciente y «Mis datos» (F2).
  */
 
+/*
+ * Ya no se comprueban las secciones «próximamente».
+ *
+ * El menú enseñaba también lo que estaba por construir, atenuado, y había una
+ * prueba que exigía que cada una explicara qué viviría ahí. Se quitaron del
+ * menú: se pulsaban, no pasaba nada, y a partir de ahí cada entrada era
+ * sospechosa.
+ */
 test.describe.serial("Navegación privada", () => {
   test("todas las secciones del mapa son alcanzables", async ({ page }) => {
     await entrarComo(page, CUENTAS.paciente);
@@ -14,9 +22,6 @@ test.describe.serial("Navegación privada", () => {
     const secciones: [string, RegExp][] = [
       ["/calendario", /tu calendario/i],
       ["/evaluacion", /mis evaluaciones/i],
-      ["/sesiones", /mis sesiones/i],
-      ["/recursos", /recursos y tareas/i],
-      ["/documentos", /documentos/i],
       ["/mis-datos", /mis datos/i],
     ];
 
@@ -61,19 +66,6 @@ test.describe.serial("Navegación privada", () => {
      */
     expect(Math.abs(antes!.y - despues!.y)).toBeLessThan(2);
     await expect(primerEnlace).toBeInViewport();
-  });
-
-  test("las secciones sin contenido explican qué vivirá ahí", async ({
-    page,
-  }) => {
-    await entrarComo(page, CUENTAS.paciente);
-    await page.goto("/recursos");
-
-    await expect(page.getByText(/próximamente/i).first()).toBeVisible();
-    // Nunca una fecha estimada: una promesa incumplida cuesta más que la ausencia.
-    await expect(
-      page.getByText(/\b(20\d{2}|enero|febrero|marzo)\b/i),
-    ).toHaveCount(0);
   });
 });
 

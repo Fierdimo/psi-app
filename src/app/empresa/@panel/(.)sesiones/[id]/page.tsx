@@ -24,9 +24,7 @@ export default async function Panel(
 
   return (
     <PanelLateral
-      titulo={
-        data?.status === "solicitada" ? "Editar la solicitud" : "La sesión"
-      }
+      titulo={data?.status === "solicitada" ? "Editar la solicitud" : "Sesión"}
       ruta={`/empresa/sesiones/${id}`}
     >
       <ContenidoDeSesion {...props} />

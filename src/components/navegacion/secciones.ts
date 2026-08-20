@@ -2,15 +2,11 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
-  FileText,
   Home,
   Inbox,
-  Receipt,
   Settings,
   Users,
-  BookOpen,
   ClipboardCheck,
-  NotebookPen,
   UserCog,
   type LucideIcon,
 } from "lucide-react";
@@ -19,8 +15,6 @@ export type Seccion = {
   href: string;
   etiqueta: string;
   icono: LucideIcon;
-  /** Sin contenido todavía: se muestra atenuada y con un punto indicador. */
-  placeholder?: boolean;
   /** Aparece en la barra inferior de móvil, donde solo caben tres. */
   principal?: boolean;
   /** Activa solo con coincidencia exacta: para la raíz de un área. */
@@ -30,10 +24,11 @@ export type Seccion = {
 /**
  * Mapa del área del paciente (SPEC.md §5).
  *
- * Las secciones sin contenido se muestran igualmente, atenuadas. Enseñar el
- * mapa completo desde el principio genera más confianza que ir revelándolo por
- * partes: la persona entiende hacia dónde va la plataforma y no se pregunta si
- * le falta algo que otros sí tienen.
+ * SOLO LO QUE EXISTE. Durante un tiempo el menú enseñaba también lo que estaba
+ * por construir, atenuado, con la idea de que ver el mapa completo daba
+ * confianza. En la práctica hace lo contrario: se pulsa, no pasa nada, y a
+ * partir de ahí cada entrada del menú es sospechosa. Cuando alguna de esas
+ * secciones se construya, se añade aquí.
  */
 export const SECCIONES: readonly Seccion[] = [
   { href: "/panel", etiqueta: "Inicio", icono: Home, principal: true },
@@ -54,24 +49,6 @@ export const SECCIONES: readonly Seccion[] = [
     href: "/evaluacion",
     etiqueta: "Mis evaluaciones",
     icono: ClipboardCheck,
-  },
-  {
-    href: "/sesiones",
-    etiqueta: "Mis sesiones",
-    icono: NotebookPen,
-    placeholder: true,
-  },
-  {
-    href: "/recursos",
-    etiqueta: "Recursos y tareas",
-    icono: BookOpen,
-    placeholder: true,
-  },
-  {
-    href: "/documentos",
-    etiqueta: "Documentos",
-    icono: FileText,
-    placeholder: true,
   },
   {
     href: "/mis-datos",
@@ -109,15 +86,12 @@ export const SECCIONES_PROFESIONAL: readonly Seccion[] = [
     href: "/profesional/evaluaciones",
     etiqueta: "Evaluaciones",
     icono: ClipboardList,
-    placeholder: true,
   },
   {
-    href: "/profesional/documentos",
-    etiqueta: "Documentos",
-    icono: FileText,
-    placeholder: true,
+    href: "/profesional/consulta",
+    etiqueta: "Configuración",
+    icono: Settings,
   },
-  { href: "/profesional/consulta", etiqueta: "La consulta", icono: Settings },
 ];
 
 export const SECCIONES_EMPRESA: readonly Seccion[] = [
@@ -128,12 +102,6 @@ export const SECCIONES_EMPRESA: readonly Seccion[] = [
     href: "/empresa/informes",
     etiqueta: "Informes",
     icono: ClipboardList,
-  },
-  {
-    href: "/empresa/facturacion",
-    etiqueta: "Facturación",
-    icono: Receipt,
-    placeholder: true,
   },
   { href: "/empresa/datos", etiqueta: "Datos", icono: Building2 },
 ];

@@ -8,7 +8,7 @@ import { FormularioHorario } from "@/components/profesional/formulario-horario";
 import { exigirProfesional } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "La consulta" };
+export const metadata: Metadata = { title: "Configuración" };
 
 function Ajuste({
   etiqueta,
@@ -51,7 +51,7 @@ export default async function ConsultaPage() {
   return (
     <Pantalla>
       <EncabezadoPagina
-        titulo="La consulta"
+        titulo="Configuración"
         descripcion="Las reglas con las que opera tu agenda. Se aplican a las solicitudes de pacientes y de empresas por igual."
       />
 

@@ -19,7 +19,7 @@ import {
 } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "La sesión" };
+export const metadata: Metadata = { title: "Sesión" };
 
 /**
  * Una sesión, y lo que se puede hacer con ella en cada momento.
@@ -86,7 +86,7 @@ export async function ContenidoDeSesion({
   return (
     <Pantalla>
       <EncabezadoPagina
-        titulo={repartible ? "La sesión" : "Editar la solicitud"}
+        titulo={repartible ? "Sesión" : "Editar la solicitud"}
         descripcion={
           repartible
             ? /*
@@ -161,7 +161,7 @@ export default async function SesionPage(
   return (
     <PaginaConPanel
       fondo={<ListadoDeSesiones />}
-      titulo="La sesión"
+      titulo="Sesión"
       volverA="/empresa/sesiones"
     >
       <ContenidoDeSesion {...props} />

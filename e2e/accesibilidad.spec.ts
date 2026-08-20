@@ -61,7 +61,6 @@ test.describe.serial("Accesibilidad · área del paciente", () => {
       "/calendario?vista=semana",
       "/solicitar-cita",
       "/mis-datos",
-      "/documentos",
     ]) {
       await auditar(page, ruta);
     }

@@ -57,7 +57,7 @@ async function textosCasiNegros(page: Page) {
 }
 
 const PUBLICAS = ["/", "/ingresar", "/registro", "/privacidad", "/profesional"];
-const PACIENTE = ["/panel", "/calendario", "/mis-datos", "/documentos"];
+const PACIENTE = ["/panel", "/calendario", "/mis-datos", "/evaluacion"];
 const PROFESIONAL = ["/profesional/agenda", "/profesional/pacientes"];
 
 test.describe("Nunca negro · páginas públicas", () => {

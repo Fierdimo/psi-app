@@ -206,7 +206,7 @@ export default async function PanelPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-h3">Tus secciones</h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {accesos.map(({ href, etiqueta, icono: Icono, placeholder }) => (
+          {accesos.map(({ href, etiqueta, icono: Icono }) => (
             <li key={href}>
               <Link
                 href={href}
@@ -215,14 +215,15 @@ export default async function PanelPage() {
                 <span className="bg-accent-soft text-accent grid size-10 shrink-0 place-items-center rounded-md">
                   <Icono aria-hidden="true" className="size-5" />
                 </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-text-strong font-medium">
-                    {etiqueta}
-                  </span>
-                  <span className="text-text-muted text-micro">
-                    {placeholder ? "Próximamente" : "Disponible"}
-                  </span>
-                </span>
+                {/*
+                  Sin el «Disponible / Próximamente» de debajo.
+                  
+                  Servía para distinguir lo construido de lo que no, y ya no hay
+                  nada sin construir en el menú: todas las tarjetas decían
+                  «Disponible», que es ruido repetido tantas veces como
+                  secciones haya.
+                */}
+                <span className="text-text-strong font-medium">{etiqueta}</span>
               </Link>
             </li>
           ))}
