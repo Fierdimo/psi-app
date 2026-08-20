@@ -1,6 +1,5 @@
 import { ChevronDown, Users } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { nombreConvocado, type PersonaConvocada } from "@/lib/citas/estados";
 
 /**
@@ -56,21 +55,18 @@ export function Convocados({
     );
   }
 
-  const aspirantes = personas.filter((p) => p.vinculo === "aspirante").length;
-
+  /*
+   * El vínculo deja de contarse aquí.
+   *
+   * «2 personas · 1 aspirante» servía cuando empleado y aspirante recibían
+   * tratos distintos. Ya no: la evaluación es de la convocatoria y llega igual
+   * a todos, así que el dato solo añadía una cifra que nadie usa para decidir.
+   */
   const resumen = (
     <>
       <Users aria-hidden="true" className="size-4 shrink-0" />
       {personas.length}{" "}
       {personas.length === 1 ? "persona convocada" : "personas convocadas"}
-      {aspirantes > 0 && (
-        <span>
-          {" · "}
-          {aspirantes === personas.length
-            ? "todas aspirantes"
-            : `${aspirantes} aspirante${aspirantes === 1 ? "" : "s"}`}
-        </span>
-      )}
     </>
   );
 
@@ -84,22 +80,27 @@ export function Convocados({
    */
   const listado = (
     <ul className="border-line divide-line max-h-72 divide-y overflow-y-auto overscroll-contain rounded-md border">
+      {/*
+        COLUMNAS FIJAS, no `flex-wrap`.
+
+        Con envoltura, cada fila se partía por un sitio distinto según lo largo
+        que fuera el nombre: en un panel estrecho el documento saltaba de línea
+        en unas filas y en otras no, y la lista dejaba de leerse de un vistazo.
+        Una rejilla de anchos fijos mantiene las columnas en su sitio y recorta
+        el nombre, que es lo único que puede crecer sin límite.
+      */}
       {personas.map((p) => (
         <li
           key={p.documento}
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
+          className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 px-3 py-2 text-sm"
         >
-          <span className="text-text-strong font-medium">
+          <span className="text-text-strong truncate font-medium">
             {nombreConvocado(p)}
+            {p.cargo && (
+              <span className="text-text-muted font-normal"> · {p.cargo}</span>
+            )}
           </span>
           <span className="text-text-muted tabular">{p.documento}</span>
-          {p.cargo && <span className="text-text-muted">{p.cargo}</span>}
-          <Badge
-            tone={p.vinculo === "empleado" ? "accent" : "neutral"}
-            className="ml-auto"
-          >
-            {p.vinculo === "empleado" ? "Empleado" : "Aspirante"}
-          </Badge>
         </li>
       ))}
     </ul>

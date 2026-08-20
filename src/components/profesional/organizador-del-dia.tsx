@@ -1,8 +1,6 @@
 "use client";
 
 import { X } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -236,9 +234,17 @@ export function OrganizadorDelDia({
           const hora = plan[c.person_id];
 
           return (
+            /*
+              COLUMNAS FIJAS, no `flex-wrap`.
+
+              Cada fila se partía por un sitio distinto según lo largo que fuera
+              el nombre, así que las horas no quedaban alineadas y la lista no
+              se podía recorrer de un vistazo — que es justo para lo que sirve:
+              ver de golpe quién va a qué hora.
+            */
             <li
               key={c.person_id}
-              className="flex flex-wrap items-center gap-3 p-3"
+              className="grid grid-cols-[minmax(0,1fr)_9.5rem_2.25rem] items-center gap-x-3 p-3"
             >
               {/*
                 Todo lo que se sabe de la persona, en su fila.
@@ -248,21 +254,18 @@ export function OrganizadorDelDia({
                 pases con su enlace. Tres listas de los mismos nombres, ninguna
                 completa, y la altura de la pantalla repartida entre ellas.
               */}
-              <span className="flex min-w-[11rem] flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-text-strong text-sm font-medium">
+              {/*
+                El vínculo ya no se pinta: empleado y aspirante reciben el
+                mismo trato desde que la evaluación es de la convocatoria.
+                Ocupaba el ancho que ahora usa el nombre completo.
+              */}
+              <span className="min-w-0">
+                <span className="text-text-strong block truncate text-sm font-medium">
                   {nombreDe(c)}
                 </span>
-                {c.documento && (
-                  <span className="text-text-muted tabular text-xs">
-                    {c.documento}
-                  </span>
-                )}
-                {c.cargo && (
-                  <span className="text-text-muted text-xs">{c.cargo}</span>
-                )}
-                <Badge tone={c.vinculo === "empleado" ? "accent" : "neutral"}>
-                  {c.vinculo === "empleado" ? "Empleado" : "Aspirante"}
-                </Badge>
+                <span className="text-text-muted block truncate text-xs">
+                  {[c.documento, c.cargo].filter(Boolean).join(" · ")}
+                </span>
               </span>
 
               {/*
@@ -272,7 +275,15 @@ export function OrganizadorDelDia({
                 la equis caía a la línea siguiente y parecía de la persona de
                 abajo.
               */}
-              <span className="flex shrink-0 items-center gap-2">
+              {/*
+                Ancho fijo, no `auto`.
+
+                Con `auto` la columna la dimensionaba el nombre más largo de la
+                fila, así que el desplegable empezaba en un sitio distinto en
+                cada una y la lista quedaba en zigzag. Fija, todas las horas
+                caen en la misma vertical y se leen en columna.
+              */}
+              <span className="min-w-0">
                 {franjas === null ? (
                   <span className="text-text-muted text-sm">…</span>
                 ) : (
@@ -282,7 +293,7 @@ export function OrganizadorDelDia({
                       colocar(c.person_id, e.target.value || null)
                     }
                     aria-label={`Hora de ${nombreDe(c)}`}
-                    className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[10rem] rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 w-full rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
                     <option value="">— sin hora —</option>
                     {/* Si quedó citada otro día, su hora sigue siendo una opción
@@ -317,13 +328,17 @@ export function OrganizadorDelDia({
                     })}
                   </select>
                 )}
+              </span>
 
+              {/* Su propia columna: si viviera con el desplegable, aparecer y
+                  desaparecer movería la hora de sitio. */}
+              <span className="grid place-items-center">
                 {hora && (
                   <button
                     type="button"
                     onClick={() => colocar(c.person_id, null)}
                     aria-label={`Quitar la hora de ${nombreDe(c)}`}
-                    className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 shrink-0 place-items-center rounded-md transition-colors duration-150"
+                    className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 place-items-center rounded-md transition-colors duration-150"
                   >
                     <X aria-hidden="true" className="size-4" />
                   </button>
