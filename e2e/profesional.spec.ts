@@ -358,13 +358,29 @@ test.describe.serial("Sesiones de empresa", () => {
     await page.goto(`/profesional/citas/${SESION_DE_EMPRESA}`);
 
     /*
-     * El listado de convocados no puede empujar la acción fuera de la vista.
-     * Con quince personas ocupaba toda la altura y los botones quedaban abajo,
+     * Cada convocado aparece UNA vez.
+     *
+     * Esta pantalla llegó a listar a la misma gente tres veces —el tablero con
+     * su hora, «Convocados» con su cargo, y los pases con su enlace—, así que
+     * los nombres ocupaban la altura entera y las acciones quedaban abajo,
      * invisibles y sin nada que indicara que estaban ahí.
+     *
+     * Antes esto se comprobaba mirando el «Ocultar» del listado plegable. Ese
+     * listado ya no existe: sus datos viven en la fila del tablero, que es lo
+     * que hace que sobre.
      */
-    // «Ocultar» vive dentro del `<summary>`, que es el elemento interactivo:
-    // el rol de botón lo tiene él, no la palabra.
-    await expect(page.getByText(/^Ocultar$/)).toBeVisible();
+    for (const nombre of ["Ana María Restrepo", "Jorge Salas"]) {
+      /*
+       * Una vez A LA VISTA.
+       *
+       * El bloque de accesos sigue en el documento, plegado: es la herramienta
+       * para repartir enlaces y ahí los nombres tienen que estar. Lo que no
+       * puede pasar es que se pinten dos veces nada más abrir la sesión.
+       */
+      await expect(
+        page.getByText(nombre).filter({ visible: true }),
+      ).toHaveCount(1);
+    }
 
     await page
       .getByRole("button", { name: /asignar a los convocados/i })

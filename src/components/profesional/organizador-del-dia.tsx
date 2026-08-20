@@ -1,6 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -39,6 +41,9 @@ export type Convocado = {
   nombre: string;
   apellidos: string | null;
   documento: string | null;
+  cargo: string | null;
+  vinculo: string;
+  tiene_cuenta: boolean;
   starts_at: string | null;
 };
 
@@ -235,70 +240,95 @@ export function OrganizadorDelDia({
               key={c.person_id}
               className="flex flex-wrap items-center gap-3 p-3"
             >
-              <span className="min-w-[12rem] flex-1">
-                <span className="text-text-strong block text-sm font-medium">
+              {/*
+                Todo lo que se sabe de la persona, en su fila.
+
+                Antes esta pantalla listaba a la misma gente tres veces: aquí
+                con su hora, en «Convocados» con su cargo y su vínculo, y en los
+                pases con su enlace. Tres listas de los mismos nombres, ninguna
+                completa, y la altura de la pantalla repartida entre ellas.
+              */}
+              <span className="flex min-w-[11rem] flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-text-strong text-sm font-medium">
                   {nombreDe(c)}
                 </span>
                 {c.documento && (
-                  <span className="text-text-muted block text-xs">
+                  <span className="text-text-muted tabular text-xs">
                     {c.documento}
                   </span>
                 )}
+                {c.cargo && (
+                  <span className="text-text-muted text-xs">{c.cargo}</span>
+                )}
+                <Badge tone={c.vinculo === "empleado" ? "accent" : "neutral"}>
+                  {c.vinculo === "empleado" ? "Empleado" : "Aspirante"}
+                </Badge>
               </span>
 
-              {franjas === null ? (
-                <span className="text-text-muted text-sm">…</span>
-              ) : (
-                <select
-                  value={hora ?? ""}
-                  onChange={(e) => colocar(c.person_id, e.target.value || null)}
-                  aria-label={`Hora de ${nombreDe(c)}`}
-                  className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[10rem] rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
-                >
-                  <option value="">— sin hora —</option>
-                  {/* Si quedó citada otro día, su hora sigue siendo una opción
-                      válida aunque no esté en la rejilla que se mira ahora. */}
-                  {hora && !franjas.some((f) => f.inicio === hora) && (
-                    <option value={hora}>{fechaYHora(hora, zona)}</option>
-                  )}
-                  {franjas.map((f) => {
-                    const otro = convocados.find(
-                      (o) =>
-                        o.person_id !== c.person_id &&
-                        plan[o.person_id] === f.inicio,
-                    );
+              {/*
+                La hora y la equis van juntas y no se parten.
 
-                    return (
-                      <option
-                        key={f.inicio}
-                        value={f.inicio}
-                        /* Solo se apaga lo que NO es tuyo: otra cita de la
+                Sueltas dentro del `flex-wrap`, en el ancho de un panel lateral
+                la equis caía a la línea siguiente y parecía de la persona de
+                abajo.
+              */}
+              <span className="flex shrink-0 items-center gap-2">
+                {franjas === null ? (
+                  <span className="text-text-muted text-sm">…</span>
+                ) : (
+                  <select
+                    value={hora ?? ""}
+                    onChange={(e) =>
+                      colocar(c.person_id, e.target.value || null)
+                    }
+                    aria-label={`Hora de ${nombreDe(c)}`}
+                    className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[10rem] rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    <option value="">— sin hora —</option>
+                    {/* Si quedó citada otro día, su hora sigue siendo una opción
+                      válida aunque no esté en la rejilla que se mira ahora. */}
+                    {hora && !franjas.some((f) => f.inicio === hora) && (
+                      <option value={hora}>{fechaYHora(hora, zona)}</option>
+                    )}
+                    {franjas.map((f) => {
+                      const otro = convocados.find(
+                        (o) =>
+                          o.person_id !== c.person_id &&
+                          plan[o.person_id] === f.inicio,
+                      );
+
+                      return (
+                        <option
+                          key={f.inicio}
+                          value={f.inicio}
+                          /* Solo se apaga lo que NO es tuyo: otra cita de la
                            agenda. Lo que tiene otro convocado se puede elegir
                            —se intercambian— y la etiqueta dice con quién. */
-                        disabled={f.ocupada}
-                      >
-                        {horaDe(f.inicio, zona)}
-                        {f.ocupada
-                          ? " · ocupado"
-                          : otro
-                            ? ` · cambiar con ${otro.nombre}`
-                            : ""}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
+                          disabled={f.ocupada}
+                        >
+                          {horaDe(f.inicio, zona)}
+                          {f.ocupada
+                            ? " · ocupado"
+                            : otro
+                              ? ` · cambiar con ${otro.nombre}`
+                              : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
 
-              {hora && (
-                <button
-                  type="button"
-                  onClick={() => colocar(c.person_id, null)}
-                  aria-label={`Quitar la hora de ${nombreDe(c)}`}
-                  className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 shrink-0 place-items-center rounded-md transition-colors duration-150"
-                >
-                  <X aria-hidden="true" className="size-4" />
-                </button>
-              )}
+                {hora && (
+                  <button
+                    type="button"
+                    onClick={() => colocar(c.person_id, null)}
+                    aria-label={`Quitar la hora de ${nombreDe(c)}`}
+                    className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 shrink-0 place-items-center rounded-md transition-colors duration-150"
+                  >
+                    <X aria-hidden="true" className="size-4" />
+                  </button>
+                )}
+              </span>
             </li>
           );
         })}

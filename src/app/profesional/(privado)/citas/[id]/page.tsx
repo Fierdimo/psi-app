@@ -1,4 +1,11 @@
-import { ArrowLeft, Clock, MapPin, User, Video } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  User,
+  Video,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -160,12 +167,21 @@ export default async function CitaProfesionalPage({
     nombre: string;
     apellidos: string | null;
     documento: string | null;
+    cargo: string | null;
+    vinculo: string;
+    tiene_cuenta: boolean;
     starts_at: string | null;
   }[];
 
   // El día y la hora que propuso la empresa: por donde se empieza a mirar.
   const fechaDeLaSesion = enZona(cita.starts_at, zona).toISODate()!;
   const horaDeLaSesion = enZona(cita.starts_at, zona).toFormat("HH:mm");
+
+  const organizable =
+    deEmpresa &&
+    ["solicitada", "reprogramacion_solicitada", "confirmada"].includes(
+      cita.status,
+    );
 
   // Quien todavía no tiene cuenta es a quien hay que invitar.
   const sinCuenta = convocados.filter(
@@ -252,29 +268,34 @@ export default async function CitaProfesionalPage({
           urgencia, una ausencia— aparece casi siempre con la sesión ya
           confirmada.
         */}
-        {deEmpresa &&
-          ["solicitada", "reprogramacion_solicitada", "confirmada"].includes(
-            cita.status,
-          ) && (
-            <div className="border-line flex flex-col gap-3 border-t pt-5">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-h4">Organizar el día</h2>
-                <p className="text-text-muted text-sm">
-                  Elige a qué hora empieza el primero; el resto va detrás.
-                </p>
-              </div>
-
-              <OrganizadorDelDia
-                citaId={cita.id}
-                convocados={reparto}
-                fechaInicial={fechaDeLaSesion}
-                horaInicial={horaDeLaSesion}
-                zona={zona}
-              />
+        {deEmpresa && organizable && (
+          <div className="border-line flex flex-col gap-3 border-t pt-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-h4">Organizar el día</h2>
+              <p className="text-text-muted text-sm">
+                Elige a qué hora empieza el primero; el resto va detrás.
+              </p>
             </div>
-          )}
 
-        {deEmpresa && (
+            <OrganizadorDelDia
+              citaId={cita.id}
+              convocados={reparto}
+              fechaInicial={fechaDeLaSesion}
+              horaInicial={horaDeLaSesion}
+              zona={zona}
+            />
+          </div>
+        )}
+
+        {/*
+          «Convocados» solo cuando NO hay tablero.
+
+          Con tablero, sus filas ya traen nombre, documento, cargo y vínculo:
+          este listado repetía los mismos nombres justo debajo. Se conserva para
+          los estados en los que no se organiza —una sesión cancelada o ya
+          realizada— donde sigue siendo la única forma de ver a quién alcanzaba.
+        */}
+        {deEmpresa && !organizable && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">
             <h2 className="text-h4">Convocados</h2>
             <Convocados personas={convocados} compacto plegable abierto />
@@ -291,23 +312,34 @@ export default async function CitaProfesionalPage({
             convocar a lo que todavía no existe. */}
         {deEmpresa && cita.status === "confirmada" && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-h4">Acceso de los convocados</h2>
-              <p className="text-text-muted text-sm">
-                Cada persona tiene su enlace para crear la cuenta y aceptar su
-                consentimiento. Quien ya tenga cuenta no necesita nada.
-              </p>
-            </div>
-
             {/*
-              Los pases se ven, no se piden.
+              Plegado: es la TERCERA lista de los mismos nombres.
 
-              Existen desde que confirmaste la sesión. El botón de abajo hace lo
-              único que sigue siendo un acto: mandarlos por correo.
+              El tablero de arriba ya los trae uno por uno. Los pases son la
+              herramienta para repartir el acceso —cuando alguien llega sin él,
+              o para mandarlos por otro canal—, no algo que haya que mirar cada
+              vez que se abre la sesión.
             */}
-            <PasesDeSesion citaId={cita.id} />
+            <details className="group flex flex-col gap-3">
+              <summary className="text-text-strong hover:text-accent ease-psi flex cursor-pointer list-none items-center gap-2 transition-colors duration-150">
+                <ChevronRight
+                  aria-hidden="true"
+                  className="ease-psi size-4 shrink-0 transition-transform duration-150 group-open:rotate-90"
+                />
+                <span className="text-h4">Acceso de los convocados</span>
+              </summary>
 
-            <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
+              <div className="flex flex-col gap-3 pt-3">
+                <p className="text-text-muted text-sm">
+                  Cada persona tiene su enlace desde que confirmaste. Quien ya
+                  tenga cuenta no necesita nada.
+                </p>
+
+                <PasesDeSesion citaId={cita.id} />
+
+                <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
+              </div>
+            </details>
           </div>
         )}
 
