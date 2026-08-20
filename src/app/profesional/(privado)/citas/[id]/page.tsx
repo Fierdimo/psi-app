@@ -18,7 +18,6 @@ import { AsignarEvaluacion } from "@/components/profesional/asignar-evaluacion";
 import { BotonInvitaciones } from "@/components/profesional/boton-invitaciones";
 import { Convocados } from "@/components/profesional/convocados";
 import { OrganizadorDelDia } from "@/components/profesional/organizador-del-dia";
-import { PasesDeSesion } from "@/components/citas/pases-de-sesion";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -169,8 +168,9 @@ export default async function CitaProfesionalPage({
     documento: string | null;
     cargo: string | null;
     vinculo: string;
-    tiene_cuenta: boolean;
     starts_at: string | null;
+    estado: string | null;
+    consentimiento: string | null;
   }[];
 
   // El día y la hora que propuso la empresa: por donde se empieza a mirar.
@@ -318,36 +318,18 @@ export default async function CitaProfesionalPage({
         {deEmpresa && cita.status === "confirmada" && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">
             {/*
-              Plegado: es la TERCERA lista de los mismos nombres.
+              Los accesos ya no son una lista aparte.
 
-              El tablero de arriba ya los trae uno por uno. Los pases son la
-              herramienta para repartir el acceso —cuando alguien llega sin él,
-              o para mandarlos por otro canal—, no algo que haya que mirar cada
-              vez que se abre la sesión.
+              Cada fila del reparto trae su botón, así que este bloque repetía
+              los mismos nombres por tercera vez. Queda lo único que no cabe en
+              una fila: mandarlos todos por correo de una vez.
             */}
-            <details className="group flex flex-col gap-3">
-              <summary className="text-text-strong hover:text-accent ease-psi flex cursor-pointer list-none items-center gap-2 transition-colors duration-150">
-                <ChevronRight
-                  aria-hidden="true"
-                  className="ease-psi size-4 shrink-0 transition-transform duration-150 group-open:rotate-90"
-                />
-                <span className="text-h4">Acceso de los convocados</span>
-              </summary>
+            <p className="text-text-muted text-sm">
+              Cada persona tiene su enlace desde que confirmaste. Lo tienes en
+              su fila, arriba, junto a su hora.
+            </p>
 
-              <div className="flex flex-col gap-3 pt-3">
-                <p className="text-text-muted text-sm">
-                  Cada persona tiene su enlace desde que confirmaste, tenga
-                  cuenta o no: esta evaluación no vive en el perfil de nadie.
-                </p>
-
-                <PasesDeSesion citaId={cita.id} />
-
-                <BotonInvitaciones
-                  citaId={cita.id}
-                  pendientes={aQuienEscribir}
-                />
-              </div>
-            </details>
+            <BotonInvitaciones citaId={cita.id} pendientes={aQuienEscribir} />
           </div>
         )}
 

@@ -1,6 +1,9 @@
 "use client";
 
 import { X } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { BotonPase } from "@/components/citas/boton-pase";
 import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
@@ -41,8 +44,15 @@ export type Convocado = {
   documento: string | null;
   cargo: string | null;
   vinculo: string;
-  tiene_cuenta: boolean;
   starts_at: string | null;
+  /**
+   * Cómo va su evaluación, si ya se le asignó una.
+   *
+   * Vivía en una tercera lista, debajo. La misma gente aparecía en tres
+   * listados —hora, acceso y estado— y había que emparejarlos a ojo.
+   */
+  estado: string | null;
+  consentimiento: string | null;
 };
 
 export function OrganizadorDelDia({
@@ -244,7 +254,7 @@ export function OrganizadorDelDia({
             */
             <li
               key={c.person_id}
-              className="grid grid-cols-[minmax(0,1fr)_9.5rem_2.25rem] items-center gap-x-3 p-3"
+              className="grid grid-cols-[minmax(0,1fr)_auto_9.5rem_2.25rem] items-center gap-x-3 p-3"
             >
               {/*
                 Todo lo que se sabe de la persona, en su fila.
@@ -259,12 +269,31 @@ export function OrganizadorDelDia({
                 mismo trato desde que la evaluación es de la convocatoria.
                 Ocupaba el ancho que ahora usa el nombre completo.
               */}
+              {/*
+                El estado baja a la segunda línea, con el documento.
+                
+                En la fila, junto al nombre, se comía el ancho: en un panel de
+                600px quedaba «An…» y «Jor…», que es justo lo que hay que poder
+                leer para saber a quién se le está poniendo hora.
+              */}
               <span className="min-w-0">
                 <span className="text-text-strong block truncate text-sm font-medium">
                   {nombreDe(c)}
                 </span>
-                <span className="text-text-muted block truncate text-xs">
-                  {[c.documento, c.cargo].filter(Boolean).join(" · ")}
+                <span className="text-text-muted flex min-w-0 items-center gap-2 text-xs">
+                  <span className="truncate">
+                    {[c.documento, c.cargo].filter(Boolean).join(" · ")}
+                  </span>
+                  {c.estado && (
+                    <Badge
+                      tone={tono(c.estado, c.consentimiento)}
+                      /* Sin partirse: «SIN CONSENTIR» en dos líneas dejaba las
+                         filas de distinta altura y la lista en escalones. */
+                      className="shrink-0 whitespace-nowrap"
+                    >
+                      {etiqueta(c.estado, c.consentimiento)}
+                    </Badge>
+                  )}
                 </span>
               </span>
 
@@ -275,6 +304,11 @@ export function OrganizadorDelDia({
                 la equis caía a la línea siguiente y parecía de la persona de
                 abajo.
               */}
+              {/* Su acceso: lo que antes era una lista aparte. */}
+              <span className="shrink-0">
+                <BotonPase persona={c.person_id} nombre={nombreDe(c)} />
+              </span>
+
               {/*
                 Ancho fijo, no `auto`.
 
@@ -412,4 +446,39 @@ function fechaYHora(iso: string, zona: string) {
     hour12: false,
     timeZone: zona,
   });
+}
+
+/**
+ * Cómo va la evaluación de una persona, en dos palabras.
+ *
+ * El consentimiento manda sobre el estado: mientras no haya consentido, que la
+ * prueba esté «asignada» no dice nada útil —no puede empezarla— y quien mira
+ * necesita saber a quién le falta decidir, que es lo único que detiene el día.
+ */
+function etiqueta(estado: string, consentimiento: string | null) {
+  if (consentimiento === "rechazado") return "Se negó";
+  if (consentimiento !== "aceptado" && estado === "asignada")
+    return "Sin consentir";
+
+  return (
+    {
+      asignada: "Lista para empezar",
+      en_curso: "Respondiendo",
+      enviada: "Enviada",
+      calificada: "Calificada",
+      publicada: "Informe listo",
+      vencida: "Vencida",
+      anulada: "Anulada",
+    }[estado] ?? estado
+  );
+}
+
+function tono(
+  estado: string,
+  consentimiento: string | null,
+): "success" | "warning" | "neutral" | "danger" {
+  if (consentimiento === "rechazado") return "danger";
+  if (consentimiento !== "aceptado" && estado === "asignada") return "warning";
+  if (estado === "publicada") return "success";
+  return "neutral";
 }

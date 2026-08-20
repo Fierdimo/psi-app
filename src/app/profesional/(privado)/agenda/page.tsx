@@ -39,7 +39,15 @@ export default async function AgendaPage({
 
   const vistaParam =
     typeof params.vista === "string" ? params.vista : undefined;
-  const vista = esVista(vistaParam) ? vistaParam : "semana";
+  /*
+   * El mes, por defecto.
+   *
+   * Entraba en «semana», que responde «qué hago hoy» — y para eso ya está la
+   * lista de solicitudes y la propia jornada. Quien abre la agenda casi
+   * siempre viene a lo contrario: ver dónde hay hueco para colocar una sesión
+   * que le acaban de pedir, y eso no cabe en siete días.
+   */
+  const vista = esVista(vistaParam) ? vistaParam : "mes";
   const referencia = fechaDeReferencia(
     typeof params.fecha === "string" ? params.fecha : undefined,
     zona,
