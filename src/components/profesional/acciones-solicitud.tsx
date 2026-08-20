@@ -1,9 +1,11 @@
 "use client";
 
+import { CalendarClock } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import {
   cerrarCita,
@@ -22,7 +24,21 @@ const INICIAL: EstadoFormulario = { ok: false };
  * a recibir un correo y «no» a secas, sin explicación, es innecesariamente
  * frío en este contexto.
  */
-export function AccionesSolicitud({ citaId }: { citaId: string }) {
+export function AccionesSolicitud({
+  citaId,
+  organizar,
+}: {
+  citaId: string;
+  /**
+   * Enlace al tablero del día, cuando la sesión tiene convocados.
+   *
+   * Va AQUÍ, con el mismo peso que confirmar y rechazar, y no como un enlace
+   * suelto encima: es una de las tres respuestas posibles a una solicitud, no
+   * una nota al pie. Puesto aparte se leía como información y no como algo que
+   * se puede hacer.
+   */
+  organizar?: string;
+}) {
   const [estadoConfirmar, confirmar, confirmando] = useActionState(
     confirmarCita,
     INICIAL,
@@ -89,6 +105,16 @@ export function AccionesSolicitud({ citaId }: { citaId: string }) {
             Confirmar
           </Button>
         </form>
+
+        {organizar && (
+          <Link
+            href={organizar}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            <CalendarClock aria-hidden="true" className="size-4" />
+            Organizar el día
+          </Link>
+        )}
 
         <Button
           size="sm"

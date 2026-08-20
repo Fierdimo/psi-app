@@ -1,7 +1,5 @@
 import { Building2, Inbox } from "lucide-react";
 
-import Link from "next/link";
-
 import { AccionesSolicitud } from "./acciones-solicitud";
 import { Convocados } from "./convocados";
 import { Badge } from "@/components/ui/badge";
@@ -136,31 +134,15 @@ export function BandejaSolicitudes({
                       <Convocados personas={convocados} plegable />
                     </div>
                   )}
-
-                  {/*
-                    El enlace basta.
-
-                    Antes esto no existía y la sesión entraba en la agenda tal y
-                    como la escribió la empresa: el tablero estaba a un clic, en
-                    el detalle, y nada lo anunciaba. Llevaba además una frase
-                    explicando que la hora propuesta no obliga — sobra: quien
-                    lee «Organizar el día» junto a una solicitud ya sabe qué va
-                    a encontrar.
-                  */}
-                  {deEmpresa && (
-                    <p className="pt-1">
-                      <Link
-                        href={`/profesional/citas/${cita.id}`}
-                        className="text-accent-on-soft hover:text-accent text-sm font-medium underline underline-offset-4"
-                      >
-                        Organizar el día
-                      </Link>
-                    </p>
-                  )}
                 </div>
 
                 <div className="w-full @md:w-auto">
-                  <AccionesSolicitud citaId={cita.id} />
+                  <AccionesSolicitud
+                    citaId={cita.id}
+                    organizar={
+                      deEmpresa ? `/profesional/citas/${cita.id}` : undefined
+                    }
+                  />
                 </div>
               </Card>
             </li>
