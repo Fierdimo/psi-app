@@ -94,14 +94,15 @@ export function AsignarEvaluacion({
         era la TERCERA lista de los mismos nombres en esta pantalla. Todo eso
         vive ahora en la fila del reparto, junto a su hora y su acceso. Aquí
         queda el único acto que no es de una persona sino de la sesión entera:
-        elegir el instrumento.
+        elegir el instrumento. Y va antes de repartir el día: cuánto dura la
+        prueba sale de aquí.
       */}
       {asignaciones.length > 0 && (
         <p className="text-text-muted text-sm">
           {asignaciones.length === 1
             ? "1 persona ya tiene su evaluación asignada."
             : `${asignaciones.length} personas ya tienen su evaluación asignada.`}{" "}
-          Su estado está arriba, en la fila de cada una.
+          Su estado está abajo, en la fila de cada una.
         </p>
       )}
     </section>

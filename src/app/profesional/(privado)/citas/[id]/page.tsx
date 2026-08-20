@@ -252,6 +252,24 @@ export default async function CitaProfesionalPage({
         )}
 
         {/*
+          QUÉ se aplica va antes de CUÁNDO.
+
+          Elegir el instrumento estaba al final, debajo del reparto y de los
+          correos. Pero es la primera decisión de la sesión: cuánto dura la
+          prueba y qué se le pide a cada persona salen de ahí, y organizar el
+          día sin saberlo es repartir horas a ciegas.
+        */}
+        {cita.status === "confirmada" && (
+          <div className="border-line border-t pt-5">
+            <AsignarEvaluacion
+              citaId={cita.id}
+              instrumentos={instrumentos ?? []}
+              asignaciones={asignaciones}
+            />
+          </div>
+        )}
+
+        {/*
           El tablero, ANTES de aceptar.
 
           Aceptar una solicitud de empresa era decir «sí» a un bloque de tres
@@ -321,16 +339,6 @@ export default async function CitaProfesionalPage({
             </p>
 
             <BotonInvitaciones citaId={cita.id} />
-          </div>
-        )}
-
-        {cita.status === "confirmada" && (
-          <div className="border-line border-t pt-5">
-            <AsignarEvaluacion
-              citaId={cita.id}
-              instrumentos={instrumentos ?? []}
-              asignaciones={asignaciones}
-            />
           </div>
         )}
 
