@@ -11,6 +11,7 @@ import { UserPlus } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
+import { Paginacion } from "@/components/navegacion/paginacion";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -31,9 +32,20 @@ import { crearClienteServidor } from "@/lib/supabase/server";
  * pendiente de aceptar su invitación. Es lo que determina si podrá responder
  * el día de la sesión, y es la pregunta que trae aquí a quien administra.
  */
+/**
+ * Cuántas personas por página.
+ *
+ * Es la lista que más filas acumula del área —una empresa carga cien de golpe
+ * antes de una tanda— y la que peor aguanta sin tope: son cien filas de tabla
+ * entre quien entra y el botón de cargar a alguien más.
+ */
+const POR_PAGINA = 20;
+
 export async function ListadoDePersonas({
   avisos,
+  pagina = 1,
 }: {
+  pagina?: number;
   /**
    * Los avisos de «se guardó» y «se retiró», que llegan por la dirección.
    *
@@ -47,10 +59,15 @@ export async function ListadoDePersonas({
   const { guardada, retirada } = avisos ?? {};
   const supabase = await crearClienteServidor();
 
-  const { data: personas } = await supabase
+  const desde = (pagina - 1) * POR_PAGINA;
+
+  const { data: personas, count } = await supabase
     .from("organization_people")
-    .select("id, documento, nombre, apellidos, email, cargo, vinculo")
-    .order("nombre");
+    .select("id, documento, nombre, apellidos, email, cargo, vinculo", {
+      count: "exact",
+    })
+    .order("nombre")
+    .range(desde, desde + POR_PAGINA - 1);
 
   return (
     <Pantalla>
@@ -142,6 +159,16 @@ export async function ListadoDePersonas({
           </table>
         </div>
       )}
+
+      <Paginacion
+        pagina={pagina}
+        total={count ?? 0}
+        porPagina={POR_PAGINA}
+        nombre="personas"
+        enlace={(n) =>
+          n > 1 ? `/empresa/personas?pagina=${n}` : "/empresa/personas"
+        }
+      />
 
       <p className="text-text-muted text-sm">
         La carga masiva desde un archivo todavía no está construida: por ahora

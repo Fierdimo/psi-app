@@ -7,5 +7,12 @@ export const metadata: Metadata = { title: "Personas" };
 export default async function PersonasPage({
   searchParams,
 }: PageProps<"/empresa/personas">) {
-  return <ListadoDePersonas avisos={await searchParams} />;
+  const params = await searchParams;
+
+  return (
+    <ListadoDePersonas
+      avisos={params}
+      pagina={Math.max(1, Number(params.pagina ?? 1) || 1)}
+    />
+  );
 }
