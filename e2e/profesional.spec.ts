@@ -591,4 +591,51 @@ test.describe.serial("Sesiones de empresa", () => {
       );
     await db.from("organization_people").delete().like("documento", "COLA%");
   });
+
+  /*
+   * La sesión no desaparece al aceptarla.
+   *
+   * «Solicitudes» solo enseñaba lo que esperaba decisión, así que confirmar una
+   * sesión la borraba de la vista justo cuando empieza lo que importa: si la
+   * gente consintió, si está respondiendo, si hay informes que firmar.
+   */
+  test("una sesión aceptada sigue en Solicitudes, con su estado", async ({
+    page,
+  }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+
+    await db
+      .from("appointments")
+      .update({ status: "confirmada" })
+      .eq("id", SESION_DE_EMPRESA);
+
+    await entrarComo(page, CUENTAS.profesional, "/profesional");
+    await page.goto("/profesional/solicitudes");
+
+    await expect(page.getByText(/sesiones en marcha/i)).toBeVisible();
+
+    const fila = page
+      .getByRole("listitem")
+      .filter({ hasText: /Distribuciones del Caribe/i })
+      .first();
+
+    await expect(fila).toBeVisible();
+
+    /*
+     * Y dice qué falta, no cinco cifras.
+     *
+     * De los recuentos que trae la base se enseña el primero que estorba;
+     * enumerarlos todos obliga a compararlos para deducir en qué punto está.
+     */
+    await expect(
+      fila.getByText(
+        /sin hora|sin consentir|por revisar|respondiendo|informes listos|falta asignar|todo listo/i,
+      ),
+    ).toBeVisible();
+  });
 });
