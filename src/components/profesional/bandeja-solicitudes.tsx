@@ -1,5 +1,7 @@
 import { Building2, Inbox } from "lucide-react";
 
+import Link from "next/link";
+
 import { AccionesSolicitud } from "./acciones-solicitud";
 import { Convocados } from "./convocados";
 import { Badge } from "@/components/ui/badge";
@@ -133,6 +135,31 @@ export function BandejaSolicitudes({
                     <div className="pt-1">
                       <Convocados personas={convocados} plegable />
                     </div>
+                  )}
+
+                  {/*
+                    La hora que pide la empresa es una PROPUESTA, y hasta ahora
+                    nada lo decía.
+
+                    Desde aquí solo se podía confirmar o rechazar, así que la
+                    sesión entraba en la agenda tal y como la había escrito la
+                    empresa. El tablero para repartir a cada persona existía a
+                    un clic —en el detalle— pero nada anunciaba que estuviera
+                    ahí, y quien responde una solicitud no va a entrar «a ver»
+                    por si acaso.
+                  */}
+                  {deEmpresa && (
+                    <p className="text-text-muted pt-1 text-sm">
+                      La hora que propone la empresa no te obliga: puedes
+                      repartir a cada persona en el bloque que quieras, incluso
+                      en otro día.{" "}
+                      <Link
+                        href={`/profesional/citas/${cita.id}`}
+                        className="text-accent-on-soft hover:text-accent font-medium underline underline-offset-4"
+                      >
+                        Organizar el día
+                      </Link>
+                    </p>
                   )}
                 </div>
 

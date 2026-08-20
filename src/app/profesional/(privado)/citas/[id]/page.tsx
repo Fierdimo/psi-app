@@ -163,8 +163,9 @@ export default async function CitaProfesionalPage({
     starts_at: string | null;
   }[];
 
-  // El día por el que se empieza a mirar: el que propuso la empresa.
+  // El día y la hora que propuso la empresa: por donde se empieza a mirar.
   const fechaDeLaSesion = enZona(cita.starts_at, zona).toISODate()!;
+  const horaDeLaSesion = enZona(cita.starts_at, zona).toFormat("HH:mm");
 
   // Quien todavía no tiene cuenta es a quien hay que invitar.
   const sinCuenta = convocados.filter(
@@ -259,8 +260,10 @@ export default async function CitaProfesionalPage({
               <div className="flex flex-col gap-1">
                 <h2 className="text-h4">Organizar el día</h2>
                 <p className="text-text-muted text-sm">
-                  Coloca a cada convocado en su bloque. Puedes dejar huecos, y
-                  puedes pasar a parte del grupo a otro día.
+                  La hora que propuso la empresa no te obliga: coloca a cada
+                  persona en el bloque que quieras, deja huecos, y pasa a parte
+                  del grupo a otro día si te conviene. Da igual que tengan
+                  cuenta o no.
                 </p>
               </div>
 
@@ -268,6 +271,7 @@ export default async function CitaProfesionalPage({
                 citaId={cita.id}
                 convocados={reparto}
                 fechaInicial={fechaDeLaSesion}
+                horaInicial={horaDeLaSesion}
                 zona={zona}
               />
             </div>

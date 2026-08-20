@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarDays, Wand2, X } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,27 +13,25 @@ import {
 import type { EstadoFormulario } from "@/lib/validacion/auth";
 
 /**
- * El tablero del día.
+ * A qué hora atiende a cada convocado.
  *
- * Antes, aceptar una solicitud de empresa era decir «sí» a un bloque de tres
- * horas con diez nombres dentro, sin saber si cabían ni en qué orden. Esto es
- * lo que se mira ANTES de aceptar: cuántos bloques tiene el día, quién va en
- * cada uno, y quién se queda fuera.
+ * DOS INTENTOS DESCARTADOS antes de este, y los dos por lo mismo: cobraban al
+ * profesional un trabajo que no tenía por qué hacer.
  *
- * TRES DECISIONES QUE LO EXPLICAN TODO:
+ *  1. La rejilla del día con un desplegable por bloque —«¿quién va a las
+ *     9?»—. Se leía al revés de como se piensa el problema, y si el día pedido
+ *     no era laborable no había bloques que pintar: la empresa pide un sábado,
+ *     la consulta no abre en sábado, y no quedaba nada que tocar.
+ *  2. Una fila por persona con SU fecha y SU hora. Correcto y exhaustivo, y
+ *     para doce convocados eran veinticuatro decisiones donde hacía falta una.
  *
- *  1. El plan se guarda ENTERO. El componente mantiene la hora de todos los
- *     convocados, no solo la de los del día que se está mirando, y manda la
- *     lista completa. Así, cambiar de fecha para aplazar a tres personas no
- *     borra a las que ya estaban colocadas el jueves.
+ * Lo que se hace de verdad es «empiezo a las dos y los voy pasando». Así que
+ * eso es un control: se elige cuándo empieza el primero y el resto cae detrás,
+ * en bloques seguidos, saltándose la pausa y lo que ya esté ocupado. Si la
+ * hora que propuso la empresa vale, no hay nada que tocar y basta confirmar.
  *
- *  2. Los huecos son legítimos. No se rellena solo: dejar un bloque vacío es
- *     una decisión —un descanso, un margen para el que llega tarde— y una
- *     rejilla que se autocompleta la borra sin preguntar.
- *
- *  3. Quedarse sin sitio también es un estado. Si hay doce personas y siete
- *     bloques, cinco se quedan sin hora y se ven. Esconderlas dejaría aceptar
- *     una sesión que no cabe.
+ * Retocar a uno suelto sigue estando —su desplegable— pero es la excepción, no
+ * el precio de entrada.
  */
 
 export type Convocado = {
@@ -44,22 +42,20 @@ export type Convocado = {
   starts_at: string | null;
 };
 
-const INICIAL: EstadoFormulario = { ok: false };
-
 export function OrganizadorDelDia({
   citaId,
   convocados,
   fechaInicial,
+  horaInicial,
   zona,
 }: {
   citaId: string;
   convocados: Convocado[];
-  /** El día que propuso la empresa: por donde se empieza a mirar. */
+  /** Lo que propuso la empresa: el punto de partida, no una obligación. */
   fechaInicial: string;
+  horaInicial: string;
   zona: string;
 }) {
-  const [estado, accion, guardando] = useActionState(guardarReparto, INICIAL);
-
   const [dia, setDia] = useState(fechaInicial);
   const [franjas, setFranjas] = useState<Franja[] | null>(null);
 
@@ -68,239 +64,307 @@ export function OrganizadorDelDia({
     Object.fromEntries(convocados.map((c) => [c.person_id, c.starts_at])),
   );
 
+  const [estado, setEstado] = useState<EstadoFormulario | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
   useEffect(() => {
     let vigente = true;
 
-    /*
-     * El «cargando» se marca al CAMBIAR de día, no dentro del efecto.
-     *
-     * Vaciar la rejilla aquí encadenaba un render de más por cada carga. Y en
-     * la primera —la del día que propuso la empresa— no hay nada que vaciar:
-     * ya empieza en nulo.
-     */
-    franjasDelDia(dia, zona).then((f) => {
-      if (vigente) setFranjas(f);
+    franjasDelDia(dia, zona, citaId).then((f) => {
+      if (!vigente) return;
+      setFranjas(f);
+
+      /*
+       * Al abrir, si nadie tiene hora todavía, se reparte solo desde la que
+       * propuso la empresa.
+       *
+       * Es la propuesta puesta sobre la mesa, no una decisión tomada: se ve el
+       * plan completo antes de aceptar y se cambia con un control. Dejarlo
+       * vacío obligaba a colocar a doce personas para poder decir «sí, así
+       * está bien».
+       */
+      setPlan((previo) => {
+        const alguienColocado = Object.values(previo).some(Boolean);
+        if (alguienColocado) return previo;
+        return repartir(f, convocados, horaInicial, zona);
+      });
     });
 
     return () => {
       vigente = false;
     };
-  }, [dia, zona]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dia, zona, citaId]);
 
   const nombreDe = (c: Convocado) =>
     [c.nombre, c.apellidos].filter(Boolean).join(" ");
 
-  /** Quién está puesto en esta franja, si alguien. */
-  const ocupanteDe = (inicio: string) =>
-    convocados.find((c) => plan[c.person_id] === inicio) ?? null;
-
-  const sinHora = convocados.filter((c) => !plan[c.person_id]);
-
-  /** Los que están citados otro día: no se tocan al reorganizar este. */
-  const enOtroDia = convocados.filter((c) => {
-    const hora = plan[c.person_id];
-    return hora && !hora.startsWith(dia) && !mismoDia(hora, dia, zona);
-  });
-
-  function colocar(inicio: string, persona: string | "") {
-    setPlan((previo) => {
-      const copia = { ...previo };
-      // Quien estuviera en esa franja se queda sin hora: dos personas no caben.
-      for (const [id, hora] of Object.entries(copia)) {
-        if (hora === inicio) copia[id] = null;
-      }
-      if (persona) copia[persona] = inicio;
-      return copia;
-    });
+  /** Cambiar la hora de comienzo recoloca a todos, seguidos. */
+  function empezarA(hora: string) {
+    if (!franjas) return;
+    setPlan(repartir(franjas, convocados, hora, zona));
+    setEstado(null);
   }
 
   /**
-   * Rellenar los huecos con quien falta, en orden.
+   * Poner a alguien a una hora. Si ya era de otro, se INTERCAMBIAN.
    *
-   * Es un atajo, no la norma: se pulsa cuando el día está vacío y no se quiere
-   * elegir doce veces. Después se puede vaciar cualquier bloque a mano, que es
-   * como se dejan los huecos a propósito.
+   * Antes las horas ocupadas salían apagadas, así que mover a Ana a las 9
+   * —donde estaba Jorge— eran tres pasos: quitarle la hora a Jorge, dársela a
+   * Ana, y acordarse de recolocar a Jorge. Reordenar una tanda de doce con esa
+   * mecánica es exactamente el trabajo que esta pantalla existe para ahorrar.
+   *
+   * Intercambiar y no desplazar en cadena: mover a uno no debe reorganizar el
+   * día entero a espaldas de quien lo hace. Se cambian dos y se ven los dos.
    */
-  function autoColocar() {
-    if (!franjas) return;
-
+  function colocar(persona: string, inicio: string | null) {
     setPlan((previo) => {
       const copia = { ...previo };
-      const pendientes = convocados
-        .filter((c) => !copia[c.person_id])
-        .map((c) => c.person_id);
+      const anterior = copia[persona] ?? null;
 
-      for (const franja of franjas) {
-        if (pendientes.length === 0) break;
-        if (franja.ocupada) continue;
-        if (Object.values(copia).includes(franja.inicio)) continue;
-        copia[pendientes.shift()!] = franja.inicio;
+      if (inicio) {
+        const dueño = Object.keys(copia).find(
+          (id) => id !== persona && copia[id] === inicio,
+        );
+        // Al que la tenía le queda la de este, que puede ser ninguna.
+        if (dueño) copia[dueño] = anterior;
       }
 
+      copia[persona] = inicio;
       return copia;
     });
+    setEstado(null);
   }
 
-  const reparto = Object.entries(plan)
-    .filter(([, inicio]) => inicio)
-    .map(([persona, inicio]) => ({ persona, inicio: inicio! }));
+  async function guardar() {
+    setGuardando(true);
+    setEstado(null);
 
-  const colocados = reparto.length;
+    const datos = new FormData();
+    datos.set("cita", citaId);
+    datos.set(
+      "reparto",
+      JSON.stringify(
+        Object.entries(plan)
+          .filter(([, inicio]) => inicio)
+          .map(([persona, inicio]) => ({ persona, inicio: inicio! })),
+      ),
+    );
+
+    setEstado(await guardarReparto({ ok: false }, datos));
+    setGuardando(false);
+  }
+
+  const primera = Object.values(plan).filter(Boolean).sort()[0] as
+    string | undefined;
+
+  const sinHora = convocados.filter((c) => !plan[c.person_id]);
+  const libres = (franjas ?? []).filter((f) => !f.ocupada);
 
   return (
-    <form action={accion} className="flex flex-col gap-4">
-      <input type="hidden" name="cita" value={citaId} />
-      <input type="hidden" name="reparto" value={JSON.stringify(reparto)} />
-
-      {estado.mensaje && (
+    <div className="flex flex-col gap-4">
+      {estado?.mensaje && (
         <Alert
           tone={estado.ok ? "success" : "danger"}
-          title={estado.ok ? "Día organizado" : "No se pudo organizar"}
+          title={estado.ok ? "Horario guardado" : "No se pudo guardar"}
         >
           {estado.mensaje}
         </Alert>
       )}
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      {/* El control que resuelve el caso normal: cuándo empieza el primero. */}
+      <div className="border-line bg-sunken flex flex-wrap items-end gap-3 rounded-lg border p-3">
         <label className="flex flex-col gap-1">
-          <span className="text-text-body text-sm font-medium">
-            Día que estás organizando
-          </span>
-          <span className="relative inline-flex items-center">
-            <CalendarDays
-              aria-hidden="true"
-              className="text-text-muted pointer-events-none absolute left-3 size-4"
-            />
-            <input
-              type="date"
-              value={dia}
-              onChange={(e) => {
-                setFranjas(null);
-                setDia(e.target.value);
-              }}
-              className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-11 rounded-md border pr-3 pl-9 text-base focus-visible:outline-2 focus-visible:outline-offset-2"
-            />
-          </span>
+          <span className="text-text-body text-sm font-medium">Día</span>
+          <input
+            type="date"
+            value={dia}
+            onChange={(e) => {
+              setFranjas(null);
+              setPlan(
+                Object.fromEntries(convocados.map((c) => [c.person_id, null])),
+              );
+              setDia(e.target.value);
+            }}
+            className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+          />
         </label>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={autoColocar}
-            disabled={!franjas || sinHora.length === 0}
-            className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors duration-150 disabled:opacity-50"
+        <label className="flex flex-col gap-1">
+          <span className="text-text-body text-sm font-medium">
+            Empezar a las
+          </span>
+          <select
+            value={primera ?? ""}
+            onChange={(e) => empezarA(horaDe(e.target.value, zona))}
+            disabled={libres.length === 0}
+            className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[9rem] rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            <Wand2 aria-hidden="true" className="size-4" />
-            Rellenar los huecos
-          </button>
+            <option value="">— elige —</option>
+            {libres.map((f) => (
+              <option key={f.inicio} value={f.inicio}>
+                {horaDe(f.inicio, zona)}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <Button type="submit" loading={guardando ? "Guardando…" : undefined}>
-            Guardar el reparto
-          </Button>
-        </div>
+        <p className="text-text-muted flex-1 text-sm">
+          {franjas === null
+            ? "Buscando tus bloques…"
+            : franjas.length === 0
+              ? "Ese día no atiendes. Elige otro."
+              : "El resto se coloca detrás, en bloques seguidos. Puedes cambiar a cualquiera por separado."}
+        </p>
+
+        <Button
+          type="button"
+          onClick={guardar}
+          loading={guardando ? "Guardando…" : undefined}
+        >
+          Guardar el horario
+        </Button>
       </div>
 
-      <p className="text-text-muted text-sm">
-        {colocados} de {convocados.length}{" "}
-        {convocados.length === 1 ? "persona citada" : "personas citadas"}
-        {franjas ? ` · el día tiene ${franjas.length} bloques` : ""}
-        {enOtroDia.length > 0 ? ` · ${enOtroDia.length} en otro día` : ""}
-      </p>
+      <ul className="border-line divide-line divide-y rounded-lg border">
+        {convocados.map((c) => {
+          const hora = plan[c.person_id];
 
-      {franjas === null ? (
-        <p className="text-text-muted text-sm">Buscando los bloques del día…</p>
-      ) : franjas.length === 0 ? (
-        /* Un día sin bloques no es un fallo: es un día que la consulta no
-           atiende, o una jornada que no da para uno. Se dice cuál. */
-        <Alert tone="info" title="Ese día no tiene bloques">
-          O no está entre tus días de atención, o la jornada no da para un
-          bloque entero. Se cambia en «La consulta».
-        </Alert>
-      ) : (
-        <ul className="border-line divide-line divide-y rounded-lg border">
-          {franjas.map((f) => {
-            const ocupante = ocupanteDe(f.inicio);
-            const libres = convocados.filter(
-              (c) => !plan[c.person_id] || c.person_id === ocupante?.person_id,
-            );
-
-            return (
-              <li
-                key={f.inicio}
-                className="flex flex-wrap items-center gap-3 p-3"
-              >
-                <span className="text-text-strong tabular w-20 shrink-0 text-sm font-medium">
-                  {hora(f.inicio, zona)}
+          return (
+            <li
+              key={c.person_id}
+              className="flex flex-wrap items-center gap-3 p-3"
+            >
+              <span className="min-w-[12rem] flex-1">
+                <span className="text-text-strong block text-sm font-medium">
+                  {nombreDe(c)}
                 </span>
-
-                {f.ocupada && !ocupante ? (
-                  /* Ya hay otra cita del profesional encima. Ofrecer el bloque
-                     dejaría agendar a dos personas a la vez desde pantallas
-                     distintas. */
-                  <span className="text-text-muted text-sm">
-                    Ocupado por otra cita
+                {c.documento && (
+                  <span className="text-text-muted block text-xs">
+                    {c.documento}
                   </span>
-                ) : (
-                  <>
-                    <select
-                      value={ocupante?.person_id ?? ""}
-                      onChange={(e) => colocar(f.inicio, e.target.value)}
-                      aria-label={`Quién va a las ${hora(f.inicio, zona)}`}
-                      className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[14rem] flex-1 rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
-                    >
-                      <option value="">— hueco libre —</option>
-                      {libres.map((c) => (
-                        <option key={c.person_id} value={c.person_id}>
-                          {nombreDe(c)}
-                          {c.documento ? ` · ${c.documento}` : ""}
-                        </option>
-                      ))}
-                    </select>
-
-                    {ocupante && (
-                      <button
-                        type="button"
-                        onClick={() => colocar(f.inicio, "")}
-                        aria-label={`Dejar libre las ${hora(f.inicio, zona)}`}
-                        className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 shrink-0 place-items-center rounded-md transition-colors duration-150"
-                      >
-                        <X aria-hidden="true" className="size-4" />
-                      </button>
-                    )}
-                  </>
                 )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+              </span>
 
-      {sinHora.length > 0 && (
+              {franjas === null ? (
+                <span className="text-text-muted text-sm">…</span>
+              ) : (
+                <select
+                  value={hora ?? ""}
+                  onChange={(e) => colocar(c.person_id, e.target.value || null)}
+                  aria-label={`Hora de ${nombreDe(c)}`}
+                  className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 min-w-[10rem] rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  <option value="">— sin hora —</option>
+                  {/* Si quedó citada otro día, su hora sigue siendo una opción
+                      válida aunque no esté en la rejilla que se mira ahora. */}
+                  {hora && !franjas.some((f) => f.inicio === hora) && (
+                    <option value={hora}>{fechaYHora(hora, zona)}</option>
+                  )}
+                  {franjas.map((f) => {
+                    const otro = convocados.find(
+                      (o) =>
+                        o.person_id !== c.person_id &&
+                        plan[o.person_id] === f.inicio,
+                    );
+
+                    return (
+                      <option
+                        key={f.inicio}
+                        value={f.inicio}
+                        /* Solo se apaga lo que NO es tuyo: otra cita de la
+                           agenda. Lo que tiene otro convocado se puede elegir
+                           —se intercambian— y la etiqueta dice con quién. */
+                        disabled={f.ocupada}
+                      >
+                        {horaDe(f.inicio, zona)}
+                        {f.ocupada
+                          ? " · ocupado"
+                          : otro
+                            ? ` · cambiar con ${otro.nombre}`
+                            : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+
+              {hora && (
+                <button
+                  type="button"
+                  onClick={() => colocar(c.person_id, null)}
+                  aria-label={`Quitar la hora de ${nombreDe(c)}`}
+                  className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 shrink-0 place-items-center rounded-md transition-colors duration-150"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {sinHora.length > 0 && franjas !== null && (
         <div className="border-line bg-warning-50 flex flex-col gap-1 rounded-lg border p-3">
           <p className="text-warning-700 text-sm font-medium">
             {sinHora.length}{" "}
             {sinHora.length === 1 ? "persona sin hora" : "personas sin hora"}
           </p>
           <p className="text-text-body text-sm">
-            {sinHora.map(nombreDe).join(", ")}. Cámbiate de día para citarlas, o
-            acepta la sesión y organízalas después.
+            {sinHora.map(nombreDe).join(", ")}. No caben en lo que queda del
+            día: cámbiate de fecha para citarlas, o confirma y organízalas
+            después.
           </p>
         </div>
       )}
-    </form>
+    </div>
   );
 }
 
-function hora(iso: string, zona: string) {
+/**
+ * Todos seguidos desde una hora, saltándose lo ocupado.
+ *
+ * Quien no quepa se queda sin hora, y eso se ve: hay más gente que bloques y
+ * es una decisión que el profesional tiene que tomar, no algo que esconder.
+ */
+function repartir(
+  franjas: Franja[],
+  convocados: Convocado[],
+  desde: string,
+  zona: string,
+): Record<string, string | null> {
+  const plan: Record<string, string | null> = Object.fromEntries(
+    convocados.map((c) => [c.person_id, null]),
+  );
+
+  const disponibles = franjas.filter(
+    (f) => !f.ocupada && horaDe(f.inicio, zona) >= desde,
+  );
+
+  convocados.forEach((c, i) => {
+    plan[c.person_id] = disponibles[i]?.inicio ?? null;
+  });
+
+  return plan;
+}
+
+function horaDe(iso: string, zona: string) {
+  if (!iso) return "";
   return new Date(iso).toLocaleTimeString("es-CO", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
     timeZone: zona,
   });
 }
 
-/** ¿Esta hora cae en ese día, mirado desde la zona de la consulta? */
-function mismoDia(iso: string, dia: string, zona: string) {
-  const f = new Date(iso).toLocaleDateString("en-CA", { timeZone: zona });
-  return f === dia;
+function fechaYHora(iso: string, zona: string) {
+  return new Date(iso).toLocaleString("es-CO", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: zona,
+  });
 }

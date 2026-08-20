@@ -18,6 +18,13 @@ export type Franja = { inicio: string; fin: string; ocupada: boolean };
 export async function franjasDelDia(
   fecha: string,
   zona: string,
+  /**
+   * La sesión que se está organizando, para excluirla del cálculo.
+   *
+   * Sin esto, las horas de sus propios convocados salen ocupadas y mover a
+   * alguien de las 9 a las 10 es imposible: las 10 parecen tomadas por él.
+   */
+  excepto?: string,
 ): Promise<Franja[]> {
   await exigirProfesional();
 
@@ -25,6 +32,7 @@ export async function franjasDelDia(
   const { data, error } = await supabase.rpc("franjas_del_dia", {
     p_fecha: fecha,
     p_zona: zona,
+    p_excepto: excepto ?? null,
   });
 
   if (error) return [];

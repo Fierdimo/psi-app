@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(9);
+select plan(12);
 
 delete from public.assignments;
 delete from public.appointment_changes;
@@ -52,6 +52,30 @@ begin
 end;
 $$;
 
+/*
+ * Un día LABORABLE, y las horas en la ZONA DE LA CONSULTA.
+ *
+ * La rejilla se compone en America/Bogota; compararla contra un timestamptz
+ * armado con la zona de psql —UTC— desplaza todo cinco horas y las franjas no
+ * aparecen. El fallo se lee como «esa hora no existe»: es verdad, y no dice
+ * por qué.
+ *
+ * «Dentro de diez días» cae en sábado una de cada tres semanas, y ahí no hay
+ * rejilla que mirar: la prueba fallaba según el día en que se ejecutara, que
+ * es la peor forma de fallar.
+ */
+select (
+  select d::date
+  from generate_series(
+    date_trunc('day', now()) + interval '10 days',
+    date_trunc('day', now()) + interval '17 days',
+    interval '1 day'
+  ) as d
+  where extract(isodow from d) between 1 and 5
+  limit 1
+) as util \gset
+
+
 select tests_como(:'jefe');
 select public.cargar_personas('[
   {"documento":"111","nombre":"Ana","email":"ana@acme.test"},
@@ -60,8 +84,8 @@ select public.cargar_personas('[
 ]'::jsonb);
 
 select public.solicitar_cita_evaluacion(
-  date_trunc('day', now()) + interval '10 days 8 hours',
-  date_trunc('day', now()) + interval '10 days 11 hours',
+  (:'util')::timestamptz + interval '8 hours',
+  (:'util')::timestamptz + interval '11 hours',
   array(select id from public.organization_people order by documento)
 );
 
@@ -106,8 +130,8 @@ select lives_ok(
     {"persona":"%s","inicio":"%s"},
     {"persona":"%s","inicio":"%s"}
   ]'::jsonb)$f$, :'cita',
-    :'ana',  (date_trunc('day', now()) + interval '10 days 8 hours')::text,
-    :'beto', (date_trunc('day', now()) + interval '10 days 9 hours')::text),
+    :'ana',  ((:'util')::timestamptz + interval '8 hours')::text,
+    :'beto', ((:'util')::timestamptz + interval '9 hours')::text),
   'El profesional coloca a dos personas'
 );
 
@@ -137,8 +161,8 @@ select throws_ok(
     {"persona":"%s","inicio":"%s"},
     {"persona":"%s","inicio":"%s"}
   ]'::jsonb)$f$, :'cita',
-    :'ana',  (date_trunc('day', now()) + interval '10 days 8 hours')::text,
-    :'beto', (date_trunc('day', now()) + interval '10 days 8 hours')::text),
+    :'ana',  ((:'util')::timestamptz + interval '8 hours')::text,
+    :'beto', ((:'util')::timestamptz + interval '8 hours')::text),
   'P0001',
   'Hay 2 personas puestas a la misma hora.',
   'El profesional atiende de uno en uno'
@@ -155,8 +179,8 @@ select lives_ok(
     {"persona":"%s","inicio":"%s"},
     {"persona":"%s","inicio":"%s"}
   ]'::jsonb)$f$, :'cita',
-    :'ana',  (date_trunc('day', now()) + interval '10 days 8 hours')::text,
-    :'caro', (date_trunc('day', now()) + interval '11 days 15 hours')::text),
+    :'ana',  ((:'util')::timestamptz + interval '8 hours')::text,
+    :'caro', ((:'util')::timestamptz + interval '1 day 15 hours')::text),
   'Se aplaza a una persona al día siguiente'
 );
 
@@ -164,14 +188,72 @@ select set_config('role', 'postgres', true);
 
 select is(
   (select starts_at from public.appointments where id = :'cita'),
-  date_trunc('day', now()) + interval '10 days 8 hours',
+  (:'util')::timestamptz + interval '8 hours',
   'La cita empieza cuando empieza el primero'
 );
 
 select is(
   (select ends_at from public.appointments where id = :'cita'),
-  date_trunc('day', now()) + interval '11 days 16 hours',
+  (:'util')::timestamptz + interval '1 day 16 hours',
   'Y termina cuando termina el último, aunque sea otro día'
+);
+
+-- =============================================================================
+-- DOS EMPRESAS EL MISMO DÍA
+--
+-- Antes la ocupación se medía con el RANGO de la cita, así que una sesión de 8
+-- a 12 con gente a las 8, 9 y 11 se comía también las 10 —un hueco dejado a
+-- propósito— y ninguna otra empresa podía entrar ese día.
+-- =============================================================================
+select set_config('role', 'postgres', true);
+select set_config('request.jwt.claims', '', true);
+
+-- Ana a las 8 y Caro a las 10: las 9 quedan libres a propósito.
+update public.appointment_attendees set starts_at = null, ends_at = null
+where appointment_id = :'cita';
+
+update public.appointment_attendees
+set starts_at = ((:'util')::date + time '08:00') at time zone 'America/Bogota',
+    ends_at   = ((:'util')::date + time '09:00') at time zone 'America/Bogota'
+where appointment_id = :'cita' and person_id = :'ana';
+
+update public.appointment_attendees
+set starts_at = ((:'util')::date + time '10:00') at time zone 'America/Bogota',
+    ends_at   = ((:'util')::date + time '11:00') at time zone 'America/Bogota'
+where appointment_id = :'cita' and person_id = :'caro';
+
+update public.appointments
+set status = 'confirmada',
+    starts_at = ((:'util')::date + time '08:00') at time zone 'America/Bogota',
+    ends_at   = ((:'util')::date + time '11:00') at time zone 'America/Bogota'
+where id = :'cita';
+
+select tests_como(:'doctor');
+
+select is(
+  (select ocupada from public.franjas_del_dia(
+     :'util')
+   where inicio = ((:'util')::date + time '09:00') at time zone 'America/Bogota'),
+  false,
+  'El hueco que se dejó a propósito sigue libre para otra empresa'
+);
+
+select is(
+  (select ocupada from public.franjas_del_dia(
+     :'util')
+   where inicio = ((:'util')::date + time '08:00') at time zone 'America/Bogota'),
+  true,
+  'Y la hora que sí tiene a alguien está ocupada'
+);
+
+-- Al organizar ESTA sesión, sus propias horas no pueden salir ocupadas: si no,
+-- mover a Ana de las 8 a las 10 sería imposible.
+select is(
+  (select ocupada from public.franjas_del_dia(
+     :'util', 'America/Bogota', :'cita')
+   where inicio = ((:'util')::date + time '08:00') at time zone 'America/Bogota'),
+  false,
+  'La sesión que se organiza no se estorba a sí misma'
 );
 
 select finish();
