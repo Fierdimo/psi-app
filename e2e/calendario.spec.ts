@@ -75,6 +75,17 @@ test.describe.serial("Solicitar una cita", () => {
   test("solicitar deja la cita como «por confirmar», no confirmada", async ({
     page,
   }) => {
+    /*
+     * Beto empieza sin solicitud pendiente.
+     *
+     * La semilla le deja una para que la bandeja del profesional tenga algo
+     * que mostrar, y la base solo admite una por paciente: sobre una base
+     * recién sembrada, esta prueba fallaba diciendo que la URL no cambiaba
+     * —cuando lo que pasaba es que la solicitud se rechazaba—. Pasaba solo
+     * porque otras ejecuciones se habían llevado por delante la de la semilla.
+     */
+    await limpiarPendientes("22222222-2222-2222-2222-222222222222");
+
     await entrarComo(page, CUENTAS.otroPaciente);
     await page.goto("/solicitar-cita");
 
@@ -84,7 +95,14 @@ test.describe.serial("Solicitar una cita", () => {
 
     await page.getByRole("button", { name: /solicitar cita/i }).click();
 
-    await expect(page).toHaveURL(/solicitada=1/);
+    /*
+     * Con margen: solicitar avisa al profesional por correo, y el envío es
+     * síncrono. Justo después de reconstruir la base, el servidor de correo
+     * local todavía está levantándose y esa primera conexión agota su tope de
+     * cinco segundos antes de rendirse — la cita se crea igual, pero la
+     * redirección llega tarde. Cinco segundos de espera no daban.
+     */
+    await expect(page).toHaveURL(/solicitada=1/, { timeout: 25000 });
     await expect(page.getByText(/solicitud enviada/i)).toBeVisible();
 
     /*
@@ -181,7 +199,14 @@ test.describe("Zonas horarias", () => {
     await page.getByLabel("Día").fill(enDias(12));
     await page.getByLabel("Hora de inicio").selectOption("11:00");
     await page.getByRole("button", { name: /solicitar cita/i }).click();
-    await expect(page).toHaveURL(/solicitada=1/);
+    /*
+     * Con margen: solicitar avisa al profesional por correo, y el envío es
+     * síncrono. Justo después de reconstruir la base, el servidor de correo
+     * local todavía está levantándose y esa primera conexión agota su tope de
+     * cinco segundos antes de rendirse — la cita se crea igual, pero la
+     * redirección llega tarde. Cinco segundos de espera no daban.
+     */
+    await expect(page).toHaveURL(/solicitada=1/, { timeout: 25000 });
 
     /*
      * Su cita, no la sesión de evaluación.
@@ -238,6 +263,16 @@ test.describe("Pedir cita", () => {
    */
   test("se llega a solicitar cita desde el panel", async ({ page }) => {
     await entrarComo(page, CUENTAS.paciente);
+    /*
+     * Ana no puede tener una solicitud pendiente.
+     *
+     * La base solo admite una por paciente, así que con una viva el panel deja
+     * de ofrecer «Solicitar otra cita» —correctamente— y esta prueba fallaba
+     * diciendo que no encontraba el enlace. Otras pruebas de la suite se la
+     * dejan puesta.
+     */
+    await limpiarPendientes("11111111-1111-1111-1111-111111111111");
+
     await page.goto("/panel");
 
     await page.getByRole("link", { name: /solicitar otra cita/i }).click();
@@ -250,6 +285,9 @@ test.describe("Pedir cita", () => {
   test("desde el calendario se abre como panel, sin perderlo de vista", async ({
     page,
   }) => {
+    // Misma razón que arriba: con una solicitud viva, el enlace no se ofrece.
+    await limpiarPendientes("11111111-1111-1111-1111-111111111111");
+
     await entrarComo(page, CUENTAS.paciente);
     await page.goto("/calendario");
 
@@ -303,7 +341,14 @@ test.describe("Pedir cita", () => {
      * enviada» quedaba DETRÁS del formulario ya enviado: la dirección cambiaba
      * pero el hueco del panel conservaba su contenido.
      */
-    await expect(page).toHaveURL(/solicitada=1/);
+    /*
+     * Con margen: solicitar avisa al profesional por correo, y el envío es
+     * síncrono. Justo después de reconstruir la base, el servidor de correo
+     * local todavía está levantándose y esa primera conexión agota su tope de
+     * cinco segundos antes de rendirse — la cita se crea igual, pero la
+     * redirección llega tarde. Cinco segundos de espera no daban.
+     */
+    await expect(page).toHaveURL(/solicitada=1/, { timeout: 25000 });
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByText(/solicitud enviada/i)).toBeVisible();
   });
@@ -442,3 +487,19 @@ test.describe("El detalle como panel", () => {
     ).toBeVisible();
   });
 });
+
+/** Deja a un paciente sin solicitudes pendientes: la base solo admite una. */
+async function limpiarPendientes(paciente: string) {
+  const { createClient } = await import("@supabase/supabase-js");
+  const db = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+
+  await db
+    .from("appointments")
+    .delete()
+    .eq("patient_id", paciente)
+    .in("status", ["solicitada", "reprogramacion_solicitada"]);
+}

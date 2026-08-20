@@ -191,7 +191,7 @@ test.describe.serial("Pases de acceso", () => {
     expect(archivo.suggestedFilename()).toMatch(/^pase-sin-cuenta\.png$/);
   });
 
-  test("el enlace que reparte lleva a la invitación", async ({
+  test("el enlace que reparte lleva directo a la prueba", async ({
     page,
     context,
   }) => {
@@ -213,13 +213,16 @@ test.describe.serial("Pases de acceso", () => {
      * leerse en el servidor salían como «/invitacion/abc…», y un QR con una
      * ruta relativa no lleva a ninguna parte fuera de esa pestaña.
      */
-    expect(enlace).toMatch(/^https?:\/\/[^/]+\/invitacion\/[a-f0-9]{64}$/);
+    expect(enlace).toMatch(/^https?:\/\/[^/]+\/prueba\/[a-f0-9]{64}$/);
 
     /*
      * Lo que importa: que el enlace copiado ABRA algo.
      *
      * Un pase que se copia bien pero cae en «enlace no válido» es peor que no
      * tenerlo, porque se reparte a cincuenta personas antes de descubrirlo.
+     *
+     * Y lleva a la PRUEBA, no al registro: quien responde una psicotécnica de
+     * selección entra una vez y no vuelve.
      */
     await page.goto(enlace);
     await expect(page.getByText(/enlace no válido|no es válida/i)).toHaveCount(

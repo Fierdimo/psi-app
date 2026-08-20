@@ -208,11 +208,18 @@ test.describe.serial("Área de empresa", () => {
      *
      * Esta prueba creaba una evaluación y no la borraba, así que a la segunda
      * ejecución había dos «En revisión» y el localizador fallaba por
-     * ambigüedad. El error apuntaba a la aserción, no a la falta de limpieza,
-     * y se buscó en el sitio equivocado. Ana María no tiene evaluaciones en la
-     * semilla: lo que haya aquí lo puso esta prueba.
+     * ambigüedad. El error apuntaba a la aserción, no a la falta de limpieza.
+     *
+     * Se acota a las SUYAS —las que no cuelgan de ninguna sesión— porque Ana
+     * María sí tiene evaluaciones en la semilla, de una convocatoria real, y
+     * borrar por persona se las llevaba: el fallo aparecía después, en el
+     * archivo de invitaciones, con un pase apuntando a nada.
      */
-    await db.from("assignments").delete().eq("person_id", persona!.id);
+    await db
+      .from("assignments")
+      .delete()
+      .eq("person_id", persona!.id)
+      .is("appointment_id", null);
 
     const { data: asignacion } = await db
       .from("assignments")

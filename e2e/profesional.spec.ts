@@ -327,18 +327,18 @@ test.describe.serial("Sesiones de empresa", () => {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
-    const { data: convocados } = await db
-      .from("appointment_attendees")
-      .select("person_id")
-      .eq("appointment_id", SESION_DE_EMPRESA);
-
+    /*
+     * Solo las de ESTA sesión.
+     *
+     * Borrar por persona se llevaba también las de la otra convocatoria que
+     * trae la semilla —la misma gente está en las dos— y dejaba sus pases
+     * apuntando a una evaluación que ya no existía. El fallo salía en otro
+     * archivo, que es lo que hace estas fugas tan caras de encontrar.
+     */
     await db
       .from("assignments")
       .delete()
-      .in(
-        "person_id",
-        (convocados ?? []).map((c) => c.person_id),
-      );
+      .eq("appointment_id", SESION_DE_EMPRESA);
 
     await entrarComo(page, CUENTAS.profesional);
 
@@ -487,6 +487,14 @@ test.describe.serial("Sesiones de empresa", () => {
   test("la cola se filtra, se pagina y se califica en lote", async ({
     page,
   }) => {
+    /*
+     * Calificar en lote es lento a propósito: cada evaluación pasa por el
+     * motor, una a una, para que el fallo de una no arrastre a las demás.
+     * Veinticinco no caben en los treinta segundos por defecto, y el aborto se
+     * leía como «el mensaje no apareció».
+     */
+    test.setTimeout(240000);
+
     const { createClient } = await import("@supabase/supabase-js");
     const db = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

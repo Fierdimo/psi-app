@@ -41,6 +41,9 @@ function admin() {
 }
 
 const ORGANIZACION = "77777777-7777-7777-7777-777777777777";
+
+/** La sesión ya confirmada y organizada que trae la semilla, con sus pases. */
+const SESION_CONFIRMADA = "88888888-0000-4000-8000-0000000000bb";
 const SESION = "88888888-0000-4000-8000-0000000000aa";
 /** La cédula de Beto en la siembra: ya tiene cuenta. */
 const DOCUMENTO_BETO = "1032118844";
@@ -161,113 +164,112 @@ test.describe("Mis evaluaciones", () => {
    * pero nada enlazaba a ella. Una prueba que nadie encuentra es una prueba
    * que nadie hace.
    */
-  test("la persona ve su evaluación pendiente y quién la pidió", async ({
-    page,
-  }) => {
+  /*
+   * La evaluación de una empresa NO está en su perfil, ni aunque tenga cuenta.
+   *
+   * Antes sí: la ficha enlazada a la cuenta la hacía aparecer en «Mis
+   * evaluaciones». Es de la convocatoria, no de la persona —la pidió otro y el
+   * informe va a otro— y se responde por el pase.
+   */
+  /*
+   * La evaluación se repone si falta.
+   *
+   * La semilla la trae, pero otras pruebas de la suite borran y recrean
+   * evaluaciones de esta misma gente. Depender de que sobreviva es depender
+   * del orden de ejecución.
+   */
+  test.beforeAll(async () => {
     const db = admin();
 
-    const { data: prueba } = await db
-      .from("assessments")
-      .select("id")
-      .eq("clave", "disc_dominancia")
-      .single();
+    const { count } = await db
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("appointment_id", SESION_CONFIRMADA);
 
-    const { data: persona } = await db
-      .from("organization_people")
-      .select("id, organization_id")
-      .eq("documento", "1047373301")
-      .single();
+    if (count && count > 0) return;
 
-    const { data: doctor } = await db
-      .from("profiles")
-      .select("id")
-      .eq("role", "profesional")
-      .single();
+    const [{ data: prueba }, { data: doctor }, { data: convocados }] =
+      await Promise.all([
+        db
+          .from("assessments")
+          .select("id")
+          .eq("clave", "disc_dominancia")
+          .single(),
+        db.from("profiles").select("id").eq("role", "profesional").single(),
+        db
+          .from("appointment_attendees")
+          .select("person_id")
+          .eq("appointment_id", SESION_CONFIRMADA),
+      ]);
 
-    await db.from("assignments").insert({
-      assessment_id: prueba!.id,
-      person_id: persona!.id,
-      organization_id: persona!.organization_id,
-      assigned_by: doctor!.id,
-      status: "asignada",
-    });
+    await db.from("assignments").insert(
+      (convocados ?? []).map((c) => ({
+        assessment_id: prueba!.id,
+        appointment_id: SESION_CONFIRMADA,
+        person_id: c.person_id,
+        organization_id: ORGANIZACION,
+        assigned_by: doctor!.id,
+        status: "asignada" as const,
+      })),
+    );
+  });
+
+  test("no aparece en su perfil, y su pase sí la abre", async ({ page }) => {
+    const db = admin();
+
+    // La sesión confirmada que trae la semilla, con sus pases ya preparados.
+    const { data: invitacion } = await db
+      .from("invitations")
+      .select("token")
+      .eq("appointment_id", SESION_CONFIRMADA)
+      .not("token", "is", null)
+      .limit(1)
+      .single();
 
     await page.goto("/ingresar");
     await rellenarIngreso(page, CUENTAS.paciente);
-    // Ana es paciente sin consentimiento firmado, así que el ingreso la lleva
-    // al documento clínico. Da igual: sus evaluaciones NO están detrás de él.
     await page.waitForURL(/consentimiento|panel/, { timeout: 20000 });
     await page.goto("/evaluacion");
 
-    /*
-     * `.first()` porque otras pruebas dejan a Ana con más de una evaluación.
-     * Es la cuarta vez que un localizador sin acotar se rompe al crecer los
-     * datos: en una base compartida, «el único» dura poco.
-     */
+    await expect(
+      page.getByText(/Perfil DISC y dominancia cerebral/i),
+    ).toHaveCount(0);
+
+    // Por su pase sí, y ahí ve de parte de quién: tiene derecho a saberlo
+    // antes de responder nada.
+    await page.goto(`/prueba/${invitacion!.token}`);
+
     await expect(
       page.getByText(/Perfil DISC y dominancia cerebral/i).first(),
     ).toBeVisible();
-
-    // Quien va a ser evaluado tiene derecho a saber de parte de quién.
     await expect(
       page.getByText(/Distribuciones del Caribe/i).first(),
     ).toBeVisible();
   });
-});
 
-test.describe("El ejecutor de la prueba", () => {
-  /*
-   * Tres fallos que encontró el cliente respondiendo, y que ninguna prueba
-   * veía porque todas miraban la base y no la pantalla.
-   */
   test("marca lo elegido y no deja avanzar a medias", async ({ page }) => {
     const db = admin();
 
-    const { data: prueba } = await db
-      .from("assessments")
-      .select("id")
-      .eq("clave", "disc_dominancia")
-      .single();
-    const { data: persona } = await db
-      .from("organization_people")
-      .select("id, organization_id, profile_id")
-      .eq("documento", "1047373301")
-      .single();
-    const { data: doctor } = await db
-      .from("profiles")
-      .select("id")
-      .eq("role", "profesional")
+    const { data: invitacion } = await db
+      .from("invitations")
+      .select("token")
+      .eq("appointment_id", SESION_CONFIRMADA)
+      .not("token", "is", null)
+      .limit(1)
       .single();
 
-    const { data: asignacion } = await db
-      .from("assignments")
-      .insert({
-        assessment_id: prueba!.id,
-        person_id: persona!.id,
-        organization_id: persona!.organization_id,
-        assigned_by: doctor!.id,
-        status: "en_curso",
-        habilitado_at: new Date().toISOString(),
-        started_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
+    // Sin cuenta: consentir y empezar son los dos únicos pasos previos.
+    await page.goto(`/prueba/${invitacion!.token}`);
+    await page.getByRole("button", { name: /acepto participar/i }).click();
 
-    await db.from("consents").insert({
-      user_id: persona!.profile_id,
-      document_key: "consentimiento_evaluacion",
-      version: "1",
-      decision: "aceptado",
-      assignment_id: asignacion!.id,
-    });
-
-    await page.goto("/ingresar");
-    await rellenarIngreso(page, CUENTAS.paciente);
-    await page.waitForURL(/consentimiento|panel/, { timeout: 20000 });
-    await page.goto(`/evaluacion/${asignacion!.id}`);
+    const empezar = page.getByRole("button", { name: /empezar la prueba/i });
+    await expect(empezar).toBeVisible({ timeout: 20000 });
+    await empezar.click();
 
     const siguiente = page.getByRole("button", { name: /^Siguiente$/ });
     const radios = page.locator('input[type="radio"]');
+
+    await expect(siguiente).toBeVisible({ timeout: 20000 });
 
     // Sin responder no se avanza.
     await expect(siguiente).toBeDisabled();
@@ -280,10 +282,12 @@ test.describe("El ejecutor de la prueba", () => {
     await radios.nth(3).check();
     await expect(siguiente).toBeEnabled();
 
-    // Y lo elegido se ve elegido. La escala Likert se pintaba con clases que
-    // no existen en este proyecto, así que la respuesta se guardaba sin que
-    // la persona tuviera forma de saberlo.
-    await siguiente.click();
-    await expect(page.getByText(/2 de 68/)).toBeVisible();
+    /*
+     * Y lo elegido se ve elegido.
+     *
+     * La escala se pintaba con clases que no existen en este proyecto, así que
+     * la respuesta se guardaba sin que la persona tuviera forma de saberlo.
+     */
+    await expect(radios.nth(0)).toBeChecked();
   });
 });

@@ -133,15 +133,23 @@ export function TarjetaProximaCita({
           importante del área no puede estar escondida una pantalla más
           adentro.
         */}
-        {!esEvaluacion && (
-          <Link
-            href="/solicitar-cita"
-            className={buttonVariants({ variant: "secondary", size: "sm" })}
-          >
-            <CalendarPlus aria-hidden="true" className="size-4" />
-            Solicitar otra cita
-          </Link>
-        )}
+        {/*
+          También cuando lo próximo es una evaluación.
+
+          Se ocultaba en ese caso, y era razonable cuando una evaluación era
+          algo excepcional. Ya no lo es: quien participa en un proceso de
+          selección tiene la suya delante durante días, y en todo ese tiempo el
+          panel se quedaba sin su acción principal —pedir cita— sin decir por
+          qué. Pedir una consulta y estar convocado a una prueba no son cosas
+          que se excluyan.
+        */}
+        <Link
+          href="/solicitar-cita"
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+        >
+          <CalendarPlus aria-hidden="true" className="size-4" />
+          Solicitar otra cita
+        </Link>
 
         <Link
           href="/calendario"

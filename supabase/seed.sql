@@ -161,6 +161,19 @@ where id = '22222222-2222-2222-2222-222222222222';
 -- las 20:00 según a qué hora se siembre, y una agenda con sesiones de
 -- madrugada no sirve para revisar nada.
 -- -----------------------------------------------------------------------------
+/*
+ * Días hábiles, no «dentro de seis días».
+ *
+ * La consulta atiende de lunes a viernes, así que una siembra a fecha fija cae
+ * en sábado dos de cada siete veces y esas citas quedan fuera de toda franja:
+ * la agenda las pinta, pero el tablero del día no ofrece un solo bloque donde
+ * ponerlas. Esto empuja al lunes siguiente.
+ */
+create or replace function pg_temp.habil(d date) returns date
+language sql immutable as $$
+  select d + case extract(isodow from d) when 6 then 2 when 7 then 1 else 0 end;
+$$;
+
 insert into public.appointments (
   patient_id, professional_id, starts_at, ends_at, modality, location, status, created_by
 )
@@ -168,24 +181,24 @@ values
   -- Confirmada, próxima. Es la que alimenta la tarjeta de «próxima cita».
   (
     '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-    ((current_date + 6) + time '10:00') at time zone 'America/Bogota',
-    ((current_date + 6) + time '11:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date + 6)) + time '10:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date + 6)) + time '11:00') at time zone 'America/Bogota',
     'presencial', 'Consultorio 402, Av. Principal 1234', 'confirmada',
     '33333333-3333-3333-3333-333333333333'
   ),
   -- Realizada, en el pasado.
   (
     '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-    ((current_date - 7) + time '09:00') at time zone 'America/Bogota',
-    ((current_date - 7) + time '10:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date - 7)) + time '09:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date - 7)) + time '10:00') at time zone 'America/Bogota',
     'presencial', 'Consultorio 402, Av. Principal 1234', 'realizada',
     '33333333-3333-3333-3333-333333333333'
   ),
   -- Solicitud pendiente de Beto: alimenta la bandeja del profesional.
   (
     '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333',
-    ((current_date + 9) + time '16:00') at time zone 'America/Bogota',
-    ((current_date + 9) + time '17:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date + 9)) + time '16:00') at time zone 'America/Bogota',
+    ((pg_temp.habil(current_date + 9)) + time '17:00') at time zone 'America/Bogota',
     'virtual', null, 'solicitada',
     '22222222-2222-2222-2222-222222222222'
   );
@@ -248,8 +261,16 @@ values (
   '88888888-0000-4000-8000-0000000000aa',
   '77777777-7777-7777-7777-777777777777',
   '33333333-3333-3333-3333-333333333333',
-  date_trunc('hour', now()) + interval '9 days',
-  date_trunc('hour', now()) + interval '9 days 3 hours',
+  /*
+   * A una hora que existe en la jornada.
+   *
+   * Antes se calculaba desde `now()`, así que la sesión caía a las 02:00 o a
+   * las 20:00 según a qué hora se sembrara: fuera de la jornada, sin ningún
+   * bloque donde repartir a nadie, y el tablero abría diciendo que ese día no
+   * se atiende. La empresa PROPONE una hora; el profesional la reparte.
+   */
+  ((pg_temp.habil(current_date + 9)) + time '09:00') at time zone 'America/Bogota',
+  ((pg_temp.habil(current_date + 9)) + time '11:00') at time zone 'America/Bogota',
   'presencial', 'solicitada',
   'Evaluación de ingreso para dos cargos operativos.',
   '55555555-5555-5555-5555-555555555555'
@@ -260,4 +281,67 @@ insert into public.appointment_attendees (appointment_id, person_id)
 values
   ('88888888-0000-4000-8000-0000000000aa', '88888888-0000-4000-8000-000000000001'),
   ('88888888-0000-4000-8000-0000000000aa', '88888888-0000-4000-8000-000000000002')
+on conflict do nothing;
+
+-- =============================================================================
+-- Una sesión YA CONFIRMADA Y ORGANIZADA
+--
+-- La de arriba está pendiente: sirve para recorrer «Organizar el día» y
+-- confirmar. Esta llega al estado siguiente, que sin ella había que fabricar a
+-- mano cada vez que se resetea la base:
+--
+--   · Cada convocada con SU hora, en bloques seguidos. Es el modelo actual: la
+--     cita es el encargo y la hora vive en la fila de cada persona.
+--   · Sus pases creados, que es lo que permite abrir `/prueba/<testigo>` y ver
+--     la evaluación sin cuenta, con su QR.
+--   · La evaluación asignada, para que ese enlace lleve a una prueba de verdad
+--     y no a «no tienes ninguna pendiente».
+-- =============================================================================
+insert into public.appointments
+  (id, organization_id, professional_id, starts_at, ends_at, modality, status, patient_note, created_by)
+values (
+  '88888888-0000-4000-8000-0000000000bb',
+  '77777777-7777-7777-7777-777777777777',
+  '33333333-3333-3333-3333-333333333333',
+  ((pg_temp.habil(current_date + 3)) + time '14:00') at time zone 'America/Bogota',
+  ((pg_temp.habil(current_date + 3)) + time '16:00') at time zone 'America/Bogota',
+  'presencial', 'confirmada',
+  'Segunda tanda: dos cargos de bodega.',
+  '55555555-5555-5555-5555-555555555555'
+)
+on conflict (id) do nothing;
+
+-- Cada una en su bloque, no las dos en el mismo rato.
+insert into public.appointment_attendees
+  (appointment_id, person_id, starts_at, ends_at)
+values
+  ('88888888-0000-4000-8000-0000000000bb', '88888888-0000-4000-8000-000000000001',
+   ((pg_temp.habil(current_date + 3)) + time '14:00') at time zone 'America/Bogota',
+   ((pg_temp.habil(current_date + 3)) + time '15:00') at time zone 'America/Bogota'),
+  ('88888888-0000-4000-8000-0000000000bb', '88888888-0000-4000-8000-000000000002',
+   ((pg_temp.habil(current_date + 3)) + time '15:00') at time zone 'America/Bogota',
+   ((pg_temp.habil(current_date + 3)) + time '16:00') at time zone 'America/Bogota')
+on conflict do nothing;
+
+/*
+ * Los pases, por la misma función que usa la aplicación.
+ *
+ * Escribirlos a mano habría dejado un estado que el código no produce —testigo
+ * y hash descuadrados, por ejemplo— y esa clase de siembra esconde fallos en
+ * vez de enseñarlos.
+ */
+select public.preparar_invitaciones('88888888-0000-4000-8000-0000000000bb');
+
+-- Y la evaluación asignada a las dos: es lo que el pase abre.
+insert into public.assignments
+  (assessment_id, appointment_id, person_id, organization_id, assigned_by, status)
+select a.id, '88888888-0000-4000-8000-0000000000bb', p.person_id,
+       '77777777-7777-7777-7777-777777777777',
+       '33333333-3333-3333-3333-333333333333', 'asignada'
+from public.assessments a
+cross join (
+  select person_id from public.appointment_attendees
+  where appointment_id = '88888888-0000-4000-8000-0000000000bb'
+) p
+where a.clave = 'disc_dominancia'
 on conflict do nothing;

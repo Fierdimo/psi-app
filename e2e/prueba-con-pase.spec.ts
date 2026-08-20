@@ -41,7 +41,14 @@ test.describe.serial("Evaluación con pase", () => {
 
     const personas = (convocados ?? []).map((c) => c.person_id);
 
-    await db.from("assignments").delete().in("person_id", personas);
+    /*
+     * Solo las de ESTA sesión.
+     *
+     * La semilla trae una segunda convocatoria con la misma gente, y borrar
+     * por persona se llevaba también aquella: su pase quedaba apuntando a una
+     * evaluación que ya no existía.
+     */
+    await db.from("assignments").delete().eq("appointment_id", SESION);
 
     const { data: prueba } = await db
       .from("assessments")
@@ -79,7 +86,8 @@ test.describe.serial("Evaluación con pase", () => {
     const { data: invitacion } = await db
       .from("invitations")
       .select("token, person_id")
-      .in("person_id", personas)
+      // Por la convocatoria: cada pase abre la evaluación de SU sesión.
+      .eq("appointment_id", SESION)
       .not("token", "is", null)
       .limit(1)
       .single();
