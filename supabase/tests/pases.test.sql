@@ -6,9 +6,9 @@
 -- un pase con testigo es la llave para entrar como esa persona, así que la
 -- puerta de esta función importa más que lo que devuelve.
 --
--- Y se comprueba lo segundo: que la empresa reciba también a los que YA tienen
--- cuenta, sin testigo. Si esa gente faltara de la lista, quien reparte
--- cincuenta pases no sabría si a esas personas se les olvidó el suyo.
+-- Y se comprueba lo segundo: que TODOS reciban pase, tengan cuenta o no. Las
+-- evaluaciones de empresa no viven en el perfil de nadie —son descartables—,
+-- así que el enlace es el único camino también para quien ya está registrado.
 --
 -- Lo tercero es lo que hace que no haya botón: LEER NO CREA NADA. Mirar la
 -- pantalla dos veces tiene que dejar la tabla exactamente igual.
@@ -172,16 +172,23 @@ select isnt(
   'El testigo de quien no tiene cuenta viene en claro'
 );
 
-select is(
+/*
+ * TAMBIÉN quien tiene cuenta recibe pase.
+ *
+ * Antes no: se daba por hecho que entraría por su perfil. Desde que las
+ * evaluaciones de empresa no aparecen en el perfil de nadie, esa puerta no
+ * existe y sin pase se quedaba sin ninguna.
+ */
+select isnt(
   (select token from pases where documento = '111'),
   null,
-  'Quien YA tiene cuenta no recibe testigo: entra con el suyo'
+  'Quien ya tiene cuenta también recibe su pase: es su único camino'
 );
 
 select is(
   (select tiene_cuenta from pases where documento = '111'),
   true,
-  'Y se dice, para que quien reparte sepa por qué su pase es distinto'
+  'Se dice quién ya está registrado, aunque el pase sea el mismo'
 );
 
 -- =============================================================================
@@ -226,8 +233,8 @@ select is(
 
 select is(
   (select count(*)::int from public.invitations),
-  1,
-  'A quien ya tiene cuenta no se le crea ninguna invitación'
+  2,
+  'Una invitación por convocado, tenga cuenta o no'
 );
 
 -- El testigo guardado y el hash tienen que corresponderse, o el enlace que se
@@ -236,8 +243,8 @@ select is(
   (select count(*)::int from public.invitations
    where token is not null
      and token_hash = encode(sha256(convert_to(token, 'UTF8')), 'hex')),
-  1,
-  'El testigo guardado es el que corresponde a su hash'
+  2,
+  'Cada testigo guardado corresponde a su hash'
 );
 
 select finish();

@@ -86,6 +86,28 @@ export default async function PruebaConPasePage({
   );
 
   const enCurso = evaluacion.estado === "en_curso";
+  const terminada = ["enviada", "calificada", "publicada"].includes(
+    evaluacion.estado,
+  );
+
+  /*
+   * Su informe, por su pase.
+   *
+   * Es el único camino que le queda: la evaluación no vive en su perfil aunque
+   * tenga cuenta. El consentimiento le promete que lo recibe, así que sin esto
+   * el documento prometería algo imposible.
+   */
+  const { data: informe } = terminada
+    ? await supabase.rpc("informe_de_pase", { p_token: token })
+    : { data: null };
+
+  const valores = (informe ?? []) as {
+    parameter_key: string;
+    etiqueta: string;
+    valor: unknown;
+    texto: string | null;
+    nota_global: string | null;
+  }[];
 
   return (
     <Marco>
@@ -97,7 +119,34 @@ export default async function PruebaConPasePage({
         </p>
       </div>
 
-      {enCurso ? (
+      {terminada ? (
+        <div className="flex flex-col gap-4">
+          <Alert tone="success" title="Ya enviaste tus respuestas">
+            {valores.length > 0
+              ? "Tu informe está abajo. Si el profesional lo corrige, verás aquí la versión corregida."
+              : "Tu informe se está preparando. Vuelve a abrir este mismo enlace en un rato."}
+          </Alert>
+
+          {valores.length > 0 && (
+            <div className="border-line bg-panel flex flex-col gap-4 rounded-xl border p-6">
+              {valores[0]?.nota_global && (
+                <p className="text-text-body">{valores[0].nota_global}</p>
+              )}
+
+              {valores.map((v) => (
+                <div key={v.parameter_key} className="flex flex-col gap-1">
+                  <h2 className="text-text-strong font-semibold">
+                    {v.etiqueta}
+                  </h2>
+                  {v.texto && (
+                    <p className="text-text-body max-w-[68ch]">{v.texto}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : enCurso ? (
         <Ejecutor
           asignacion={evaluacion.assignment_id}
           items={items}

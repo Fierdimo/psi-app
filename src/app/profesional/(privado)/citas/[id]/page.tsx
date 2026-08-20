@@ -331,8 +331,8 @@ export default async function CitaProfesionalPage({
 
               <div className="flex flex-col gap-3 pt-3">
                 <p className="text-text-muted text-sm">
-                  Cada persona tiene su enlace desde que confirmaste. Quien ya
-                  tenga cuenta no necesita nada.
+                  Cada persona tiene su enlace desde que confirmaste, tenga
+                  cuenta o no: esta evaluación no vive en el perfil de nadie.
                 </p>
 
                 <PasesDeSesion citaId={cita.id} />

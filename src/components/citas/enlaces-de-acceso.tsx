@@ -99,9 +99,9 @@ export function EnlacesDeAcceso({
               <span className="text-text-strong flex flex-wrap items-center gap-2 text-sm font-medium">
                 {e.nombre}
                 {/*
-                  Quien ya tiene cuenta se marca, y no es un adorno: sin esto,
-                  quien reparte ve dos enlaces distintos sin saber por qué, y
-                  el que lleva a la entrada parece un pase roto.
+                  Se marca quién ya está registrado. El pase es el mismo —la
+                  evaluación no vive en su perfil— pero saberlo evita que quien
+                  reparte se pregunte si esa persona necesitaba uno.
                 */}
                 {e.yaTieneCuenta && (
                   <Badge tone="neutral">Ya tiene cuenta</Badge>
@@ -343,9 +343,7 @@ function Qr({
       </div>
 
       <p className="text-text-muted max-w-[34ch] text-center text-xs">
-        {yaTieneCuenta
-          ? "Lleva a la entrada. Que use el correo y la contraseña que ya tiene."
-          : "Que lo escanee la persona con su teléfono, delante de ti."}
+        {"Que lo escanee la persona con su teléfono, delante de ti."}
       </p>
     </div>
   );

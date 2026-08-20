@@ -7,6 +7,11 @@
 -- comprueban QUIÉN PUEDE HACER qué, y desde qué estado: que nadie se salte un
 -- paso, que el consentimiento sea un candado de verdad y que publicar sea un
 -- acto aparte de calificar.
+--
+-- LA PERSONA ACTÚA POR SU PASE, no por su cuenta. Una evaluación que encarga
+-- una empresa es descartable: no vive en el perfil de nadie —aunque tenga
+-- cuenta— y se responde con el enlace que le llega. Antes esta prueba la
+-- conducía con la sesión de la persona, que es un camino que ya no existe.
 -- =============================================================================
 
 begin;
@@ -65,6 +70,15 @@ values (:'cita', :'org', :'doctor', :'jefe', now() + interval '2 days',
 insert into public.appointment_attendees (appointment_id, person_id)
 values (:'cita', :'persona');
 
+/*
+ * Los pases, que aquí hay que preparar a mano.
+ *
+ * La cita se inserta ya confirmada, saltándose `confirmar_cita`, que es quien
+ * los crea. Sin esto la persona no tendría con qué entrar, y ese es ahora su
+ * único camino.
+ */
+select public.preparar_invitaciones(:'cita');
+
 insert into public.assessments (id, clave, nombre, motor)
 values (:'prueba', 'lab', 'Laboratorio', 'lab');
 
@@ -119,38 +133,47 @@ select throws_ok(
   'Sin consentimiento no se abre el examen, ni siquiera a mano'
 );
 
-select tests_como(:'otro');
+/*
+ * El pase de la persona, que es su credencial.
+ *
+ * Se apunta como servidor: `anon` no lee `invitations`, y la prueba necesita
+ * el testigo para hacer lo que hará quien reciba el enlace.
+ */
+select set_config('role', 'postgres', true);
+select set_config('request.jwt.claims', '', true);
+
+select token as pase from public.invitations
+where appointment_id = :'cita' and token is not null limit 1 \gset
+
+select id as asig from public.assignments limit 1 \gset
+
+select isnt((:'pase')::text, ''::text, 'La sesión confirmada dejó preparado su pase');
+
+set role anon;
 
 select throws_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''aceptado'')',
-  'Solo la persona evaluada decide sobre su evaluación.',
-  'Un tercero no consiente por nadie'
-);
-
-select tests_como(:'jefe');
-
-select throws_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''aceptado'')',
-  'Solo la persona evaluada decide sobre su evaluación.',
-  'Y la empresa que la encargó, tampoco'
+  'select public.consentir_con_pase(''inventado'', ''aceptado'')',
+  'Este enlace no es válido.',
+  'Un enlace inventado no consiente por nadie'
 );
 
 -- =============================================================================
 -- NEGARSE, Y PODER CAMBIAR DE IDEA
 -- =============================================================================
-select tests_como(:'ana');
-
 select lives_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''rechazado'')',
+  format('select public.consentir_con_pase(%L, ''rechazado'')', :'pase'),
   'La persona puede negarse'
 );
 
+reset role;
 select is(
-  public.consentimiento_de((select id from public.assignments limit 1)),
+  public.consentimiento_de((:'asig')::uuid),
   'rechazado',
   'Y su negativa queda registrada'
 );
+set role anon;
 
+reset role;
 select tests_como(:'doctor');
 
 select throws_ok(
@@ -159,17 +182,18 @@ select throws_ok(
   'Con un rechazo vigente, el examen sigue cerrado'
 );
 
+set role anon;
+
 -- Se lo piensa y vuelve. Esto es lo que pidió el cliente: negarse no es una
 -- puerta que se cierra.
-select tests_como(:'ana');
-
 select lives_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''aceptado'')',
+  format('select public.consentir_con_pase(%L, ''aceptado'')', :'pase'),
   'Quien rechazó puede aceptar después, sin pedirle nada a nadie'
 );
 
+reset role;
 select is(
-  public.consentimiento_de((select id from public.assignments limit 1)),
+  public.consentimiento_de((:'asig')::uuid),
   'aceptado',
   'Manda la ÚLTIMA decisión, no la primera'
 );
@@ -179,6 +203,7 @@ select is(
   2,
   'Y el rechazo se conserva: que constara que pudo negarse es lo que hace válido que aceptara'
 );
+set role anon;
 
 -- =============================================================================
 -- Y OTRA VEZ, LAS QUE HAGA FALTA
@@ -188,17 +213,18 @@ select is(
 -- retirar su consentimiento UNA vez y quedarse sin poder volver atrás.
 -- =============================================================================
 select lives_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''rechazado'')',
+  format('select public.consentir_con_pase(%L, ''rechazado'')', :'pase'),
   'Retira su consentimiento por segunda vez'
 );
 
 select lives_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''aceptado'')',
+  format('select public.consentir_con_pase(%L, ''aceptado'')', :'pase'),
   'Y vuelve a aceptar: negarse nunca cierra la puerta'
 );
 
+reset role;
 select is(
-  public.consentimiento_de((select id from public.assignments limit 1)),
+  public.consentimiento_de((:'asig')::uuid),
   'aceptado',
   'Manda la última decisión, por muchas vueltas que haya dado'
 );
@@ -211,38 +237,37 @@ select is(
 -- que crecía con cada convocado.
 -- =============================================================================
 select is(
-  (select habilitado_at is not null from public.assignments limit 1),
+  (select habilitado_at is not null from public.assignments where id = (:'asig')::uuid),
   true,
   'Aceptar el consentimiento deja el examen disponible'
 );
+set role anon;
 
 select lives_ok(
-  'select public.iniciar_prueba((select id from public.assignments limit 1))',
+  format('select public.iniciar_con_pase(%L)', :'pase'),
   'Y la persona empieza sin esperar a nadie'
 );
 
 select lives_ok(
-  format('select public.responder((select id from public.assignments limit 1), %L, ''{"mas":"a"}''::jsonb)', :'item'),
+  format('select public.responder_con_pase(%L, %L, ''{"mas":"a"}''::jsonb)', :'pase', :'item'),
   'Responde, y cada respuesta se guarda al momento'
 );
 
-select tests_como(:'otro');
-
 select throws_ok(
-  format('select public.responder((select id from public.assignments limit 1), %L, ''{"mas":"a"}''::jsonb)', :'item'),
-  'Esa evaluación no es tuya.',
+  format('select public.responder_con_pase(''inventado'', %L, ''{"mas":"a"}''::jsonb)', :'item'),
+  'Este enlace no es válido.',
   'Nadie responde la prueba de otra persona'
 );
 
 -- =============================================================================
 -- CALIFICAR Y PUBLICAR SON DOS ACTOS
 -- =============================================================================
-select tests_como(:'ana');
 select lives_ok(
-  'select public.enviar_prueba((select id from public.assignments limit 1))',
+  format('select public.enviar_con_pase(%L)', :'pase'),
   'La persona termina y envía'
 );
 
+reset role;
 select tests_como(:'doctor');
 
 select throws_ok(
@@ -265,12 +290,13 @@ select is(
 -- =============================================================================
 -- RETIRAR EL CONSENTIMIENTO DETIENE EL INFORME
 -- =============================================================================
-select tests_como(:'ana');
+set role anon;
 select lives_ok(
-  'select public.consentir_evaluacion((select id from public.assignments limit 1), ''rechazado'')',
+  format('select public.consentir_con_pase(%L, ''rechazado'')', :'pase'),
   'La persona retira su consentimiento después de responder'
 );
 
+reset role;
 select tests_como(:'doctor');
 
 select throws_ok(

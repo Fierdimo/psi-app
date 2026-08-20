@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(20);
+select plan(18);
 
 delete from public.consents;
 delete from public.result_values;
@@ -125,10 +125,21 @@ select is(
   'Ni sus valores parámetro a parámetro'
 );
 
+/*
+ * Y TAMPOCO ve la evaluación misma desde su cuenta.
+ *
+ * Antes sí: si su ficha de empleado estaba enlazada a su cuenta, la prueba que
+ * le encargó una empresa le aparecía en su espacio privado. No es suya en ese
+ * sentido —la pidió otro y el informe va a otro—, y mezclarla con su historia
+ * personal confunde dos cosas que el resto del sistema separa con cuidado.
+ *
+ * Llega a ella por su pase, que es donde sí ve el instrumento y qué empresa la
+ * encargó (`pase_evaluacion.test.sql`).
+ */
 select is(
   (select count(*)::int from public.assignments),
-  1,
-  'Pero SÍ ve que tiene una evaluación asignada, y en qué estado'
+  0,
+  'La evaluación que encarga una empresa no aparece en el perfil de nadie'
 );
 
 select tests_como(:'jefe_acme');
@@ -158,16 +169,18 @@ select is(
   'Ni siquiera el evaluado, mientras su prueba no esté en curso'
 );
 
-select is(
-  (select nombre from public.organizations),
-  'Acme S.A.S',
-  'El evaluado SÍ ve qué empresa pidió evaluarle: tiene derecho a saberlo'
-);
-
+/*
+ * Saber quién te evalúa y con qué sigue siendo lo mínimo, pero se ve por el
+ * PASE y no por la cuenta: `evaluacion_de_pase` devuelve el instrumento y la
+ * empresa antes de que la persona responda nada.
+ *
+ * Desde la sesión no se ve, y es coherente: si la asignación no es visible,
+ * tampoco tiene por qué serlo el catálogo ni la organización que la pidió.
+ */
 select is(
   (select count(*)::int from public.assessments),
-  1,
-  'Pero SÍ ve el instrumento que le asignaron: saber a qué te sometes es lo mínimo'
+  0,
+  'Sin asignación visible, tampoco ve el catálogo desde su cuenta'
 );
 
 select tests_como(:'ajeno');
@@ -193,10 +206,17 @@ select tests_servidor_e();
 update public.assignments set status = 'en_curso' where id = :'asignacion';
 select tests_como(:'evaluado');
 
+/*
+ * Los ítems tampoco llegan por la cuenta.
+ *
+ * Antes, con la prueba en curso, el evaluado registrado los veía desde su
+ * sesión. Ahora responde por su pase y `preguntas_de_pase` se los da: la
+ * cuenta deja de ser un segundo camino hacia la misma prueba.
+ */
 select is(
   (select count(*)::int from public.assessment_items),
-  1,
-  'Con la prueba EN CURSO sí ve sus ítems'
+  0,
+  'Ni con la prueba en curso: los ítems llegan por el pase, no por la cuenta'
 );
 
 select tests_servidor_e();
@@ -207,16 +227,17 @@ update public.assignments set status = 'publicada' where id = :'asignacion';
 -- =============================================================================
 select tests_como(:'evaluado');
 
+/*
+ * Publicado, su informe le llega por el PASE.
+ *
+ * El consentimiento le promete que lo recibe, así que quitar el acceso por
+ * cuenta sin poner otro habría dejado el documento mintiendo. `informe_de_pase`
+ * es ese otro camino, y solo devuelve lo publicado.
+ */
 select is(
   (select count(*)::int from public.results),
-  1,
-  'Publicado, la persona ve su informe'
-);
-
-select is(
-  (select count(*)::int from public.result_values),
-  1,
-  'Y sus valores'
+  0,
+  'Desde su cuenta sigue sin ver nada: la evaluación no es de su perfil'
 );
 
 select tests_como(:'jefe_acme');

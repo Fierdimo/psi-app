@@ -63,12 +63,12 @@ export async function PasesDeSesion({
      */
     correo: f.email ?? (f.documento ? `Doc. ${f.documento}` : ""),
     /*
-     * El pase lleva DIRECTO a la prueba, no al registro: quien responde una
-     * psicotécnica de selección entra una vez y no vuelve.
+     * El pase lleva DIRECTO a la prueba, y lo lleva TODO EL MUNDO.
      *
-     * Quien ya tiene cuenta no lleva testigo: su evaluación le espera dentro y
-     * un enlace directo le pediría la contraseña igual. Lo que necesita saber
-     * es que entre con su correo.
+     * Antes, quien ya tenía cuenta no recibía testigo: se daba por hecho que
+     * entraría por su perfil. Desde que las evaluaciones de empresa no viven en
+     * el perfil de nadie —son de la convocatoria, no de la persona— esa puerta
+     * no existe, y sin pase se quedaba sin ninguna.
      */
     enlace: f.token ? `${origen}/prueba/${f.token}` : `${origen}/ingresar`,
     yaTieneCuenta: f.tiene_cuenta,

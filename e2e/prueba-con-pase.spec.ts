@@ -60,6 +60,15 @@ test.describe.serial("Evaluación con pase", () => {
         personas.map((p) => ({
           assessment_id: prueba!.id,
           person_id: p,
+          /*
+           * La convocatoria, que no es opcional.
+           *
+           * Las de verdad las crea `asignar_evaluacion` y siempre la llevan.
+           * Sin ella, el pase —que resuelve por la cita a la que pertenece—
+           * no encuentra la evaluación, y el fallo aparece como «no tienes
+           * ninguna pendiente» en vez de señalar el fixture.
+           */
+          appointment_id: SESION,
           organization_id: "77777777-7777-7777-7777-777777777777",
           assigned_by: doctor!.id,
           status: "asignada" as const,
