@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
+import { Paginacion } from "@/components/navegacion/paginacion";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { fechaLarga, rangoHorario } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -56,16 +57,27 @@ const ACCION: Record<string, string> = {
   realizada: "Repartir accesos",
 };
 
-export async function ListadoDeSesiones() {
+/**
+ * Cuántas sesiones por página.
+ *
+ * Una empresa que evalúa cada mes acumula decenas en un año, y la lista se
+ * recorre para encontrar una concreta. Veinte caben sin desplazarse mucho.
+ */
+const POR_PAGINA = 20;
+
+export async function ListadoDeSesiones({ pagina = 1 }: { pagina?: number }) {
   const perfil = await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
   // El listado de personas se consultaba aquí para un formulario que ya no
   // vive en esta pantalla: convocar se hace desde el panel de la solicitud.
-  const { data: sesiones } = await supabase
+  const desde = (pagina - 1) * POR_PAGINA;
+
+  const { data: sesiones, count } = await supabase
     .from("appointments")
-    .select("id, starts_at, ends_at, status, patient_note")
-    .order("starts_at", { ascending: false });
+    .select("id, starts_at, ends_at, status, patient_note", { count: "exact" })
+    .order("starts_at", { ascending: false })
+    .range(desde, desde + POR_PAGINA - 1);
 
   const zona = perfil.timezone;
 
@@ -142,6 +154,16 @@ export async function ListadoDeSesiones() {
           })}
         </ul>
       )}
+
+      <Paginacion
+        pagina={pagina}
+        total={count ?? 0}
+        porPagina={POR_PAGINA}
+        nombre="sesiones"
+        enlace={(n) =>
+          n > 1 ? `/empresa/sesiones?pagina=${n}` : "/empresa/sesiones"
+        }
+      />
     </Pantalla>
   );
 }

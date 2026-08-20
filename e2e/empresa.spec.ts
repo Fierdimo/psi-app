@@ -67,11 +67,20 @@ test.describe.serial("Área de empresa", () => {
       .click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
-    await page.getByLabel("Cargo al que aspira").fill("Auxiliar de patio");
+    /*
+     * Un cargo distinto en cada ejecución.
+     *
+     * Con «Auxiliar de patio» fijo, a la segunda corrida había dos personas con
+     * ese texto y el localizador fallaba por ambigüedad: la prueba se rompía
+     * por su propio rastro, no por el código.
+     */
+    const cargo = `Auxiliar de patio ${Date.now().toString().slice(-5)}`;
+
+    await page.getByLabel("Cargo al que aspira").fill(cargo);
     await page.getByRole("button", { name: /guardar cambios/i }).click();
 
     await expect(page).toHaveURL(/guardada=1/);
-    await expect(page.getByText("Auxiliar de patio")).toBeVisible();
+    await expect(page.getByText(cargo)).toBeVisible();
   });
 
   test("y se retira a quien se cargó por error", async ({ page }) => {
@@ -332,5 +341,68 @@ test.describe.serial("Área de empresa", () => {
     await page.getByRole("button", { name: "Cerrar", exact: true }).click();
     await page.waitForURL(/\/empresa\/personas$/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+
+  /*
+   * Las listas de la empresa se paginan.
+   *
+   * Sesiones e informes solo crecen: un informe por persona evaluada, para
+   * siempre. Sin tope, una empresa con dos tandas al año acaba con una página
+   * de cientos de filas —y PostgREST corta en mil de todas formas, así que la
+   * lista mentiría en silencio.
+   */
+  test("las sesiones se paginan cuando pasan de una página", async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+
+    const db = admin();
+    const { data: prof } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+    const { data: jefe } = await db
+      .from("profiles")
+      .select("id")
+      .eq("organization_id", ORGANIZACION)
+      .single();
+
+    const lejos = new Date();
+    lejos.setDate(lejos.getDate() + 90);
+
+    await db.from("appointments").insert(
+      Array.from({ length: 22 }, (_, i) => {
+        const d = new Date(lejos);
+        d.setDate(d.getDate() + i);
+        d.setUTCHours(13, 0, 0, 0);
+        return {
+          organization_id: ORGANIZACION,
+          professional_id: prof!.id,
+          created_by: jefe!.id,
+          starts_at: d.toISOString(),
+          ends_at: new Date(d.getTime() + 3600000).toISOString(),
+          status: "solicitada" as const,
+          modality: "presencial" as const,
+        };
+      }),
+    );
+
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/sesiones");
+
+    await expect(page.getByText(/sesiones · página 1 de/i)).toBeVisible();
+
+    await page.getByRole("link", { name: /^siguiente$/i }).click();
+    await expect(page).toHaveURL(/pagina=2/);
+    await expect(page.getByText(/página 2 de/i)).toBeVisible();
+
+    // Y desde la segunda se puede volver.
+    await expect(page.getByRole("link", { name: /^anterior$/i })).toBeVisible();
+
+    await db
+      .from("appointments")
+      .delete()
+      .gte("starts_at", lejos.toISOString());
   });
 });

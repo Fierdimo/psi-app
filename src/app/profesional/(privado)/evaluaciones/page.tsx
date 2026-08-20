@@ -8,6 +8,7 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
+import { Paginacion } from "@/components/navegacion/paginacion";
 import {
   FiltroEvaluaciones,
   VISTAS,
@@ -201,7 +202,6 @@ export default async function EvaluacionesPage({
   });
 
   const total = count ?? 0;
-  const ultima = Math.max(1, Math.ceil(total / POR_PAGINA));
 
   const sinAsignar = (sesiones ?? [])
     .filter((s) => (s.asignaciones ?? []).length === 0)
@@ -211,14 +211,22 @@ export default async function EvaluacionesPage({
       titular: uno<{ nombre: string }>(s.organizacion)?.nombre ?? "Sesión",
     }));
 
-  const enlace = (destino: number) => ({
-    pathname: "/profesional/evaluaciones",
-    query: {
-      ...(vista === "revisar" ? {} : { estado: vista }),
-      ...(busqueda ? { q: busqueda } : {}),
-      ...(destino > 1 ? { pagina: destino } : {}),
-    },
-  });
+  /*
+   * La dirección de otra página, conservando filtro y búsqueda.
+   *
+   * Como texto y no como objeto: es lo que espera `Paginacion`, que lo comparte
+   * con las listas de la empresa. Un `URLSearchParams` vacío no añade la
+   * interrogación, así que la primera página queda limpia.
+   */
+  const enlace = (destino: number) => {
+    const params = new URLSearchParams();
+    if (vista !== "revisar") params.set("estado", vista);
+    if (busqueda) params.set("q", busqueda);
+    if (destino > 1) params.set("pagina", String(destino));
+
+    const cola = params.toString();
+    return `/profesional/evaluaciones${cola ? `?${cola}` : ""}`;
+  };
 
   return (
     <Pantalla>
@@ -288,40 +296,13 @@ export default async function EvaluacionesPage({
         <div className="flex flex-col gap-3">
           <TablaEvaluaciones filas={filas} />
 
-          {/*
-            La paginación aparece solo cuando hace falta, y dice el total.
-            «Página 1 de 1» debajo de tres filas es ruido; «121 evaluaciones»
-            en cambio es lo que responde a «¿cuántas llevo?».
-          */}
-          {ultima > 1 && (
-            <nav
-              aria-label="Paginación"
-              className="flex flex-wrap items-center justify-between gap-3"
-            >
-              <span className="text-text-muted text-sm">
-                {total} en total · página {pagina} de {ultima}
-              </span>
-
-              <div className="flex items-center gap-2">
-                {pagina > 1 && (
-                  <Link
-                    href={enlace(pagina - 1)}
-                    className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
-                  >
-                    Anterior
-                  </Link>
-                )}
-                {pagina < ultima && (
-                  <Link
-                    href={enlace(pagina + 1)}
-                    className="border-line-interactive text-text-body hover:bg-accent-soft ease-psi rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-150"
-                  >
-                    Siguiente
-                  </Link>
-                )}
-              </div>
-            </nav>
-          )}
+          <Paginacion
+            pagina={pagina}
+            total={total}
+            porPagina={POR_PAGINA}
+            nombre="evaluaciones"
+            enlace={(n) => enlace(n)}
+          />
         </div>
       )}
     </Pantalla>

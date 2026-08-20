@@ -8,6 +8,7 @@ import {
   Pantalla,
 } from "@/components/navegacion/encabezado-pagina";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
+import { Paginacion } from "@/components/navegacion/paginacion";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -24,16 +25,32 @@ export const metadata: Metadata = { title: "Informes" };
  * enlace. Sin ellas, quien encargó veinte evaluaciones y ve cinco informes no
  * sabe si las otras quince se perdieron o siguen en revisión.
  */
-export default async function InformesPage() {
+/**
+ * Cuántos informes por página.
+ *
+ * Es la lista que más crece de las tres del área: un informe por persona
+ * evaluada, para siempre. Una empresa con dos tandas al año llega a cientos.
+ */
+const POR_PAGINA = 20;
+
+export default async function InformesPage({
+  searchParams,
+}: PageProps<"/empresa/informes">) {
   await exigirEmpresa();
   const supabase = await crearClienteServidor();
 
-  const { data } = await supabase
+  const { pagina: pedida } = await searchParams;
+  const pagina = Math.max(1, Number(pedida ?? 1) || 1);
+  const desde = (pagina - 1) * POR_PAGINA;
+
+  const { data, count } = await supabase
     .from("assignments")
     .select(
       "id, status, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo)",
+      { count: "exact" },
     )
-    .order("assigned_at", { ascending: false });
+    .order("assigned_at", { ascending: false })
+    .range(desde, desde + POR_PAGINA - 1);
 
   const uno = <T,>(v: unknown): T | null =>
     Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
@@ -114,6 +131,16 @@ export default async function InformesPage() {
           })}
         </ul>
       )}
+
+      <Paginacion
+        pagina={pagina}
+        total={count ?? 0}
+        porPagina={POR_PAGINA}
+        nombre="informes"
+        enlace={(n) =>
+          n > 1 ? `/empresa/informes?pagina=${n}` : "/empresa/informes"
+        }
+      />
     </Pantalla>
   );
 }

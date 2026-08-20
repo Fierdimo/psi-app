@@ -543,7 +543,11 @@ test.describe.serial("Sesiones de empresa", () => {
 
     // Veinticinco por página, no las treinta: la lista tiene tope.
     await expect(page.locator("tbody tr")).toHaveCount(25);
-    await expect(page.getByText(/30 en total · página 1 de 2/)).toBeVisible();
+    // La paginación es ahora la misma pieza que usan las listas de la empresa,
+    // así que nombra lo que cuenta en vez de decir «en total».
+    await expect(
+      page.getByText(/30 evaluaciones · página 1 de 2/),
+    ).toBeVisible();
 
     // El acceso de una persona concreta, en su fila.
     await page
