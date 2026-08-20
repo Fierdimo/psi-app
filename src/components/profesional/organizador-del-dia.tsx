@@ -222,13 +222,19 @@ export function OrganizadorDelDia({
           </select>
         </label>
 
-        <p className="text-text-muted flex-1 text-sm">
-          {franjas === null
-            ? "Buscando tus bloques…"
-            : franjas.length === 0
-              ? "Ese día no atiendes. Elige otro."
-              : "El resto se coloca detrás, en bloques seguidos. Puedes cambiar a cualquiera por separado."}
-        </p>
+        {/*
+          Solo se habla cuando hay algo que decir.
+          
+          Aquí vivía una frase explicando que el resto se coloca detrás y que
+          cada uno se puede cambiar. Se ve al usarlo —las horas aparecen
+          seguidas y cada fila tiene su desplegable—, así que era una
+          instrucción para algo que ya se estaba entendiendo solo.
+        */}
+        {franjas !== null && franjas.length === 0 && (
+          <p className="text-text-muted flex-1 text-sm">
+            Ese día no atiendes. Elige otro.
+          </p>
+        )}
 
         <Button
           type="button"
@@ -245,79 +251,36 @@ export function OrganizadorDelDia({
 
           return (
             /*
-              COLUMNAS FIJAS, no `flex-wrap`.
+              DOS LÍNEAS, no una.
 
-              Cada fila se partía por un sitio distinto según lo largo que fuera
-              el nombre, así que las horas no quedaban alineadas y la lista no
-              se podía recorrer de un vistazo — que es justo para lo que sirve:
-              ver de golpe quién va a qué hora.
+              En una sola no cabía todo dentro de un panel de 600px: el nombre
+              acababa en «An…» y el documento en «10473733…», que son
+              precisamente los dos datos con los que se reconoce a alguien. En
+              dos, el nombre ocupa su renglón entero y los controles el suyo,
+              siempre en la misma vertical.
             */
-            <li
-              key={c.person_id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_9.5rem_2.25rem] items-center gap-x-3 p-3"
-            >
-              {/*
-                Todo lo que se sabe de la persona, en su fila.
-
-                Antes esta pantalla listaba a la misma gente tres veces: aquí
-                con su hora, en «Convocados» con su cargo y su vínculo, y en los
-                pases con su enlace. Tres listas de los mismos nombres, ninguna
-                completa, y la altura de la pantalla repartida entre ellas.
-              */}
-              {/*
-                El vínculo ya no se pinta: empleado y aspirante reciben el
-                mismo trato desde que la evaluación es de la convocatoria.
-                Ocupaba el ancho que ahora usa el nombre completo.
-              */}
-              {/*
-                El estado baja a la segunda línea, con el documento.
-                
-                En la fila, junto al nombre, se comía el ancho: en un panel de
-                600px quedaba «An…» y «Jor…», que es justo lo que hay que poder
-                leer para saber a quién se le está poniendo hora.
-              */}
-              <span className="min-w-0">
-                <span className="text-text-strong block truncate text-sm font-medium">
+            <li key={c.person_id} className="flex flex-col gap-1.5 p-3">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="text-text-strong truncate text-sm font-medium">
                   {nombreDe(c)}
                 </span>
-                <span className="text-text-muted flex min-w-0 items-center gap-2 text-xs">
-                  <span className="truncate">
-                    {[c.documento, c.cargo].filter(Boolean).join(" · ")}
-                  </span>
-                  {c.estado && (
-                    <Badge
-                      tone={tono(c.estado, c.consentimiento)}
-                      /* Sin partirse: «SIN CONSENTIR» en dos líneas dejaba las
-                         filas de distinta altura y la lista en escalones. */
-                      className="shrink-0 whitespace-nowrap"
-                    >
-                      {etiqueta(c.estado, c.consentimiento)}
-                    </Badge>
-                  )}
+                {c.estado && (
+                  <Badge
+                    tone={tono(c.estado, c.consentimiento)}
+                    className="shrink-0 whitespace-nowrap"
+                  >
+                    {etiqueta(c.estado, c.consentimiento)}
+                  </Badge>
+                )}
+              </span>
+
+              <span className="flex items-center gap-2">
+                <span className="text-text-muted min-w-0 flex-1 truncate text-xs">
+                  {[c.documento, c.cargo].filter(Boolean).join(" · ")}
                 </span>
-              </span>
 
-              {/*
-                La hora y la equis van juntas y no se parten.
-
-                Sueltas dentro del `flex-wrap`, en el ancho de un panel lateral
-                la equis caía a la línea siguiente y parecía de la persona de
-                abajo.
-              */}
-              {/* Su acceso: lo que antes era una lista aparte. */}
-              <span className="shrink-0">
                 <BotonPase persona={c.person_id} nombre={nombreDe(c)} />
-              </span>
 
-              {/*
-                Ancho fijo, no `auto`.
-
-                Con `auto` la columna la dimensionaba el nombre más largo de la
-                fila, así que el desplegable empezaba en un sitio distinto en
-                cada una y la lista quedaba en zigzag. Fija, todas las horas
-                caen en la misma vertical y se leen en columna.
-              */}
-              <span className="min-w-0">
                 {franjas === null ? (
                   <span className="text-text-muted text-sm">…</span>
                 ) : (
@@ -327,11 +290,9 @@ export function OrganizadorDelDia({
                       colocar(c.person_id, e.target.value || null)
                     }
                     aria-label={`Hora de ${nombreDe(c)}`}
-                    className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 w-full rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="border-line-interactive bg-panel text-text-strong focus-visible:outline-accent h-10 w-[9.5rem] shrink-0 rounded-md border px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
                     <option value="">— sin hora —</option>
-                    {/* Si quedó citada otro día, su hora sigue siendo una opción
-                      válida aunque no esté en la rejilla que se mira ahora. */}
                     {hora && !franjas.some((f) => f.inicio === hora) && (
                       <option value={hora}>{fechaYHora(hora, zona)}</option>
                     )}
@@ -347,8 +308,9 @@ export function OrganizadorDelDia({
                           key={f.inicio}
                           value={f.inicio}
                           /* Solo se apaga lo que NO es tuyo: otra cita de la
-                           agenda. Lo que tiene otro convocado se puede elegir
-                           —se intercambian— y la etiqueta dice con quién. */
+                             agenda. Lo que tiene otro convocado se puede
+                             elegir —se intercambian— y la etiqueta dice con
+                             quién. */
                           disabled={f.ocupada}
                         >
                           {horaDe(f.inicio, zona)}
@@ -362,21 +324,21 @@ export function OrganizadorDelDia({
                     })}
                   </select>
                 )}
-              </span>
 
-              {/* Su propia columna: si viviera con el desplegable, aparecer y
-                  desaparecer movería la hora de sitio. */}
-              <span className="grid place-items-center">
-                {hora && (
-                  <button
-                    type="button"
-                    onClick={() => colocar(c.person_id, null)}
-                    aria-label={`Quitar la hora de ${nombreDe(c)}`}
-                    className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 place-items-center rounded-md transition-colors duration-150"
-                  >
-                    <X aria-hidden="true" className="size-4" />
-                  </button>
-                )}
+                {/* Su propio hueco: si apareciera y desapareciera dentro del
+                    desplegable, la hora se movería de sitio. */}
+                <span className="grid w-9 shrink-0 place-items-center">
+                  {hora && (
+                    <button
+                      type="button"
+                      onClick={() => colocar(c.person_id, null)}
+                      aria-label={`Quitar la hora de ${nombreDe(c)}`}
+                      className="text-text-muted hover:bg-accent-soft hover:text-accent ease-psi grid size-9 place-items-center rounded-md transition-colors duration-150"
+                    >
+                      <X aria-hidden="true" className="size-4" />
+                    </button>
+                  )}
+                </span>
               </span>
             </li>
           );
