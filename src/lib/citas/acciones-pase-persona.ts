@@ -36,7 +36,6 @@ export async function paseDePersona(
         apellidos: string | null;
         documento: string | null;
         email: string | null;
-        tiene_cuenta: boolean;
         token: string | null;
       }
     | undefined;
@@ -52,11 +51,8 @@ export async function paseDePersona(
         [fila.nombre, fila.apellidos].filter(Boolean).join(" ") ||
         (fila.documento ?? "Sin nombre"),
       correo: fila.email ?? (fila.documento ? `Doc. ${fila.documento}` : ""),
-      enlace: fila.token
-        ? `${origen}/prueba/${fila.token}`
-        : `${origen}/ingresar`,
-      yaTieneCuenta: fila.tiene_cuenta,
-      sinPase: !fila.tiene_cuenta && !fila.token,
+      enlace: fila.token ? `${origen}/prueba/${fila.token}` : "",
+      sinPase: !fila.token,
     },
   };
 }

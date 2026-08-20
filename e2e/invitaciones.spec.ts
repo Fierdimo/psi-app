@@ -258,6 +258,26 @@ test.describe("Mis evaluaciones", () => {
       .limit(1)
       .single();
 
+    /*
+     * Se devuelve la evaluación a su punto de partida.
+     *
+     * Esta prueba consiente y empieza, así que la segunda ejecución encontraba
+     * el examen ya en curso y no había botón de consentir: el fallo se leía
+     * como «no aparece el botón» y no como «ya lo pulsaste la vez anterior».
+     */
+    const { data: asignaciones } = await db
+      .from("assignments")
+      .select("id")
+      .eq("appointment_id", SESION_CONFIRMADA);
+
+    const ids = (asignaciones ?? []).map((a) => a.id);
+    await db.from("consents").delete().in("assignment_id", ids);
+    await db.from("responses").delete().in("assignment_id", ids);
+    await db
+      .from("assignments")
+      .update({ status: "asignada", started_at: null, habilitado_at: null })
+      .in("id", ids);
+
     // Sin cuenta: consentir y empezar son los dos únicos pasos previos.
     await page.goto(`/prueba/${invitacion!.token}`);
     await page.getByRole("button", { name: /acepto participar/i }).click();

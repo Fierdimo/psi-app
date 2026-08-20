@@ -4,7 +4,6 @@ import { Check, Copy, Download, ImageDown, QrCode } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toDataURL as qrComoPng, toString as qrComoSvg } from "qrcode";
 
-import { Badge } from "@/components/ui/badge";
 import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
 
 /**
@@ -47,7 +46,12 @@ export function EnlacesDeAcceso({
    */
   const listaEntera = enlaces
     .filter((e) => !e.sinPase)
-    .map((e) => `${e.nombre}${e.correo ? ` (${e.correo})` : ""}\n${e.enlace}`)
+    .map(
+      (e) =>
+        `${e.nombre}${e.correo ? ` (${e.correo})` : ""}` +
+        (e.hora ? ` — ${horaDe(e.hora)}` : "") +
+        `\n${e.enlace}`,
+    )
     .join("\n\n");
 
   return (
@@ -98,17 +102,22 @@ export function EnlacesDeAcceso({
             <span className="min-w-full flex-1 sm:min-w-0">
               <span className="text-text-strong flex flex-wrap items-center gap-2 text-sm font-medium">
                 {e.nombre}
-                {/*
-                  Se marca quién ya está registrado. El pase es el mismo —la
-                  evaluación no vive en su perfil— pero saberlo evita que quien
-                  reparte se pregunte si esa persona necesitaba uno.
-                */}
-                {e.yaTieneCuenta && (
-                  <Badge tone="neutral">Ya tiene cuenta</Badge>
-                )}
               </span>
-              <span className="text-text-muted block truncate text-xs">
-                {e.correo}
+              {/*
+                La hora manda sobre el correo.
+                
+                En una sola línea que se recorta, lo primero que desaparecía era
+                la hora —«lun, 24 de …»— que es justo el dato que hay que
+                copiarle a la persona. El correo sirve para saber a quién se le
+                da el pase y aguanta quedarse a medias; la hora no.
+              */}
+              <span className="text-text-muted flex min-w-0 items-baseline gap-1.5 text-xs">
+                {e.hora && (
+                  <span className="text-text-body tabular shrink-0 font-medium">
+                    {horaDe(e.hora)}
+                  </span>
+                )}
+                <span className="truncate">{e.correo}</span>
               </span>
             </span>
 
@@ -160,11 +169,7 @@ export function EnlacesDeAcceso({
 
                 {abierto === e.enlace && (
                   <div className="w-full pt-1">
-                    <Qr
-                      valor={e.enlace}
-                      nombre={e.nombre}
-                      yaTieneCuenta={e.yaTieneCuenta}
-                    />
+                    <Qr valor={e.enlace} nombre={e.nombre} />
                   </div>
                 )}
               </>
@@ -183,15 +188,7 @@ export function EnlacesDeAcceso({
  * y mandarlo a dibujar fuera lo pasearía por otro sitio más. Ya está en esta
  * pantalla; no hace falta que salga de ella.
  */
-function Qr({
-  valor,
-  nombre,
-  yaTieneCuenta,
-}: {
-  valor: string;
-  nombre: string;
-  yaTieneCuenta?: boolean;
-}) {
+function Qr({ valor, nombre }: { valor: string; nombre: string }) {
   const [svg, setSvg] = useState<string | null>(null);
   /*
    * El aviso recuerda EN QUÉ BOTÓN se pulsó.
@@ -431,4 +428,16 @@ async function comoImagen(valor: string, nombre: string): Promise<Blob> {
       "image/png",
     ),
   );
+}
+
+/** La hora de la cita, en la zona de quien la lee. */
+function horaDe(iso: string) {
+  return new Date(iso).toLocaleString("es-CO", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }

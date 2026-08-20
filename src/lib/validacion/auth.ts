@@ -76,12 +76,13 @@ export type EnlaceDeAcceso = {
   correo: string;
   enlace: string;
   /**
-   * Quien ya tiene cuenta no lleva testigo: su enlace es el de entrada normal
-   * y su evaluación le espera dentro. Se distingue porque el aviso que
-   * acompaña a un pase con testigo —«no lo reenvíes»— no aplica aquí, y
-   * repetirlo donde no toca enseña a ignorarlo.
+   * La hora a la que se le espera, si el profesional ya repartió el día.
+   *
+   * Va con el enlace porque se reparten juntos: quien recibe un pase sin hora
+   * pregunta «¿a qué hora?», y esa vuelta es justo la que esta pantalla existe
+   * para ahorrar.
    */
-  yaTieneCuenta?: boolean;
+  hora?: string | null;
   /**
    * Sin cuenta y sin invitación viva. No debería pasar —se preparan al
    * confirmar la sesión— pero omitir a esa persona de la lista la dejaría sin

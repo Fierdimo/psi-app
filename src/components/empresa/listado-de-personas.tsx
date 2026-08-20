@@ -49,9 +49,7 @@ export async function ListadoDePersonas({
 
   const { data: personas } = await supabase
     .from("organization_people")
-    .select(
-      "id, documento, nombre, apellidos, email, cargo, vinculo, profile_id",
-    )
+    .select("id, documento, nombre, apellidos, email, cargo, vinculo")
     .order("nombre");
 
   return (
@@ -112,9 +110,6 @@ export async function ListadoDePersonas({
                   Correo
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
-                  Cuenta
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
                   <span className="sr-only">Acciones</span>
                 </th>
               </tr>
@@ -132,13 +127,6 @@ export async function ListadoDePersonas({
                     {p.cargo ?? "—"}
                   </td>
                   <td className="text-text-muted px-4 py-3">{p.email}</td>
-                  <td className="px-4 py-3">
-                    {p.profile_id ? (
-                      <Badge tone="success">Activa</Badge>
-                    ) : (
-                      <Badge tone="neutral">Sin aceptar</Badge>
-                    )}
-                  </td>
                   <td className="px-4 py-3 text-right">
                     {/* Editar abre el mismo formulario del alta, como panel. */}
                     <Link

@@ -185,11 +185,16 @@ select isnt(
   'Quien ya tiene cuenta también recibe su pase: es su único camino'
 );
 
-select is(
-  (select tiene_cuenta from pases where documento = '111'),
-  true,
-  'Se dice quién ya está registrado, aunque el pase sea el mismo'
-);
+/*
+ * Y NO se dice quién tiene cuenta.
+ *
+ * La función lo devolvía y la pantalla de la empresa lo pintaba. Tener cuenta
+ * aquí puede significar ser paciente de la consulta: decírselo al empleador es
+ * revelar un dato de salud por la puerta de atrás. Desde que todos reciben el
+ * mismo pase, además, no servía para nada.
+ */
+select hasnt_column('public', 'pases_de_acceso', 'tiene_cuenta',
+  'El pase no revela quién tiene cuenta') ;
 
 -- =============================================================================
 -- LEER NO CREA NADA

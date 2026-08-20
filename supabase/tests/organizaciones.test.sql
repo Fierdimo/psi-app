@@ -274,11 +274,24 @@ select is(
   'La persona se ve a sí misma en las dos convocatorias, y a nadie más'
 );
 
+/*
+ * Antes esto se decía filtrando por `profile_id`, que ya no se concede: esa
+ * columna revelaría quién tiene cuenta, y una empresa no debe poder deducirlo.
+ * La afirmación es la misma —de todo lo que ve, nada es de otra persona— y se
+ * puede comprobar por el documento, que sí es suyo.
+ */
 select is(
-  (select count(*)::int from public.organization_people where profile_id is null),
+  (select count(*)::int from public.organization_people
+   where documento <> '1047373301'),
   0,
-  'La persona no ve fichas de terceros, ni de quienes aún no tienen cuenta'
+  'De todo lo que ve, nada es la ficha de otra persona'
 );
+
+-- El identificador se apunta como servidor: `profile_id` ya no se concede a
+-- las cuentas, así que la propia prueba no puede filtrarlo por su cuenta.
+select tests_servidor_o();
+select id as ficha_enlazada from public.organization_people
+where organization_id = :'acme' and profile_id is not null limit 1 \gset
 
 -- =============================================================================
 -- UNA CUENTA DE EMPRESA NO PIDE CONSULTAS INDIVIDUALES
@@ -405,8 +418,7 @@ select lives_ok(
 -- y lo que enlaza el historial que otra empresa haya dejado antes.
 select throws_ok(
   format('select public.editar_persona(%L, ''Ana'', ''Restrepo'', ''ana@acme.test'', ''0000000'', null, ''empleado'')',
-         (select id from public.organization_people
-          where organization_id = :'acme' and profile_id is not null limit 1)),
+         :'ficha_enlazada'),
   'No se puede cambiar el documento de alguien que ya activó su cuenta.',
   'Cambiarle el documento a quien ya activó su cuenta la convertiría en otra persona'
 );

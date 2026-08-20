@@ -46,7 +46,7 @@ export async function PasesDeSesion({
       apellidos: string | null;
       documento: string | null;
       email: string | null;
-      tiene_cuenta: boolean;
+      starts_at: string | null;
       token: string | null;
     }[]
   ).map((f) => ({
@@ -63,18 +63,17 @@ export async function PasesDeSesion({
      */
     correo: f.email ?? (f.documento ? `Doc. ${f.documento}` : ""),
     /*
-     * El pase lleva DIRECTO a la prueba, y lo lleva TODO EL MUNDO.
+     * El pase lleva DIRECTO a la prueba, y lo lleva todo el mundo.
      *
-     * Antes, quien ya tenía cuenta no recibía testigo: se daba por hecho que
-     * entraría por su perfil. Desde que las evaluaciones de empresa no viven en
-     * el perfil de nadie —son de la convocatoria, no de la persona— esa puerta
-     * no existe, y sin pase se quedaba sin ninguna.
+     * Aquí ya no se sabe quién tiene cuenta y quién no, a propósito: la
+     * empresa no debe enterarse de eso por esta pantalla. Sin testigo no hay
+     * enlace que dar, y eso es lo que `sinPase` dice.
      */
-    enlace: f.token ? `${origen}/prueba/${f.token}` : `${origen}/ingresar`,
-    yaTieneCuenta: f.tiene_cuenta,
+    enlace: f.token ? `${origen}/prueba/${f.token}` : "",
     // Ni cuenta ni testigo. No debería ocurrir —se preparan al confirmar— pero
     // callarlo dejaría a esa persona sin pase y sin explicación.
-    sinPase: !f.tiene_cuenta && !f.token,
+    hora: f.starts_at,
+    sinPase: !f.token,
   }));
 
   return <EnlacesDeAcceso enlaces={enlaces} titulo={titulo} nota={nota} />;

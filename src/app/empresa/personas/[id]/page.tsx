@@ -30,7 +30,14 @@ export async function ContenidoDePersona({
   const { data: persona } = await supabase
     .from("organization_people")
     .select(
-      "id, nombre, apellidos, email, documento, cargo, vinculo, profile_id",
+      /*
+       * Sin `profile_id`: esa columna ya no se concede a las cuentas.
+       *
+       * Pedirla no daba un error visible —la consulta fallaba, la ficha salía
+       * vacía y la pantalla respondía «no existe»— así que el panel de editar
+       * dejó de abrirse sin decir por qué. El formulario tampoco la usa ya.
+       */
+      "id, nombre, apellidos, email, documento, cargo, vinculo",
     )
     .eq("id", id)
     .maybeSingle();

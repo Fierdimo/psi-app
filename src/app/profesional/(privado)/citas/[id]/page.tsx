@@ -81,7 +81,7 @@ export default async function CitaProfesionalPage({
         "*",
         "paciente:profiles!appointments_patient_id_fkey(nombre, apellidos)",
         "organizacion:organizations(nombre)",
-        "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo, profile_id))",
+        "convocados:appointment_attendees(persona:organization_people(nombre, apellidos, documento, cargo, vinculo))",
       ].join(", "),
     )
     .eq("id", id)
@@ -183,10 +183,15 @@ export default async function CitaProfesionalPage({
       cita.status,
     );
 
-  // Quien todavía no tiene cuenta es a quien hay que invitar.
-  const sinCuenta = convocados.filter(
-    (p) => (p as { profile_id?: string | null }).profile_id == null,
-  ).length;
+  /*
+   * A cuánta gente se le escribe, sin mirar quién tiene cuenta.
+   *
+   * Antes se contaban los que no la tenían: hoy todos reciben su enlace, y
+   * además ese dato ya no se lee desde la aplicación —saber quién tiene cuenta
+   * en esta plataforma puede significar que es paciente, y no es información
+   * que deba viajar a ninguna pantalla de gestión.
+   */
+  const aQuienEscribir = convocados.length;
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6 px-4 py-8 sm:px-6">
@@ -337,7 +342,10 @@ export default async function CitaProfesionalPage({
 
                 <PasesDeSesion citaId={cita.id} />
 
-                <BotonInvitaciones citaId={cita.id} pendientes={sinCuenta} />
+                <BotonInvitaciones
+                  citaId={cita.id}
+                  pendientes={aQuienEscribir}
+                />
               </div>
             </details>
           </div>

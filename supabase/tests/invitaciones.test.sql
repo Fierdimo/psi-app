@@ -220,11 +220,23 @@ select lives_ok(
   'La persona acepta su invitación'
 );
 
+/*
+ * Se mira como servidor: `profile_id` ya no se concede a `authenticated`.
+ *
+ * Saber quién tiene cuenta en esta plataforma puede significar saber quién es
+ * paciente, y una empresa no debe poder deducirlo de la ficha de su gente. La
+ * prueba comprueba el enlace, que sigue existiendo; lo que cambió es quién
+ * puede verlo.
+ */
+select tests_servidor();
+
 select is(
   (select profile_id from public.organization_people where documento = '555'),
   :'nuevo',
   'Su ficha queda enlazada a su cuenta'
 );
+
+select tests_como(:'nuevo');
 
 select is(
   (select documento from public.profiles where id = :'nuevo'),
@@ -287,12 +299,16 @@ select throws_ok(
 select tests_como(:'nuevo');
 select public.aceptar_invitacion((select token from entregado_globex));
 
+select tests_servidor();
+
 select is(
   (select count(distinct profile_id)::int
    from public.organization_people where documento = '555'),
   1,
   'Las dos fichas apuntan a la MISMA cuenta: el historial no se parte'
 );
+
+select tests_como(:'nuevo');
 
 -- =============================================================================
 -- LOS RECORDATORIOS NO ALCANZAN A LAS SESIONES DE GRUPO

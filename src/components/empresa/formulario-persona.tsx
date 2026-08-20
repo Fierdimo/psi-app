@@ -27,7 +27,6 @@ export interface PersonaEditable {
   documento: string;
   cargo: string | null;
   vinculo: string;
-  profile_id: string | null;
 }
 
 export function FormularioPersona({
@@ -96,7 +95,6 @@ export function FormularioPersona({
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
           id="documento"
-          disabled={persona?.profile_id != null}
           defaultValue={persona?.documento ?? ""}
           name="documento"
           label="Documento de identidad"
