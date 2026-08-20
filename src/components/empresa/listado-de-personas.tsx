@@ -106,9 +106,6 @@ export async function ListadoDePersonas({
                   Nombre
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
-                  Vínculo
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
                   Cargo
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
@@ -130,13 +127,6 @@ export async function ListadoDePersonas({
                   </td>
                   <td className="text-text-strong px-4 py-3 font-medium">
                     {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      tone={p.vinculo === "empleado" ? "accent" : "neutral"}
-                    >
-                      {p.vinculo === "empleado" ? "Empleado" : "Aspirante"}
-                    </Badge>
                   </td>
                   <td className="text-text-muted px-4 py-3">
                     {p.cargo ?? "—"}

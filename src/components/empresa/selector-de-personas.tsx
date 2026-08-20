@@ -3,7 +3,6 @@
 import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export interface PersonaElegible {
@@ -178,6 +177,14 @@ export function SelectorDePersonas({
                   "hover:bg-accent-soft ease-psi flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150",
                 )}
               >
+                {/*
+                  Sin la etiqueta de vínculo.
+
+                  Empleado y aspirante reciben el mismo trato desde que la
+                  evaluación es de la convocatoria, así que solo servía para
+                  empujar el nombre y partir la fila en dos cuando el nombre
+                  era largo.
+                */}
                 <span className="min-w-0 flex-1">
                   <span className="text-text-strong block font-medium">
                     {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
@@ -187,9 +194,6 @@ export function SelectorDePersonas({
                     {p.cargo && ` · ${p.cargo}`}
                   </span>
                 </span>
-                <Badge tone={p.vinculo === "empleado" ? "accent" : "neutral"}>
-                  {p.vinculo === "empleado" ? "Empleado" : "Aspirante"}
-                </Badge>
               </button>
             </li>
           ))}
