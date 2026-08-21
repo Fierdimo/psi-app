@@ -13,6 +13,7 @@ export default async function PersonasPage({
     <ListadoDePersonas
       avisos={params}
       pagina={Math.max(1, Number(params.pagina ?? 1) || 1)}
+      busqueda={String(params.q ?? "").trim()}
     />
   );
 }

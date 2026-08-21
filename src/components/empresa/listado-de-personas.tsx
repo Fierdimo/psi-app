@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 
 import {
   EncabezadoPagina,
@@ -44,8 +44,11 @@ const POR_PAGINA = 20;
 export async function ListadoDePersonas({
   avisos,
   pagina = 1,
+  busqueda = "",
 }: {
   pagina?: number;
+  /** Lo que se escribió en el buscador, ya recortado. */
+  busqueda?: string;
   /**
    * Los avisos de «se guardó» y «se retiró», que llegan por la dirección.
    *
@@ -61,11 +64,33 @@ export async function ListadoDePersonas({
 
   const desde = (pagina - 1) * POR_PAGINA;
 
-  const { data: personas, count } = await supabase
+  let consulta = supabase
     .from("organization_people")
     .select("id, documento, nombre, apellidos, email, cargo, vinculo", {
       count: "exact",
-    })
+    });
+
+  if (busqueda) {
+    /*
+     * Se busca por lo que se recuerda de alguien.
+     *
+     * Quien busca en un listado de cien personas tiene en la cabeza un nombre
+     * a medias, una cédula, o el puesto —«el conductor»—. Restringirlo al
+     * nombre obliga a acertar con la ortografía de un apellido ajeno.
+     */
+    const patron = `%${busqueda}%`;
+    consulta = consulta.or(
+      [
+        `nombre.ilike.${patron}`,
+        `apellidos.ilike.${patron}`,
+        `documento.ilike.${patron}`,
+        `cargo.ilike.${patron}`,
+        `email.ilike.${patron}`,
+      ].join(","),
+    );
+  }
+
+  const { data: personas, count } = await consulta
     /*
      * Un desempate estable, o las páginas se solapan.
      *
@@ -108,27 +133,89 @@ export async function ListadoDePersonas({
         </Alert>
       )}
 
+      {/*
+        Un formulario `GET`, sin JavaScript.
+        
+        La búsqueda queda en la dirección, así que se puede recargar, guardar y
+        volver atrás sin perderla — y el resultado se puede pasar por chat a
+        quien pregunta por alguien.
+      */}
+      <form
+        action="/empresa/personas"
+        className="flex flex-wrap items-end gap-2"
+      >
+        <div className="flex min-w-[16rem] flex-1 flex-col gap-1">
+          <label htmlFor="q" className="text-text-body text-sm font-medium">
+            Buscar
+          </label>
+          <input
+            id="q"
+            name="q"
+            type="search"
+            defaultValue={busqueda}
+            placeholder="Nombre, documento, cargo o correo"
+            className="border-line-interactive bg-panel text-text-strong placeholder:text-text-muted focus-visible:outline-accent h-11 rounded-md border px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2"
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="border-line-interactive text-accent-on-soft hover:bg-accent-soft ease-psi inline-flex h-11 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors duration-150"
+        >
+          <Search aria-hidden="true" className="size-4" />
+          Buscar
+        </button>
+
+        {busqueda && (
+          <Link
+            href="/empresa/personas"
+            className="text-text-muted hover:text-text-body ease-psi self-center text-sm underline underline-offset-4 transition-colors duration-150"
+          >
+            Ver todas
+          </Link>
+        )}
+      </form>
+
       {!personas || personas.length === 0 ? (
-        <EstadoVacio
-          icono={Users}
-          titulo="Todavía no has cargado a nadie"
-          descripcion="Podrás convocarlas a una sesión aunque todavía no tengan cuenta: la crean cuando reciben su invitación."
-          enlace={{
-            href: "/empresa/personas/nueva",
-            texto: "Cargar la primera",
-          }}
-        />
+        busqueda ? (
+          /* Buscar y no encontrar no es lo mismo que no tener a nadie: el
+             estado vacío de «carga a tu primera persona» aquí desorienta. */
+          <p className="text-text-muted text-sm">
+            Nadie coincide con «{busqueda}».
+          </p>
+        ) : (
+          <EstadoVacio
+            icono={Users}
+            titulo="Todavía no has cargado a nadie"
+            descripcion="Podrás convocarlas a una sesión y recibirán su enlace para responder, tengan cuenta o no."
+            enlace={{
+              href: "/empresa/personas/nueva",
+              texto: "Cargar la primera",
+            }}
+          />
+        )
       ) : (
         <div className="border-line bg-panel overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <caption className="sr-only">Personal cargado</caption>
             <thead className="border-line bg-bg border-b">
               <tr className="text-text-muted text-left">
-                <th scope="col" className="px-4 py-3 font-medium">
-                  Documento
+                {/*
+                  El nombre va PRIMERO, porque es por donde se ordena.
+                  
+                  Con el documento delante, la primera columna no seguía ningún
+                  orden visible y la lista parecía barajada. `aria-sort` lo dice
+                  además para quien no ve la flecha.
+                */}
+                <th
+                  scope="col"
+                  aria-sort="ascending"
+                  className="px-4 py-3 font-medium"
+                >
+                  Nombre ↑
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
-                  Nombre
+                  Documento
                 </th>
                 <th scope="col" className="px-4 py-3 font-medium">
                   Cargo
@@ -144,11 +231,11 @@ export async function ListadoDePersonas({
             <tbody>
               {personas.map((p) => (
                 <tr key={p.id} className="border-line border-b last:border-0">
-                  <td className="text-text-body tabular px-4 py-3">
-                    {p.documento}
-                  </td>
                   <td className="text-text-strong px-4 py-3 font-medium">
                     {[p.nombre, p.apellidos].filter(Boolean).join(" ")}
+                  </td>
+                  <td className="text-text-body tabular px-4 py-3">
+                    {p.documento}
                   </td>
                   <td className="text-text-muted px-4 py-3">
                     {p.cargo ?? "—"}
@@ -175,9 +262,15 @@ export async function ListadoDePersonas({
         total={count ?? 0}
         porPagina={POR_PAGINA}
         nombre="personas"
-        enlace={(n) =>
-          n > 1 ? `/empresa/personas?pagina=${n}` : "/empresa/personas"
-        }
+        enlace={(n) => {
+          // La búsqueda viaja con la página: pasar a la dos no puede devolver
+          // el listado entero.
+          const params = new URLSearchParams();
+          if (busqueda) params.set("q", busqueda);
+          if (n > 1) params.set("pagina", String(n));
+          const cola = params.toString();
+          return `/empresa/personas${cola ? `?${cola}` : ""}`;
+        }}
       />
 
       <p className="text-text-muted text-sm">

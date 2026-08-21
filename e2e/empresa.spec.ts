@@ -87,10 +87,23 @@ test.describe.serial("Área de empresa", () => {
     await entrarComo(page, CUENTAS.empresa);
     await page.goto("/empresa/personas");
 
-    await page
-      .getByRole("link", { name: /^editar$/i })
-      .nth(3)
-      .click();
+    /*
+     * Se retira a alguien CONCRETO, buscándolo.
+     *
+     * Antes se pulsaba el cuarto «Editar» de la lista, y quién caía ahí
+     * dependía de lo que hubieran dejado las pruebas anteriores: un día era
+     * una persona convocada a una sesión, y quitarla se rechaza —con razón—,
+     * pero el fallo se leía como «la URL no cambió».
+     *
+     * Estas fichas las siembra el `beforeAll` de este archivo y no están
+     * convocadas a nada.
+     */
+    await page.getByLabel("Buscar").fill("9000010");
+    await page.getByRole("button", { name: /^buscar$/i }).click();
+
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await page.getByRole("link", { name: /^editar$/i }).click();
+
     await page.getByRole("button", { name: /quitar del listado/i }).click();
 
     await expect(page).toHaveURL(/retirada=1/);
@@ -425,5 +438,43 @@ test.describe.serial("Área de empresa", () => {
       .from("appointments")
       .delete()
       .gte("starts_at", lejos.toISOString());
+  });
+
+  /*
+   * Buscar a alguien en un listado de cien.
+   *
+   * Antes solo se podía recorrer página a página, y ni siquiera estaba claro
+   * por dónde iba ordenado: la primera columna era el documento y el orden era
+   * por nombre, así que la lista parecía barajada.
+   */
+  test("se busca a una persona, y la búsqueda sobrevive a la paginación", async ({
+    page,
+  }) => {
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/personas");
+
+    // El orden se anuncia en la cabecera, que además es la primera columna.
+    await expect(page.getByRole("columnheader").first()).toHaveText(/nombre/i);
+
+    await page.getByLabel("Buscar").fill("Jorge");
+    await page.getByRole("button", { name: /^buscar$/i }).click();
+
+    await expect(page).toHaveURL(/q=Jorge/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+
+    // Y con muchos resultados, pasar de página no devuelve el listado entero.
+    await page.goto("/empresa/personas?q=Operario");
+    const primera = await page.locator("tbody tr").count();
+    expect(primera).toBeGreaterThan(0);
+
+    const siguiente = page.getByRole("link", { name: /^siguiente$/i });
+    if (await siguiente.count()) {
+      await siguiente.click();
+      // `waitForURL` y no dos aserciones: la navegación es del servidor y la
+      // segunda comprobación llegaba antes de que terminara.
+      await page.waitForURL(/q=Operario.*pagina=2|pagina=2.*q=Operario/, {
+        timeout: 20000,
+      });
+    }
   });
 });
