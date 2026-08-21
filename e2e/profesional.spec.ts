@@ -623,7 +623,16 @@ test.describe.serial("Sesiones de empresa", () => {
 
     await expect(page.getByText(/sesiones en marcha/i)).toBeVisible();
 
+    /*
+     * Dentro de «Sesiones en marcha», no en cualquier lista.
+     *
+     * La misma empresa puede tener una solicitud esperando arriba, y buscar su
+     * nombre en toda la página encontraba esa tarjeta —que no lleva estado— en
+     * vez de la del seguimiento.
+     */
     const fila = page
+      .locator("section")
+      .filter({ hasText: /sesiones en marcha/i })
       .getByRole("listitem")
       .filter({ hasText: /Distribuciones del Caribe/i })
       .first();

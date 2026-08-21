@@ -393,9 +393,30 @@ test.describe.serial("Área de empresa", () => {
 
     await expect(page.getByText(/sesiones · página 1 de/i)).toBeVisible();
 
+    const primera = await page
+      .getByRole("listitem")
+      .filter({ hasText: /–/ })
+      .allTextContents();
+
     await page.getByRole("link", { name: /^siguiente$/i }).click();
     await expect(page).toHaveURL(/pagina=2/);
     await expect(page.getByText(/página 2 de/i)).toBeVisible();
+
+    /*
+     * NINGUNA fila se repite entre páginas.
+     *
+     * Ordenar solo por fecha deja el orden de los empates a criterio de
+     * Postgres, y como cada página es una consulta aparte, la misma fila salía
+     * en la uno y en la dos mientras otra no salía en ninguna. Con la base
+     * local eran 16 de 20 repetidas. Se arregla con un desempate estable por
+     * identificador, y esto es lo que impide que vuelva.
+     */
+    const segunda = await page
+      .getByRole("listitem")
+      .filter({ hasText: /–/ })
+      .allTextContents();
+
+    expect(primera.filter((f) => segunda.includes(f))).toHaveLength(0);
 
     // Y desde la segunda se puede volver.
     await expect(page.getByRole("link", { name: /^anterior$/i })).toBeVisible();

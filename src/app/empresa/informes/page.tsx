@@ -49,7 +49,17 @@ export default async function InformesPage({
       "id, status, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo)",
       { count: "exact" },
     )
+    /*
+     * Un desempate estable, o las páginas se solapan.
+     *
+     * Ordenar solo por la fecha de asignación deja el orden de los empates a criterio de
+     * Postgres, y con `range` cada página se calcula en una consulta distinta:
+     * la misma fila puede salir en la uno y en la dos, y otra no salir en
+     * ninguna. Con la base local eran 16 de 20 repetidas entre página y
+     * página. El identificador no se repite nunca.
+     */
     .order("assigned_at", { ascending: false })
+    .order("id")
     .range(desde, desde + POR_PAGINA - 1);
 
   const uno = <T,>(v: unknown): T | null =>

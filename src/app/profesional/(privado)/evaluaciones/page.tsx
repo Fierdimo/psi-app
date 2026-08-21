@@ -172,6 +172,15 @@ export default async function EvaluacionesPage({
        * recorriendo, así que un solo orden para todas evita explicar dos.
        */
       .order("assigned_at", { ascending: vista !== "publicadas" })
+      /*
+       * Desempate estable.
+       *
+       * Asignar alcanza a todos los convocados de una sesión en el mismo acto,
+       * así que decenas comparten `assigned_at` al milisegundo. Sin esto, cada
+       * página se calcula por su cuenta y la misma persona aparece en dos
+       * mientras otra no aparece en ninguna.
+       */
+      .order("id")
       .range(desde, desde + POR_PAGINA - 1),
 
     // Los contadores de las pestañas, sin traerse las filas.

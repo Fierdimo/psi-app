@@ -76,7 +76,17 @@ export async function ListadoDeSesiones({ pagina = 1 }: { pagina?: number }) {
   const { data: sesiones, count } = await supabase
     .from("appointments")
     .select("id, starts_at, ends_at, status, patient_note", { count: "exact" })
+    /*
+     * Un desempate estable, o las páginas se solapan.
+     *
+     * Ordenar solo por la fecha deja el orden de los empates a criterio de
+     * Postgres, y con `range` cada página se calcula en una consulta distinta:
+     * la misma fila puede salir en la uno y en la dos, y otra no salir en
+     * ninguna. Con la base local eran 16 de 20 repetidas entre página y
+     * página. El identificador no se repite nunca.
+     */
     .order("starts_at", { ascending: false })
+    .order("id")
     .range(desde, desde + POR_PAGINA - 1);
 
   const zona = perfil.timezone;
