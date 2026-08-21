@@ -104,14 +104,6 @@ export default async function ConsultaPage() {
           }}
         />
       </section>
-
-      <div className="border-line bg-panel flex flex-col gap-2 rounded-lg border p-6">
-        <h2 className="text-h4">Política de cancelación</h2>
-        <p className="text-text-body max-w-[62ch]">
-          {ajustes?.cancellation_policy?.trim() ||
-            "Todavía sin definir. Mientras no exista, la plataforma no muestra ninguna condición al cancelar, que es preferible a inventar una."}
-        </p>
-      </div>
     </Pantalla>
   );
 }
