@@ -64,7 +64,14 @@ const CALIFICABLE = new Set(["enviada", "calificada"]);
 
 const INICIAL: EstadoFormulario = { ok: false };
 
-export function TablaEvaluaciones({ filas }: { filas: FilaEvaluacion[] }) {
+export function TablaEvaluaciones({
+  filas,
+  zona,
+}: {
+  filas: FilaEvaluacion[];
+  /** La de la consulta, para las horas de los pases. */
+  zona: string;
+}) {
   const [estado, accion, enviando] = useActionState(calificarVarias, INICIAL);
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
 
@@ -238,7 +245,11 @@ export function TablaEvaluaciones({ filas }: { filas: FilaEvaluacion[] }) {
                   */}
                   <td className="p-3 text-right align-middle">
                     {f.personaId && (
-                      <BotonPase persona={f.personaId} nombre={f.nombre} />
+                      <BotonPase
+                        persona={f.personaId}
+                        nombre={f.nombre}
+                        zona={zona}
+                      />
                     )}
                   </td>
                 </tr>

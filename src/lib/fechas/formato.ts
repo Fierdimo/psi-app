@@ -55,6 +55,42 @@ export function rangoHorario(inicioISO: string, finISO: string, zona: string) {
 }
 
 /**
+ * ¿La cita se sale de un solo día?
+ *
+ * Una sesión de empresa se reparte por persona, y cuando la tanda no cabe en
+ * una jornada sigue en las siguientes. La cita queda entonces con el `starts_at`
+ * del primero y el `ends_at` del último, que pueden ser lunes y miércoles.
+ */
+export function abarcaVariosDias(
+  inicioISO: string,
+  finISO: string,
+  zona: string,
+) {
+  return !enZona(inicioISO, zona).hasSame(enZona(finISO, zona), "day");
+}
+
+/**
+ * «24 – 26 de agosto», o la fecha larga si todo cae el mismo día.
+ *
+ * NO se combina con `rangoHorario`. Para una sesión repartida en tres días,
+ * «08:00 – 11:00» no es su horario: es la hora del primero del lunes y la del
+ * último del miércoles, y leerlo junto hace pensar en una cita de tres horas.
+ * Cuando abarca varios días, la hora que importa es la de cada persona.
+ */
+export function rangoDeFechas(inicioISO: string, finISO: string, zona: string) {
+  const inicio = enZona(inicioISO, zona);
+  const fin = enZona(finISO, zona);
+
+  if (!abarcaVariosDias(inicioISO, finISO, zona)) {
+    return fechaLarga(inicioISO, zona);
+  }
+
+  return inicio.month === fin.month
+    ? `${inicio.day} – ${fin.day} de ${inicio.toFormat("LLLL")}`
+    : `${inicio.toFormat("d 'de' LLL")} – ${fin.toFormat("d 'de' LLL")}`;
+}
+
+/**
  * Distancia en lenguaje natural: «en 6 días», «mañana», «hace 2 semanas».
  *
  * Se calcula sobre el inicio del día, no sobre el instante: si son las 23:00

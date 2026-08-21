@@ -41,6 +41,90 @@ export async function franjasDelDia(
 }
 
 /**
+ * Las rejillas de varios días, indexadas por día.
+ *
+ * `franjasDelDia` sirve mientras la tanda cabe en una jornada. En cuanto se
+ * reparte, cada persona necesita elegir entre las horas de SU día, y eso son
+ * dos o tres rejillas vivas a la vez. Pedirlas de una en una son N llamadas
+ * para una sola pregunta, y la lista parpadea mientras van llegando.
+ *
+ * Se devuelven agrupadas porque así es como se usan: el desplegable de cada
+ * fila busca la de su día, no recorre una lista plana filtrando.
+ */
+export async function franjasDeDias(
+  dias: string[],
+  zona: string,
+  excepto?: string,
+): Promise<Record<string, Franja[]>> {
+  await exigirProfesional();
+
+  if (dias.length === 0) return {};
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("franjas_de_dias", {
+    p_dias: dias,
+    p_zona: zona,
+    p_excepto: excepto ?? null,
+  });
+
+  if (error) return {};
+
+  const porDia: Record<string, Franja[]> = {};
+
+  for (const f of (data ?? []) as (Franja & { dia: string })[]) {
+    (porDia[f.dia] ??= []).push({
+      inicio: f.inicio,
+      fin: f.fin,
+      ocupada: f.ocupada,
+    });
+  }
+
+  /*
+   * Los días sin rejilla existen y valen «vacío», no «todavía no ha llegado».
+   *
+   * Un sábado no devuelve filas, así que sin esto su clave faltaría y la
+   * pantalla lo trataría como cargando: el desplegable se quedaría en «…» para
+   * siempre en vez de decir que ese día no se atiende.
+   */
+  for (const d of dias) porDia[d] ??= [];
+
+  return porDia;
+}
+
+/**
+ * Los próximos huecos libres, saltando de día cuando el día se acaba.
+ *
+ * `franjasDelDia` responde «qué queda el martes». Con quince convocados y una
+ * jornada de ocho bloques la pregunta es otra —«dame quince huecos, ya me dirás
+ * tú en qué días caen»— y resolverla pidiendo un día tras otro son N viajes al
+ * servidor y N rejillas enteras descartadas.
+ *
+ * Se piden EXACTAMENTE los que faltan, y a partir del final del plan actual:
+ * así ninguno puede chocar con alguien ya colocado, sin tener que mandar el
+ * plan entero para que el servidor lo esquive.
+ */
+export async function huecosSeguidos(
+  desde: string,
+  cuantos: number,
+  zona: string,
+  excepto?: string,
+): Promise<{ inicio: string; fin: string }[]> {
+  await exigirProfesional();
+
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.rpc("huecos_seguidos", {
+    p_desde: desde,
+    p_cuantos: cuantos,
+    p_zona: zona,
+    p_excepto: excepto ?? null,
+  });
+
+  if (error) return [];
+
+  return (data ?? []) as { inicio: string; fin: string }[];
+}
+
+/**
  * El plan del día, entero.
  *
  * Se manda completo y no como parche: quien no venga en la lista se queda sin

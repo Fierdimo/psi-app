@@ -12,7 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { Paginacion } from "@/components/navegacion/paginacion";
 import { exigirEmpresa } from "@/lib/auth/perfil";
-import { fechaLarga, rangoHorario } from "@/lib/fechas/formato";
+import {
+  abarcaVariosDias,
+  fechaLarga,
+  rangoDeFechas,
+  rangoHorario,
+} from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 /**
@@ -121,6 +126,15 @@ export async function ListadoDeSesiones({ pagina = 1 }: { pagina?: number }) {
               texto: s.status,
               tone: "neutral" as const,
             };
+            /*
+             * Una tanda que no cupo en un día no tiene «un horario».
+             *
+             * `starts_at` y `ends_at` son el primero y el último de la tanda.
+             * Con el reparto en tres días, «lunes 24 · 08:00 – 11:00» dice dos
+             * cosas falsas de una sesión que va de lunes a miércoles.
+             */
+            const enVariosDias = abarcaVariosDias(s.starts_at, s.ends_at, zona);
+
             return (
               <li key={s.id}>
                 {/*
@@ -141,10 +155,14 @@ export async function ListadoDeSesiones({ pagina = 1 }: { pagina?: number }) {
                 >
                   <div className="flex flex-col gap-1">
                     <p className="text-text-strong font-medium">
-                      {fechaLarga(s.starts_at, zona)}
+                      {enVariosDias
+                        ? rangoDeFechas(s.starts_at, s.ends_at, zona)
+                        : fechaLarga(s.starts_at, zona)}
                     </p>
                     <p className="text-text-muted tabular text-sm">
-                      {rangoHorario(s.starts_at, s.ends_at, zona)}
+                      {enVariosDias
+                        ? "Cada persona tiene su día y su hora"
+                        : rangoHorario(s.starts_at, s.ends_at, zona)}
                     </p>
                     {s.patient_note && (
                       <p className="text-text-body max-w-[62ch] pt-1 text-sm">

@@ -32,11 +32,13 @@ import {
   type CitaConPaciente,
 } from "@/lib/citas/estados";
 import {
+  abarcaVariosDias,
   ahoraEn,
   capitalizar,
   distanciaEnDias,
   enZona,
   fechaCompleta,
+  rangoDeFechas,
   rangoHorario,
 } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -177,6 +179,25 @@ export default async function CitaProfesionalPage({
   const fechaDeLaSesion = enZona(cita.starts_at, zona).toISODate()!;
   const horaDeLaSesion = enZona(cita.starts_at, zona).toFormat("HH:mm");
 
+  /*
+   * Una sesión repartida en varios días no tiene «un horario».
+   *
+   * `starts_at` y `ends_at` son el primero y el último de la tanda, así que
+   * con el reparto en tres días valen lunes 08:00 y miércoles 11:00. Escritos
+   * como «lunes 24 · 08:00 – 11:00» describen una cita de tres horas que no
+   * existe: la hora de verdad es la de cada persona, y está en el reparto.
+   */
+  const enVariosDias = abarcaVariosDias(cita.starts_at, cita.ends_at, zona);
+
+  /** Los días distintos en los que hay alguien citado. */
+  const jornadas = [
+    ...new Set(
+      reparto
+        .filter((r) => r.starts_at)
+        .map((r) => enZona(r.starts_at!, zona).toISODate()!),
+    ),
+  ];
+
   const organizable =
     deEmpresa &&
     ["solicitada", "reprogramacion_solicitada", "confirmada"].includes(
@@ -196,7 +217,11 @@ export default async function CitaProfesionalPage({
       <Card edge="shadow" accent className="flex flex-col gap-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-h2">
-            {capitalizar(fechaCompleta(cita.starts_at, zona))}
+            {capitalizar(
+              enVariosDias
+                ? rangoDeFechas(cita.starts_at, cita.ends_at, zona)
+                : fechaCompleta(cita.starts_at, zona),
+            )}
           </h1>
           <Badge tone={aspecto.tono}>{aspecto.etiqueta}</Badge>
         </div>
@@ -218,9 +243,16 @@ export default async function CitaProfesionalPage({
           </Dato>
 
           <Dato icono={Clock}>
-            <span className="tabular text-lg">
-              {rangoHorario(cita.starts_at, cita.ends_at, zona)}
-            </span>
+            {enVariosDias ? (
+              <span className="text-lg">
+                {reparto.filter((r) => r.starts_at).length} personas repartidas
+                en {jornadas.length} jornadas
+              </span>
+            ) : (
+              <span className="tabular text-lg">
+                {rangoHorario(cita.starts_at, cita.ends_at, zona)}
+              </span>
+            )}
             <span className="text-text-muted ml-2 text-sm">
               {distanciaEnDias(cita.starts_at, zona)}
             </span>
@@ -284,9 +316,14 @@ export default async function CitaProfesionalPage({
         {deEmpresa && organizable && (
           <div className="border-line flex flex-col gap-3 border-t pt-5">
             <div className="flex flex-col gap-1">
-              <h2 className="text-h4">Organizar el día</h2>
+              <h2 className="text-h4">
+                {esPendiente(cita.status)
+                  ? "Organiza el día y responde"
+                  : "Organizar el día"}
+              </h2>
               <p className="text-text-muted text-sm">
-                Elige a qué hora empieza el primero; el resto va detrás.
+                Elige a qué hora empieza el primero; el resto va detrás. Si la
+                tanda no cabe en el día, continúa en los siguientes.
               </p>
             </div>
 
@@ -295,6 +332,8 @@ export default async function CitaProfesionalPage({
               convocados={reparto}
               fechaInicial={fechaDeLaSesion}
               horaInicial={horaDeLaSesion}
+              inicioPropuesto={cita.starts_at}
+              pendiente={esPendiente(cita.status)}
               zona={zona}
             />
           </div>
@@ -315,7 +354,16 @@ export default async function CitaProfesionalPage({
           </div>
         )}
 
-        {esPendiente(cita.status) && (
+        {/*
+          Solo cuando NO hay tablero.
+
+          Con tablero, confirmar y rechazar viven dentro de él —junto al
+          horario que confirmar guarda— y repetirlos aquí daría dos botones de
+          «Confirmar» en la misma pantalla, uno de los cuales no guardaría el
+          reparto. Para una cita de una persona no hay tablero y este es el
+          único sitio donde se responde.
+        */}
+        {esPendiente(cita.status) && !(deEmpresa && organizable) && (
           <div className="border-line border-t pt-5">
             <AccionesSolicitud citaId={cita.id} />
           </div>

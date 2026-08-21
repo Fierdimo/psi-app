@@ -12,9 +12,11 @@ import { ListadoDeSesiones } from "@/components/empresa/listado-de-sesiones";
 import { PaginaConPanel } from "@/components/navegacion/pagina-con-panel";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import {
+  abarcaVariosDias,
   ahoraEn,
   capitalizar,
   fechaLarga,
+  rangoDeFechas,
   rangoHorario,
 } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -83,6 +85,25 @@ export async function ContenidoDeSesion({
   const repartible =
     sesion.status === "confirmada" || sesion.status === "realizada";
 
+  /*
+   * Cuándo es, sabiendo que puede no ser un solo día.
+   *
+   * El profesional reparte por persona, y una tanda que no cabe en su jornada
+   * continúa en las siguientes. Aquí se escribía siempre «lunes 24 de agosto ·
+   * 08:00 – 11:00», que para una sesión de lunes a miércoles es falso dos
+   * veces: ni es solo el lunes, ni son tres horas. La empresa es quien avisa a
+   * su gente; leer eso y reenviarlo es mandar a doce personas el día que no es.
+   */
+  const enVariosDias = abarcaVariosDias(
+    sesion.starts_at,
+    sesion.ends_at,
+    perfil.timezone,
+  );
+
+  const cuando = enVariosDias
+    ? `${capitalizar(rangoDeFechas(sesion.starts_at, sesion.ends_at, perfil.timezone))} · cada persona tiene su hora`
+    : `${capitalizar(fechaLarga(sesion.starts_at, perfil.timezone))} · ${rangoHorario(sesion.starts_at, sesion.ends_at, perfil.timezone)}`;
+
   return (
     <Pantalla>
       <EncabezadoPagina
@@ -97,8 +118,7 @@ export async function ContenidoDeSesion({
                * quien tiene que avisar a su gente, y esa es la primera cosa
                * que necesita copiar en el mensaje.
                */
-              `${capitalizar(fechaLarga(sesion.starts_at, perfil.timezone))} · ${rangoHorario(sesion.starts_at, sesion.ends_at, perfil.timezone)}` +
-              (sesion.location ? ` · ${sesion.location}` : "")
+              cuando + (sesion.location ? ` · ${sesion.location}` : "")
             : "Puedes cambiar la fecha y a quién convocas mientras el profesional no la haya respondido."
         }
       />
@@ -119,8 +139,13 @@ export async function ContenidoDeSesion({
           {repartible && (
             <PasesDeSesion
               citaId={sesion.id}
+              zona={perfil.timezone}
               titulo="Pases de acceso de esta sesión"
-              nota="Entrégale a cada persona el suyo, y solo el suyo: quien tenga el enlace puede entrar como ella. Están listos desde que el profesional confirmó la sesión."
+              nota={
+                enVariosDias
+                  ? "Entrégale a cada persona el suyo, y solo el suyo: quien tenga el enlace puede entrar como ella. Esta tanda no cabía en un día, así que cada quien tiene SU fecha además de su hora: está escrita junto a su nombre y va incluida al copiar la lista."
+                  : "Entrégale a cada persona el suyo, y solo el suyo: quien tenga el enlace puede entrar como ella. Están listos desde que el profesional confirmó la sesión."
+              }
             />
           )}
 

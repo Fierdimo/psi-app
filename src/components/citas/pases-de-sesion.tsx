@@ -17,10 +17,13 @@ import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
  */
 export async function PasesDeSesion({
   citaId,
+  zona,
   titulo,
   nota,
 }: {
   citaId: string;
+  /** La de la consulta. Ver la nota en `EnlacesDeAcceso`. */
+  zona: string;
   titulo?: string;
   nota?: string;
 }) {
@@ -76,5 +79,12 @@ export async function PasesDeSesion({
     sinPase: !f.token,
   }));
 
-  return <EnlacesDeAcceso enlaces={enlaces} titulo={titulo} nota={nota} />;
+  return (
+    <EnlacesDeAcceso
+      enlaces={enlaces}
+      zona={zona}
+      titulo={titulo}
+      nota={nota}
+    />
+  );
 }

@@ -20,10 +20,22 @@ import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
  */
 export function EnlacesDeAcceso({
   enlaces,
+  zona,
   titulo = "Enlaces de acceso, por si hay que entregarlos a mano",
   nota,
 }: {
   enlaces: readonly EnlaceDeAcceso[];
+  /**
+   * La zona de la CONSULTA, obligatoria.
+   *
+   * Aquí se formateaba sin zona, así que salía la del equipo de quien mirara.
+   * Con todas las citas dentro de una mañana el desfase era llamativo y se
+   * detectaba; desde que una tanda se reparte en varios días, además CAMBIA EL
+   * DÍA —una cita de las 08:00 en Bogotá vista desde un equipo en UTC−7 es «dom
+   * 23» en vez de «lun 24»— y eso ya no se detecta: es una fecha verosímil,
+   * escrita al lado del enlace que se le manda a la persona.
+   */
+  zona: string;
   titulo?: string;
   nota?: string;
 }) {
@@ -49,7 +61,7 @@ export function EnlacesDeAcceso({
     .map(
       (e) =>
         `${e.nombre}${e.correo ? ` (${e.correo})` : ""}` +
-        (e.hora ? ` — ${horaDe(e.hora)}` : "") +
+        (e.hora ? ` — ${horaDe(e.hora, zona)}` : "") +
         `\n${e.enlace}`,
     )
     .join("\n\n");
@@ -114,7 +126,7 @@ export function EnlacesDeAcceso({
               <span className="text-text-muted flex min-w-0 items-baseline gap-1.5 text-xs">
                 {e.hora && (
                   <span className="text-text-body tabular shrink-0 font-medium">
-                    {horaDe(e.hora)}
+                    {horaDe(e.hora, zona)}
                   </span>
                 )}
                 <span className="truncate">{e.correo}</span>
@@ -430,8 +442,8 @@ async function comoImagen(valor: string, nombre: string): Promise<Blob> {
   );
 }
 
-/** La hora de la cita, en la zona de quien la lee. */
-function horaDe(iso: string) {
+/** «lun, 24 ago 08:00», siempre en la zona de la consulta. */
+function horaDe(iso: string, zona: string) {
   return new Date(iso).toLocaleString("es-CO", {
     weekday: "short",
     day: "numeric",
@@ -439,5 +451,6 @@ function horaDe(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: zona,
   });
 }

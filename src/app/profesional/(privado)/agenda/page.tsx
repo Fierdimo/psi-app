@@ -15,6 +15,7 @@ import {
   titularDeCita,
   type CitaConPaciente,
 } from "@/lib/citas/estados";
+import { porJornadas, type Jornada } from "@/lib/citas/jornadas";
 import {
   ahoraEn,
   esVista,
@@ -57,21 +58,62 @@ export default async function AgendaPage({
 
   const supabase = await crearClienteServidor();
 
-  const [{ data: delPeriodo }, { data: pendientes }] = await Promise.all([
-    supabase
-      .from("appointments")
-      .select(SELECT_DE_CITA)
-      .gte("starts_at", intervalo.start!.toUTC().toISO()!)
-      .lte("starts_at", intervalo.end!.toUTC().toISO()!)
-      .order("starts_at"),
-    supabase
-      .from("appointments")
-      .select(SELECT_DE_CITA)
-      .in("status", ["solicitada", "reprogramacion_solicitada"])
-      .order("starts_at"),
-  ]);
+  const desdeISO = intervalo.start!.toUTC().toISO()!;
+  const hastaISO = intervalo.end!.toUTC().toISO()!;
 
-  const citas = (delPeriodo ?? []) as unknown as CitaConPaciente[];
+  const [{ data: delPeriodo }, { data: pendientes }, { data: porJornada }] =
+    await Promise.all([
+      supabase
+        .from("appointments")
+        .select(SELECT_DE_CITA)
+        .gte("starts_at", desdeISO)
+        .lte("starts_at", hastaISO)
+        .order("starts_at"),
+      supabase
+        .from("appointments")
+        .select(SELECT_DE_CITA)
+        .in("status", ["solicitada", "reprogramacion_solicitada"])
+        .order("starts_at"),
+      /*
+       * En qué días hay gente citada, según la hora de CADA persona.
+       *
+       * La consulta de arriba filtra por `starts_at` de la cita, que en una
+       * sesión repartida es la hora del primero de la tanda. Mirando la semana
+       * del miércoles, una sesión que arrancó el lunes no entra por ahí, y sus
+       * convocados del miércoles desaparecían de la agenda.
+       */
+      supabase.rpc("jornadas_de_sesion", {
+        p_desde: desdeISO,
+        p_hasta: hastaISO,
+        p_zona: zona,
+      }),
+    ]);
+
+  const jornadas = (porJornada ?? []) as Jornada[];
+  const enElPeriodo = (delPeriodo ?? []) as unknown as CitaConPaciente[];
+
+  /*
+   * Las sesiones que asoman en este periodo pero empezaron fuera de él.
+   *
+   * Solo hace falta un viaje más cuando de verdad hay alguna: en una agenda
+   * sin tandas repartidas, este arreglo no cuesta nada.
+   */
+  const rezagadas = [...new Set(jornadas.map((j) => j.appointment_id))].filter(
+    (id) => !enElPeriodo.some((c) => c.id === id),
+  );
+
+  const { data: deFuera } = rezagadas.length
+    ? await supabase
+        .from("appointments")
+        .select(SELECT_DE_CITA)
+        .in("id", rezagadas)
+    : { data: null };
+
+  const citas = porJornadas(
+    [...enElPeriodo, ...((deFuera ?? []) as unknown as CitaConPaciente[])],
+    jornadas,
+  );
+
   const solicitudes = (pendientes ?? []) as unknown as CitaConPaciente[];
 
   return (

@@ -18,9 +18,12 @@ import type { EnlaceDeAcceso } from "@/lib/validacion/auth";
 export function BotonPase({
   persona,
   nombre,
+  zona,
 }: {
   persona: string;
   nombre: string;
+  /** La de la consulta. Ver la nota en `EnlacesDeAcceso`. */
+  zona: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [pase, setPase] = useState<EnlaceDeAcceso | null>(null);
@@ -101,6 +104,7 @@ export function BotonPase({
               ) : pase ? (
                 <EnlacesDeAcceso
                   enlaces={[pase]}
+                  zona={zona}
                   titulo="Su enlace de entrada"
                   nota="El mismo que le llega por correo. Enséñale el QR y que lo escanee con su teléfono, o cópiaselo."
                 />

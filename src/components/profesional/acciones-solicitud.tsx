@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Dialogo } from "@/components/ui/dialogo";
 import { Field } from "@/components/ui/field";
 import {
   cerrarCita,
@@ -19,10 +20,16 @@ const INICIAL: EstadoFormulario = { ok: false };
 /**
  * Confirmar o rechazar una solicitud.
  *
- * Confirmar es un clic: es la respuesta habitual y la que no tiene vuelta
- * atrás desagradable. Rechazar abre un campo de motivo, porque el paciente va
- * a recibir un correo y «no» a secas, sin explicación, es innecesariamente
- * frío en este contexto.
+ * Las dos pasan por un diálogo. Confirmar ERA un clic —«es la respuesta
+ * habitual», decía aquí— y eso es cierto y es justo el problema: en una bandeja
+ * con seis solicitudes, los botones caen todos en la misma vertical y el que
+ * está bajo el cursor cambia al desplazarse. Confirmar manda un correo y abre
+ * los accesos; rechazar dice que no a algo que costó preparar. Ninguna de las
+ * dos se deshace.
+ *
+ * El motivo del rechazo vive dentro de su diálogo, así que sigue habiendo dos
+ * pasos y no tres: el campo que antes sustituía a los botones ahora se pide
+ * junto a la pregunta.
  */
 export function AccionesSolicitud({
   citaId,
@@ -47,64 +54,28 @@ export function AccionesSolicitud({
     rechazarCita,
     INICIAL,
   );
-  const [rechazando_abierto, setRechazandoAbierto] = useState(false);
+  /** Cuál de los dos diálogos está abierto, si alguno. */
+  const [decidiendo, setDecidiendo] = useState<"confirmar" | "rechazar" | null>(
+    null,
+  );
 
   const error =
     (!estadoConfirmar.ok && estadoConfirmar.mensaje) ||
     (!estadoRechazar.ok && estadoRechazar.mensaje);
-
-  if (rechazando_abierto) {
-    return (
-      <form action={rechazar} className="flex flex-col gap-3">
-        <input type="hidden" name="cita" value={citaId} />
-        {error && <Alert tone="danger" title={error} />}
-
-        <Field
-          id={`motivo-${citaId}`}
-          name="motivo"
-          label="Motivo"
-          optional
-          help="Se incluirá en el correo al paciente."
-          error={estadoRechazar.errores?.motivo}
-        />
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="submit"
-            size="sm"
-            variant="destructive"
-            loading={rechazando ? "Rechazando…" : undefined}
-          >
-            Rechazar solicitud
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => setRechazandoAbierto(false)}
-          >
-            Volver
-          </Button>
-        </div>
-      </form>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-3">
       {error && <Alert tone="danger" title={error} />}
 
       <div className="flex flex-wrap gap-2">
-        <form action={confirmar}>
-          <input type="hidden" name="cita" value={citaId} />
-          <Button
-            type="submit"
-            size="sm"
-            loading={confirmando ? "Confirmando…" : undefined}
-          >
-            Confirmar
-          </Button>
-        </form>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => setDecidiendo("confirmar")}
+          loading={confirmando ? "Confirmando…" : undefined}
+        >
+          Confirmar
+        </Button>
 
         {organizar && (
           <Link
@@ -117,13 +88,76 @@ export function AccionesSolicitud({
         )}
 
         <Button
+          type="button"
           size="sm"
           variant="secondary"
-          onClick={() => setRechazandoAbierto(true)}
+          onClick={() => setDecidiendo("rechazar")}
         >
           Rechazar
         </Button>
       </div>
+
+      <Dialogo
+        abierto={decidiendo === "confirmar"}
+        titulo="¿Confirmar la cita?"
+        aceptar="Sí, confirmar"
+        aceptando={confirmando ? "Confirmando…" : undefined}
+        formulario={`confirmar-solicitud-${citaId}`}
+        onCerrar={() => setDecidiendo(null)}
+      >
+        <p>
+          Quien la pidió recibirá un aviso por correo y la verá confirmada en su
+          calendario.
+        </p>
+
+        {/*
+          El aviso solo donde hay tablero.
+          
+          Desde aquí se confirma sin haber repartido las horas, y para una
+          sesión de empresa eso es legítimo pero conviene saberlo: la gente
+          queda convocada y sin hora hasta que se organice el día.
+        */}
+        {organizar && (
+          <p className="text-text-muted">
+            Si no has organizado el día, los convocados quedarán sin hora. Se
+            les puede citar después desde la sesión.
+          </p>
+        )}
+
+        <form id={`confirmar-solicitud-${citaId}`} action={confirmar}>
+          <input type="hidden" name="cita" value={citaId} />
+        </form>
+      </Dialogo>
+
+      <Dialogo
+        abierto={decidiendo === "rechazar"}
+        titulo="¿Rechazar la solicitud?"
+        aceptar="Sí, rechazar"
+        aceptando={rechazando ? "Rechazando…" : undefined}
+        variante="destructive"
+        formulario={`rechazar-solicitud-${citaId}`}
+        onCerrar={() => setDecidiendo(null)}
+      >
+        <p>Quien la pidió recibirá un correo diciendo que no.</p>
+
+        <form
+          id={`rechazar-solicitud-${citaId}`}
+          action={rechazar}
+          className="flex flex-col gap-3"
+        >
+          <input type="hidden" name="cita" value={citaId} />
+          {/* «No» a secas, sin explicación, es innecesariamente frío en este
+              contexto. */}
+          <Field
+            id={`motivo-${citaId}`}
+            name="motivo"
+            label="Motivo"
+            optional
+            help="Se incluirá en el correo."
+            error={estadoRechazar.errores?.motivo}
+          />
+        </form>
+      </Dialogo>
     </div>
   );
 }

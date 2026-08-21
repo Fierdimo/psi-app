@@ -57,6 +57,7 @@ function mensajeDeError(error: { message: string; hint?: string | null }) {
 
 function refrescar() {
   revalidatePath("/profesional/agenda");
+  revalidatePath("/profesional/solicitudes");
   revalidatePath("/profesional/pacientes");
   // El paciente ve el cambio de estado en su propio calendario.
   revalidatePath("/calendario");
@@ -72,6 +73,38 @@ export async function confirmarCita(
 
   await exigirProfesional();
   const supabase = await crearClienteServidor();
+
+  /*
+   * El horario se guarda AL CONFIRMAR, si viene.
+   *
+   * Eran dos botones y dos pasos, en el orden equivocado: se podía confirmar
+   * con el tablero lleno de horas sin guardar, y entonces a la empresa le
+   * llegaba el correo de una sesión cuyos convocados no tenían hora. El
+   * reparto es parte de la respuesta a la solicitud, no algo que se hace
+   * después y por separado.
+   *
+   * Y va PRIMERO: si el reparto choca con algo, no se confirma. Al revés se
+   * habría aceptado la sesión y avisado a la empresa de un horario que la base
+   * acaba de rechazar.
+   */
+  const crudo = formData.get("reparto");
+
+  if (typeof crudo === "string" && crudo !== "") {
+    let reparto: { persona: string; inicio: string }[];
+
+    try {
+      reparto = JSON.parse(crudo);
+    } catch {
+      return { ok: false, mensaje: "El reparto no se pudo leer." };
+    }
+
+    const { error: alRepartir } = await supabase.rpc("organizar_sesion", {
+      p_appointment_id: datos.data.cita,
+      p_reparto: reparto,
+    });
+
+    if (alRepartir) return { ok: false, mensaje: mensajeDeError(alRepartir) };
+  }
 
   const { error } = await supabase.rpc("confirmar_cita", {
     p_appointment_id: datos.data.cita,

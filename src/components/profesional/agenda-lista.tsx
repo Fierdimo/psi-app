@@ -2,12 +2,8 @@ import Link from "next/link";
 
 import { AccionesCierre } from "./acciones-solicitud";
 import { Badge } from "@/components/ui/badge";
-import {
-  ASPECTO,
-  MODALIDAD,
-  titularDeCita,
-  type CitaConPaciente,
-} from "@/lib/citas/estados";
+import { ASPECTO, MODALIDAD, titularDeCita } from "@/lib/citas/estados";
+import type { CitaEnJornada } from "@/lib/citas/jornadas";
 import { capitalizar, enZona, rangoHorario } from "@/lib/fechas/formato";
 
 /**
@@ -27,7 +23,7 @@ export function AgendaLista({
   zona,
   ahoraISO,
 }: {
-  citas: CitaConPaciente[];
+  citas: CitaEnJornada[];
   zona: string;
   ahoraISO: string;
 }) {
@@ -39,7 +35,7 @@ export function AgendaLista({
     );
   }
 
-  const porDia = new Map<string, CitaConPaciente[]>();
+  const porDia = new Map<string, CitaEnJornada[]>();
   for (const cita of citas) {
     const clave = enZona(cita.starts_at, zona).toISODate()!;
     porDia.set(clave, [...(porDia.get(clave) ?? []), cita]);
@@ -58,8 +54,18 @@ export function AgendaLista({
           <ul className="border-line divide-line bg-panel divide-y rounded-lg border">
             {delDia.map((cita) => {
               const aspecto = ASPECTO[cita.status];
+              /*
+               * Solo en la ÚLTIMA jornada de la sesión.
+               *
+               * «Asistió / no asistió» cierra la sesión entera. Una tanda
+               * repartida de lunes a miércoles aparece los tres días, y ofrecer
+               * el cierre el lunes es darla por terminada con doce personas sin
+               * pasar todavía.
+               */
               const porCerrar =
-                cita.status === "confirmada" && cita.ends_at < ahoraISO;
+                cita.status === "confirmada" &&
+                cita.ends_at < ahoraISO &&
+                cita.jornadaFinal !== false;
 
               return (
                 <li

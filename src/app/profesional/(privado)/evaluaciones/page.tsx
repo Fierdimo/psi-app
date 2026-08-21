@@ -303,7 +303,7 @@ export default async function EvaluacionesPage({
         )
       ) : (
         <div className="flex flex-col gap-3">
-          <TablaEvaluaciones filas={filas} />
+          <TablaEvaluaciones filas={filas} zona={zona} />
 
           <Paginacion
             pagina={pagina}
