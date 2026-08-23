@@ -90,17 +90,24 @@ insert into public.appointment_attendees (appointment_id, person_id) values
   ('22222222-0000-4000-8000-000000000002', 'eeee2222-0000-4000-8000-000000000002'),
   ('22222222-0000-4000-8000-000000000002', 'eeee4444-0000-4000-8000-000000000004');
 
--- La cédula, y no el correo, es lo que impide duplicar a una persona dentro de
--- una misma empresa: con otro correo pasaría desapercibida. Se comprueba aquí,
--- durante el montaje, porque más abajo ya no hay privilegios de escritura.
-select throws_ok(
+-- LA CÉDULA DEJÓ DE IMPEDIR NADA (migración 0054).
+--
+-- Hasta el giro a evaluaciones descartables, esta comprobación era la
+-- contraria: la misma cédula dos veces en una empresa daba 23505. Aquella
+-- regla existía para poder reconocer a una persona entre empresas y enlazarla
+-- a su cuenta. Ya no hay cuentas que enlazar —quien responde no es usuario de
+-- la plataforma— y la regla estorbaba al caso real: la misma persona evaluada
+-- dos veces por la misma empresa, en enero como aspirante y en junio como
+-- empleada, son dos evaluaciones con dos informes.
+--
+-- Se comprueba aquí, durante el montaje, porque más abajo ya no hay
+-- privilegios de escritura.
+select lives_ok(
   format(
     'insert into public.organization_people (organization_id, nombre, documento, email)
-     values (%L, ''Duplicado'', ''1047373301'', ''otro@acme.test'')', :'acme'
+     values (%L, ''Repetida'', ''1047373301'', ''otro@acme.test'')', :'acme'
   ),
-  '23505',
-  null,
-  'No se puede cargar dos veces la misma cédula en una empresa, aunque cambie el correo'
+  'La misma cédula puede repetirse en una empresa: cada ficha es de una evaluación'
 );
 
 -- Pero la misma cédula SÍ puede estar en dos empresas distintas: es la misma
@@ -160,10 +167,11 @@ select is(
   'Acme ve a sus dos convocados, incluido el que aún no tiene cuenta'
 );
 
--- Acme cargó dos personas; la tercera del fixture es de Globex.
+-- Tres fichas de Acme —dos del fixture más la repetida de arriba—; las de
+-- Globex no se cuentan, que es lo que esta comprobación persigue.
 select is(
   (select count(*)::int from public.organization_people),
-  2,
+  3,
   'Acme ve su listado completo, y NADA del listado de Globex'
 );
 

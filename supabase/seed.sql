@@ -37,6 +37,16 @@ grant delete on public.appointment_changes to service_role;
 -- clave de servicio; toda alta pasa por sus funciones.
 grant insert, delete on public.invitations to service_role;
 grant insert, delete on public.organization_people to service_role;
+-- El circuito de usos: las pruebas necesitan dejar a la empresa sin saldo y
+-- sin solicitudes antes de cada ejecución. El libro se borra ANTES que las
+-- órdenes —los movimientos las referencian con `on delete restrict`— y ese
+-- orden lo impone la base, no una convención.
+--
+-- En producción estas dos tablas siguen sin escritura por clave de servicio:
+-- toda carga pasa por `autorizar_usos` y todo consumo por
+-- `solicitar_evaluacion`, que es lo que hace que el saldo sea auditable.
+grant select, insert, update, delete on public.ticket_orders to service_role;
+grant select, insert, delete on public.ticket_ledger to service_role;
 -- Lectura del instrumento fuera de la aplicación, para poder comprobar la
 -- calificación con los datos REALES en vez de con un instrumento inventado.
 -- Sirvió para encontrar el recorte de 1000 filas de PostgREST: la pantalla

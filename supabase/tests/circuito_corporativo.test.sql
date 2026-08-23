@@ -12,7 +12,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(21);
+select plan(18);
 
 delete from public.appointment_changes;
 delete from public.appointment_attendees;
@@ -77,27 +77,18 @@ select is(
   'Acme carga tres personas de una sola vez'
 );
 
--- Volver a cargar corrige, no duplica: una empresa que sube su nómina revisada
--- no debería tener que borrar nada primero.
-select is(
-  public.cargar_personas('[
-    {"documento":"111","nombre":"Ana María","email":"anamaria@acme.test","cargo":"Jefa de bodega"}
-  ]'::jsonb),
-  1,
-  'Volver a cargar a la misma cédula actualiza sus datos'
-);
-
-select is(
-  (select count(*)::int from public.organization_people),
-  3,
-  'Siguen siendo tres personas, no cuatro'
-);
-
-select is(
-  (select email from public.organization_people where documento = '111'),
-  'anamaria@acme.test',
-  'Los datos quedaron actualizados'
-);
+-- AQUÍ HABÍA TRES COMPROBACIONES DEL UPSERT, y se retiran (migración 0054).
+--
+-- Comprobaban que volver a cargar la misma cédula CORREGÍA la ficha en vez de
+-- duplicarla, apoyándose en un `on conflict` contra `una_vez_por_empresa`. Esa
+-- restricción se retiró: con evaluaciones descartables, dos fichas de la misma
+-- cédula no son un error a corregir, son dos encargos distintos.
+--
+-- No se reescriben aquí porque este archivo prueba el CIRCUITO DE LA SESIÓN, y
+-- una ficha repetida vuelve ambiguas sus fixtures —hay varias consultas que
+-- resuelven una persona por su documento—. La regla nueva se prueba donde le
+-- corresponde: en `evaluacion_descartable.test.sql` («la misma persona se
+-- puede evaluar dos veces en la misma empresa») y en `organizaciones.test.sql`.
 
 select throws_ok(
   $$select public.cargar_personas('[{"nombre":"Sin Cédula","email":"x@acme.test"}]'::jsonb)$$,
