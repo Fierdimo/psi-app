@@ -468,7 +468,20 @@ actualiza el recorrido de demostración.
 | F5   | El corte                                 | M · 2–3 d |
 | F6   | Pruebas y cierre                         | M · 2–3 d |
 
-**Total: 16–23 días.** De ellos, **F1 a F4b están hechas**. Queda F5, el corte.
+**Total: 16–23 días.** De ellos, **F1 a F4b están hechas**, más 5.1 y media
+5.2 —el registro de empresa y el enrutado de las cuentas sin organización—.
+
+> **F5 y F6 quedan APARCADAS, no terminadas.** Se para aquí por decisión del
+> cliente: el circuito nuevo funciona de punta a punta y lo que falta es
+> retirada, no construcción. Lo que sigue en pie está inventariado arriba
+> —nueve directorios de rutas, `src/components/calendario/`, `src/lib/citas/`,
+> el enum con `paciente`, las tres columnas de `organization_people` y cinco
+> archivos de pruebas de la era del calendario—.
+>
+> **Consecuencia que conviene tener presente:** los tres fallos de
+> `profesional.spec.ts` que la suite arrastra desde antes de este trabajo viven
+> en el calendario y desaparecen con él. Mientras F6 no ocurra, la suite se
+> queda en 97 verdes y 3 rojos, y esos 3 no son una regresión.
 
 > **Estado de la suite de extremo a extremo, medido:** 90 en verde, 3 en rojo.
 > Las tres son de `profesional.spec.ts`, del circuito de citas, y **ya estaban

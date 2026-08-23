@@ -48,6 +48,35 @@ test.describe("Acceso público", () => {
     await expect(page).toHaveURL(/\/registro/);
   });
 
+  /*
+   * NINGUNA PUERTA DE REGISTRO PARA INDIVIDUOS.
+   *
+   * La franja de atención individual llevaba un «Crear mi cuenta» que hoy
+   * desemboca en el alta de una empresa: quien viene por sí mismo rellenaría
+   * el nombre de una organización que no tiene para descubrir al final que no
+   * era su sitio. Ese servicio sigue ofreciéndose; lo que se retiró es su
+   * puerta a la plataforma.
+   */
+  test("la landing no ofrece crear cuenta a una persona", async ({ page }) => {
+    await page.goto("/");
+
+    // Sigue estando el servicio…
+    await expect(
+      page.getByRole("heading", { name: /vienes por tu cuenta/i }),
+    ).toBeVisible();
+
+    // …y su único camino es hablar, no registrarse.
+    await expect(
+      page.getByRole("link", { name: /crear mi cuenta/i }),
+    ).toHaveCount(0);
+
+    // Todo enlace al registro dice para quién es.
+    const registros = page.locator('a[href="/registro"]');
+    for (let i = 0; i < (await registros.count()); i++) {
+      await expect(registros.nth(i)).toContainText(/empresa/i);
+    }
+  });
+
   test("la entrada de quien ya tiene cuenta está, y es discreta", async ({
     page,
   }) => {

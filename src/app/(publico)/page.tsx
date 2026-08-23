@@ -3,7 +3,6 @@ import {
   Check,
   ChevronDown,
   ClipboardCheck,
-  Compass,
   FileSearch,
   GraduationCap,
   LucideIcon,
@@ -11,9 +10,7 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  ShieldAlert,
   TrendingUp,
-  UserRound,
   UserSearch,
   Users,
 } from "lucide-react";
@@ -36,13 +33,19 @@ import { buttonVariants } from "@/components/ui/button";
  * por anclas: no hay más rutas públicas que las legales, así que la landing no
  * enlaza a nada que no exista.
  *
- * La consulta tiene dos mitades y solo una pasa por esta plataforma. El
- * acompañamiento a personas termina en «crear cuenta»; los servicios a
- * empresas se contratan por WhatsApp o correo y no generan paciente ni cita,
- * así que sus bloques rematan en contacto directo, nunca en registro. Esa
- * bifurcación se declara en el hero, antes que ningún catálogo: quien llega
- * buscando una consultoría no debería tener que leer sobre citas para
- * descubrir que se equivocó de puerta.
+ * QUIÉN CREA CUENTA AQUÍ: solo una empresa. Es la regla que ordena la página
+ * entera y la que cambió.
+ *
+ * Antes eran dos mitades con dos puertas: el acompañamiento a personas
+ * terminaba en «crear cuenta» y los servicios a empresas se contrataban
+ * hablando. Ahora es al revés de lo que parecía — la plataforma es para las
+ * evaluaciones que encarga una empresa, y TODO lo demás remata en contacto
+ * directo: los servicios de consultoría, que nunca pasaron por aquí, y la
+ * atención individual, que dejó de hacerlo.
+ *
+ * De ahí que solo haya un botón de registro y diga «de empresa». Un «crear mi
+ * cuenta» en la franja de atención individual llevaría a alguien a rellenar el
+ * nombre de una organización que no tiene.
  *
  * Deliberadamente ausentes:
  *  - Testimonios de pacientes. Además de éticamente delicado en psicología,
@@ -71,7 +74,7 @@ export const metadata: Metadata = {
   // el nombre del profesional ya es la marca.
   title: { absolute: `${PROFESIONAL.nombre} · ${PROFESIONAL.titulo}` },
   description:
-    "Acompañamiento psicológico para el bienestar laboral, selección y evaluación psicotécnica, y pruebas psicométricas. Espacio privado para consultar tus citas y gestionar tus datos.",
+    "Evaluación psicotécnica y pruebas psicométricas para empresas: selección, estudios de confiabilidad y formación. Encargas la evaluación desde tu cuenta y recibes el informe en cuanto la persona termina.",
   robots: { index: true, follow: true },
 };
 
@@ -83,7 +86,7 @@ const SECCIONES = [
   { id: "servicios", etiqueta: "Servicios" },
   { id: "como-funciona", etiqueta: "Cómo funciona" },
   { id: "pruebas", etiqueta: "Pruebas" },
-  { id: "personas", etiqueta: "Personas" },
+  { id: "personas", etiqueta: "Atención individual" },
   { id: "contacto", etiqueta: "Contacto" },
 ];
 
@@ -126,29 +129,35 @@ type Servicio = {
 /*
  * Los pasos, contados desde quien contrata.
  *
- * Los de antes hablaban de «tu cita» y «tu profesional»: eran los de un
- * paciente, y una empresa no viene a que la atiendan.
+ * Se reescriben enteros porque describían un producto que ya no existe:
+ * cargar un listado de personas identificadas por su documento, proponer día y
+ * hora para un grupo, y esperar a que cada informe se revisara antes de
+ * publicarlo. Hoy no hay listado, no hay fecha y el informe sale solo.
+ *
+ * Una landing que promete un procedimiento que no ocurre no es un texto
+ * desactualizado: es lo que hace que la primera experiencia con el producto sea
+ * un desmentido.
  */
 const PASOS_EMPRESA = [
   {
     titulo: "Creas la cuenta de tu empresa",
     cuerpo:
-      "Con tus datos de contacto. Por ahí resolvemos el trámite antes de fijar nada.",
+      "Con tu correo de contacto. Por ahí resolvemos el pago antes de que gastes nada.",
   },
   {
-    titulo: "Cargas a quién hay que evaluar",
+    titulo: "Compras usos",
     cuerpo:
-      "Aspirantes o gente de tu equipo. Se identifican por su documento, así que nadie se duplica.",
+      "Un uso es una evaluación. Pides los que necesites y se cargan a tu saldo en cuanto confirmo el pago.",
   },
   {
-    titulo: "Pides la sesión",
+    titulo: "Encargas una evaluación",
     cuerpo:
-      "Propones día y hora para todo el grupo. La confirmo cuando el trámite está resuelto, y cada persona recibe su acceso.",
+      "Un nombre y un correo. A esa persona le llega su enlace con un código QR, y responde cuando pueda.",
   },
   {
-    titulo: "Consultas los informes",
+    titulo: "Recibes el informe",
     cuerpo:
-      "Aparecen firmados, uno por persona. Antes de eso no existen: reviso cada resultado antes de publicarlo.",
+      "En cuanto termina de responder, sin esperas. Queda además en tu cuenta para consultarlo cuando quieras.",
   },
 ];
 
@@ -233,25 +242,19 @@ const PRUEBAS_EMPRESA: readonly Servicio[] = [
   },
 ];
 
-const PRUEBAS_PERSONA: readonly Servicio[] = [
-  {
-    icono: UserRound,
-    titulo: "Pruebas de personalidad",
-    cuerpo:
-      "Tus fortalezas, tus debilidades y tu estilo de comunicación: por qué reaccionas de cierta manera y cómo mejorar tus relaciones.",
-  },
-  {
-    icono: Compass,
-    titulo: "Orientación vocacional",
-    cuerpo:
-      "Identificar intereses, habilidades y valores para elegir una carrera que te apasione.",
-  },
-  {
-    icono: ShieldAlert,
-    titulo: "Evaluaciones clínicas",
-    cuerpo:
-      "Herramientas de autoevaluación, siempre con la guía de un profesional, para entender mejor tu estado emocional y de bienestar.",
-  },
+/*
+ * Lo que se ofrece a una persona que viene por su cuenta.
+ *
+ * SE QUEDA COMO SERVICIO Y SALE DE LA PLATAFORMA. La consulta individual
+ * existe y quien la busca merece encontrarla, pero ya no hay cuenta que crear
+ * ni cita que pedir: se contrata hablando, como los servicios de empresa que
+ * tampoco pasan por aquí. Por eso son títulos sueltos y no tarjetas con icono
+ * — dejaron de ser un catálogo con puerta propia.
+ */
+const ATENCION_INDIVIDUAL = [
+  "Acompañamiento para el bienestar laboral",
+  "Pruebas de personalidad",
+  "Orientación vocacional",
 ];
 
 const GARANTIAS = [
@@ -265,9 +268,14 @@ const GARANTIAS = [
       "Más allá del resultado: informes detallados con recomendaciones prácticas para el siguiente paso.",
   },
   {
+    /*
+     * Se dice qué NO se entrega, que es lo único que distingue una garantía de
+     * una declaración de buenas intenciones. «Los resultados son tuyos» no
+     * comprometía a nada.
+     */
     titulo: "Confidencialidad",
     cuerpo:
-      "Los resultados son tuyos y se entregan solo a quien deben entregarse.",
+      "Recibes el informe completo de cada persona. Lo que no sale de la consulta es su hoja de respuestas: qué marcó en cada pregunta no se entrega a nadie.",
   },
 ];
 
@@ -376,9 +384,9 @@ export default function LandingPage() {
 
               <p className="text-text-body max-w-[54ch] text-lg">
                 Selección, pruebas psicométricas y estudios de confiabilidad
-                para empresas, con informes firmados por un psicólogo
-                organizacional. Pides la sesión desde tu cuenta y consultas los
-                resultados ahí mismo.
+                para empresas. Encargas la evaluación desde tu cuenta con un
+                nombre y un correo, y el informe te llega en cuanto la persona
+                termina de responder.
               </p>
 
               {/*
@@ -550,9 +558,18 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-[1120px] px-5 py-14 sm:px-6 sm:py-20">
             <div className="flex max-w-[52ch] flex-col gap-3">
               <h2 className="text-h2 text-balance">Las pruebas que aplico</h2>
+              {/*
+                Decía «el informe lo firma él, no un algoritmo», y era la frase
+                más vendedora de la página. Dejó de ser cierta: el informe se
+                califica y se envía solo al terminar la prueba. Se cambia por lo
+                que sí lo es, que además vende otra cosa —rapidez— sin prometer
+                una firma que no ocurre.
+              */}
               <p className="text-text-body text-lg">
-                Instrumentos validados, aplicados y calificados por un
-                psicólogo. El informe lo firma él, no un algoritmo.
+                Instrumentos validados, elegidos e interpretados por un
+                psicólogo. El informe te llega en cuanto la persona termina, y
+                él puede revisarlo y corregirlo después: si lo hace, ves la
+                versión corregida.
               </p>
             </div>
 
@@ -610,13 +627,14 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================
-            Personas
+            Atención individual
 
-            Una franja, no un recorrido paralelo. La consulta individual sigue
-            existiendo y quien la busca la encuentra, pero dejar de darle el
-            mismo peso que a lo corporativo es lo que devuelve el hilo a la
-            página: antes los titulares alternaban entre las dos audiencias y
-            en móvil se perdía de qué iba cada cosa.
+            Una franja, no un recorrido paralelo, y SIN PUERTA A LA
+            PLATAFORMA. La consulta individual sigue existiendo y quien la
+            busca la encuentra, pero aquí llevaba un «Crear mi cuenta» que hoy
+            desemboca en el alta de una empresa: el peor final posible para
+            alguien que viene por sí mismo. Se contrata hablando, como los
+            servicios de empresa que tampoco pasan por la plataforma.
             ============================================================== */}
         <section id="personas" className="bg-bg scroll-mt-16">
           <div className="mx-auto w-full max-w-[1120px] px-5 py-14 sm:px-6 sm:py-20">
@@ -626,13 +644,13 @@ export default function LandingPage() {
                   ¿Vienes por tu cuenta, no por tu empresa?
                 </h2>
                 <p className="text-text-body">
-                  Acompañamiento para el bienestar laboral, orientación
-                  vocacional y pruebas de personalidad. Pides tu cita desde tu
-                  espacio privado y solo tú y el profesional ven lo que hay
-                  dentro.
+                  También atiendo a personas. No se agenda desde aquí: la
+                  plataforma es para las evaluaciones que encarga una empresa,
+                  así que esto se habla directamente y lo acomodamos a lo que
+                  necesites.
                 </p>
                 <ul className="text-text-body flex flex-col gap-1.5 text-sm">
-                  {PRUEBAS_PERSONA.map(({ titulo }) => (
+                  {ATENCION_INDIVIDUAL.map((titulo) => (
                     <li key={titulo} className="flex gap-2">
                       <Check
                         aria-hidden="true"
@@ -644,19 +662,30 @@ export default function LandingPage() {
                 </ul>
               </div>
 
+              {/*
+                Solo el canal directo.
+
+                Aquí había un «Crear mi cuenta» que hoy lleva al alta de una
+                EMPRESA: quien viene por sí mismo rellenaría el nombre de una
+                organización que no tiene para descubrir al final que no era
+                su sitio.
+              */}
               <div className="flex shrink-0 flex-col gap-3">
-                <Link href="/registro" className={buttonVariants()}>
-                  Crear mi cuenta
-                  <ArrowRight aria-hidden="true" className="size-4" />
-                </Link>
                 <a
                   href={ENLACE_WHATSAPP}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "secondary" })}
+                  className={buttonVariants()}
                 >
                   <MessageCircle aria-hidden="true" className="size-4" />
-                  Preguntar antes
+                  Escribir por WhatsApp
+                </a>
+                <a
+                  href={`mailto:${PROFESIONAL.correo}`}
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  <Mail aria-hidden="true" className="size-4" />
+                  Escribir un correo
                 </a>
               </div>
             </div>
@@ -677,8 +706,8 @@ export default function LandingPage() {
                   Cuéntame qué necesitas evaluar
                 </h2>
                 <p className="text-brand-200 max-w-[52ch] text-lg">
-                  Si ya sabes qué quieres, crea la cuenta y pide la sesión. Si
-                  prefieres consultarlo antes, escríbeme y lo hablamos.
+                  Si ya sabes qué quieres, crea la cuenta y pide tus primeros
+                  usos. Si prefieres consultarlo antes, escríbeme y lo hablamos.
                 </p>
 
                 <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
