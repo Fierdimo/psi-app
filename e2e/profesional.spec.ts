@@ -86,6 +86,16 @@ test.describe.serial("El circuito completo", () => {
     // 2. El profesional la encuentra en su bandeja y la confirma.
     await entrarComo(page, CUENTAS.profesional, "/profesional");
 
+    /*
+     * En la agenda, y hay que ir a propósito.
+     *
+     * El profesional ya no aterriza ahí: entra en «Solicitudes», que desde el
+     * giro son compras de usos y no citas. La bandeja de citas sigue viva en
+     * la agenda mientras el calendario exista, y ahí es donde esta prueba
+     * tiene que mirar.
+     */
+    await page.goto("/profesional/agenda");
+
     const bandeja = page.getByRole("heading", {
       name: /solicitudes pendientes/i,
     });

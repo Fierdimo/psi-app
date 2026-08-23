@@ -40,7 +40,16 @@ export async function obtenerPerfil(): Promise<Perfil | null> {
 
 /** Ruta de inicio de cada rol. Un solo lugar donde vive esta correspondencia. */
 export function inicioSegunRol(rol: Rol) {
-  if (rol === "profesional") return "/profesional/agenda";
+  /*
+   * El profesional aterriza en SOLICITUDES, no en la agenda.
+   *
+   * Aterrizaba en el calendario porque su día empezaba mirándolo. Desde el
+   * giro a evaluaciones por usos no hay día que mirar: lo que le espera son
+   * compras de usos por confirmar, que es además la única decisión que le
+   * queda en el circuito. La agenda ya ni siquiera está en su menú, así que
+   * entrar por ella era aterrizar en una pantalla a la que no se puede volver.
+   */
+  if (rol === "profesional") return "/profesional/solicitudes";
   if (rol === "empresa") return "/empresa";
   return "/panel";
 }

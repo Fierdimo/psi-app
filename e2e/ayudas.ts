@@ -32,7 +32,7 @@ export async function entrarComo(
    * apuntaba a la prueba en vez de a esta línea.
    */
   await page.waitForURL(
-    /\/(consentimiento|condiciones|panel|empresa|profesional\/agenda)/,
+    /\/(consentimiento|condiciones|panel|empresa|profesional\/solicitudes)/,
   );
 
   /*
@@ -46,7 +46,7 @@ export async function entrarComo(
     await page.getByRole("button", { name: /he leído y acepto/i }).click();
   }
 
-  await page.waitForURL(/\/(panel|empresa|profesional\/agenda)/);
+  await page.waitForURL(/\/(panel|empresa|profesional\/solicitudes)/);
 }
 
 /** Envía un formulario de «Mis datos» y espera su confirmación. */

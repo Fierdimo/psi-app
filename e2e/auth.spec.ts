@@ -383,12 +383,22 @@ test.describe.serial("Consentimiento y roles", () => {
     ).toHaveCount(0);
   });
 
-  test("el profesional entra por su puerta y llega a la agenda", async ({
+  /*
+   * Aterriza en SOLICITUDES, no en la agenda.
+   *
+   * Su día empezaba mirando el calendario. Desde el giro a evaluaciones por
+   * usos no hay día que mirar: lo que le espera son compras por confirmar, que
+   * es además la única decisión que le queda. La agenda ni siquiera está en su
+   * menú, así que aterrizar allí era caer en una pantalla sin retorno.
+   */
+  test("el profesional entra por su puerta y llega a solicitudes", async ({
     page,
   }) => {
     await entrarComo(page, CUENTAS.profesional, "/profesional");
-    await expect(page).toHaveURL(/\/profesional\/agenda/);
-    await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
+    await expect(page).toHaveURL(/\/profesional\/solicitudes/);
+    await expect(
+      page.getByRole("heading", { name: "Solicitudes" }),
+    ).toBeVisible();
   });
 
   /*
@@ -401,18 +411,18 @@ test.describe.serial("Consentimiento y roles", () => {
   }) => {
     await page.goto("/profesional");
     await rellenarIngreso(page, CUENTAS.profesional);
-    await page.waitForURL(/\/profesional\/agenda/);
+    await page.waitForURL(/\/profesional\/solicitudes/);
 
     // Ni de camino, ni entrando a la pantalla a propósito.
     await page.goto("/consentimiento");
-    await expect(page).toHaveURL(/\/profesional\/agenda/);
+    await expect(page).toHaveURL(/\/profesional\/solicitudes/);
   });
 
-  test("el profesional que entra por la puerta del paciente también llega a su agenda", async ({
+  test("el profesional que entra por la puerta del paciente también llega a lo suyo", async ({
     page,
   }) => {
     await entrarComo(page, CUENTAS.profesional, "/ingresar");
-    await expect(page).toHaveURL(/\/profesional\/agenda/);
+    await expect(page).toHaveURL(/\/profesional\/solicitudes/);
   });
 
   test("cerrar sesión devuelve a la entrada y corta el acceso", async ({
