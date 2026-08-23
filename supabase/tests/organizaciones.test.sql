@@ -58,6 +58,17 @@ values
 -- Roles y pertenencias: se asignan con privilegios de servidor, nunca por
 -- interfaz. Es exactamente lo que las pruebas de más abajo comprueban que un
 -- usuario no puede hacerse a sí mismo.
+/*
+ * Los pacientes, con su rol PUESTO A MANO.
+ *
+ * Desde la migración 0058 toda cuenta nueva nace como empresa: es lo que hace
+ * cierto que el alta pública sea solo de empresas. Estas fixtures se apoyaban
+ * en el rol por defecto, así que se lo devuelven explícitamente — igual que ya
+ * hacían con el del profesional.
+ */
+update public.profiles set role = 'paciente'
+where id in (:'paciente', :'emp_acme', :'emp_globex');
+
 update public.profiles set role = 'profesional' where id = :'doctor';
 update public.profiles set role = 'empresa', organization_id = :'acme'   where id = :'jefe_acme';
 update public.profiles set role = 'empresa', organization_id = :'globex' where id = :'jefe_globex';

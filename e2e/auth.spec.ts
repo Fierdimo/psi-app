@@ -1,7 +1,18 @@
+import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
 import { entrarComo, rellenarIngreso } from "./ayudas";
 import { CUENTAS } from "./preparar";
+
+const MAILPIT = "http://127.0.0.1:54324";
+
+function admin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+}
 
 /**
  * Flujos de autenticación y separación de roles (F1).
@@ -126,54 +137,170 @@ test.describe("Acceso público", () => {
 
 test.describe("Registro", () => {
   /*
-   * El documento identifica a la persona en toda la plataforma: es lo que
-   * permite reconocer que quien acepta la invitación de una empresa ya tenía
-   * cuenta, en vez de crearle una segunda y partirle el historial.
+   * EL ALTA PÚBLICA ES SOLO DE EMPRESAS, y esta prueba existe para fijarlo.
+   *
+   * Estas dos comprobaciones eran del registro de un paciente: que exigía
+   * documento de identidad, y que un documento repetido no se revelaba. Ese
+   * formulario ya no existe — quien responde una evaluación no llega a tener
+   * cuenta, así que no hay ninguna identidad que reconocer ni que proteger.
    */
-  test("el registro exige documento de identidad", async ({ page }) => {
+  test("el registro pide los datos de una empresa, no los de una persona", async ({
+    page,
+  }) => {
     await page.goto("/registro");
 
-    await page.getByLabel("Nombre").fill("Sin");
-    await page.getByLabel("Apellidos").fill("Documento");
-    await page.getByLabel("Correo electrónico").fill("sin.doc@ejemplo.test");
+    await expect(
+      page.getByRole("heading", { name: /crear cuenta de empresa/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/para organizaciones que contratan evaluaciones/i),
+    ).toBeVisible();
+
+    await expect(page.getByLabel(/nombre de la empresa/i)).toBeVisible();
+
+    // Y lo que era la identidad del paciente ya no se pide.
+    await expect(page.getByLabel(/documento de identidad/i)).toHaveCount(0);
+  });
+
+  test("sin nombre de empresa no se crea la cuenta", async ({ page }) => {
+    await page.goto("/registro");
+
+    await page.getByLabel("Nombre", { exact: true }).fill("Sin");
+    await page.getByLabel("Apellidos").fill("Empresa");
+    await page
+      .getByLabel("Correo electrónico")
+      .fill("sin.empresa@ejemplo.test");
     await page.getByLabel("Contraseña", { exact: true }).fill("psi-local-2026");
     await page.getByRole("button", { name: /crear cuenta/i }).click();
 
-    await expect(page.getByText(/documento es demasiado corto/i)).toBeVisible();
+    await expect(
+      page.getByText(/escribe el nombre de la empresa/i),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/registro/);
   });
 
   /*
-   * Un documento ya registrado NO se confirma como tal. Las cédulas son
-   * enumerables: decir «ya existe una cuenta con ese documento» convertiría el
-   * registro en un detector de pacientes de una consulta de psicología. Misma
-   * razón por la que el ingreso da un único mensaje para dos fallos distintos.
+   * Un correo ya registrado NO se confirma como tal, ni aquí ni en el ingreso:
+   * decirlo convertiría el registro en un detector de clientes de una consulta
+   * de psicología. Y además no se puede distinguir aunque se quisiera — el
+   * servidor de autenticación devuelve siempre el mismo error.
    */
-  test("un documento ya registrado no se revela", async ({ page }) => {
-    await page.goto("/registro");
+  /*
+   * EL REGISTRO COMPLETO, hasta ver qué cuenta quedó.
+   *
+   * Las demás comprueban el formulario; esta comprueba el RESULTADO, que es lo
+   * único que responde de verdad a «¿solo se pueden crear cuentas de empresa?».
+   * Recorre la verificación de correo entera porque la cuenta no existe del
+   * todo hasta que se confirma.
+   */
+  test("registrarse crea una cuenta de empresa, con su organización", async ({
+    page,
+  }) => {
+    const marca = Date.now();
+    const correo = `alta-${marca}@ejemplo.test`;
+    const nombreEmpresa = `Empresa De Prueba ${marca}`;
 
-    await page.getByLabel("Nombre").fill("Otra");
-    await page.getByLabel("Apellidos").fill("Persona");
-    // La cédula de Ana, que ya tiene cuenta en la siembra.
-    await page.getByLabel("Documento de identidad").fill("1047373301");
-    await page
-      .getByLabel("Correo electrónico")
-      .fill("otra.persona@ejemplo.test");
+    await page.goto("/registro");
+    await page.getByLabel(/nombre de la empresa/i).fill(nombreEmpresa);
+    await page.getByLabel(/^NIT/).fill("900123456-7");
+    await page.getByLabel("Nombre", { exact: true }).fill("Quien");
+    await page.getByLabel("Apellidos").fill("Administra");
+    await page.getByLabel("Correo electrónico").fill(correo);
     await page.getByLabel("Contraseña", { exact: true }).fill("psi-local-2026");
     await page.getByRole("button", { name: /crear cuenta/i }).click();
 
-    await expect(
-      page.getByText(/no pudimos crear la cuenta con esos datos/i),
-    ).toBeVisible();
+    await page.waitForURL(/\/verificar-correo/);
 
-    // El mensaje ofrece salida en vez de dejar a la persona atascada.
-    await expect(
-      page.getByText(/entra o recupera tu contraseña/i),
-    ).toBeVisible();
+    /*
+     * El enlace de confirmación, del buzón de desarrollo.
+     *
+     * Sin recorrerlo la cuenta se queda sin confirmar y no se puede comprobar
+     * dónde aterriza, que es la mitad de lo que esta prueba afirma.
+     */
+    const enlace = await expect
+      .poll(
+        async () => {
+          const r = await fetch(
+            `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${correo}`)}`,
+          );
+          const { messages } = await r.json();
+          if (!messages?.length) return null;
 
-    // Ni una palabra sobre cuál de los dos datos chocó.
-    await expect(page.getByText(/documento de identidad ya/i)).toHaveCount(0);
+          const detalle = await fetch(
+            `${MAILPIT}/api/v1/message/${messages[0].ID}`,
+          ).then((x) => x.json());
+
+          return (
+            (detalle.Text ?? detalle.HTML ?? "").match(
+              /https?:\/\/[^\s"'<>]*verify[^\s"'<>]*/,
+            )?.[0] ?? null
+          );
+        },
+        { timeout: 20_000 },
+      )
+      .not.toBeNull()
+      .then(async () => {
+        const r = await fetch(
+          `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${correo}`)}`,
+        );
+        const { messages } = await r.json();
+        const detalle = await fetch(
+          `${MAILPIT}/api/v1/message/${messages[0].ID}`,
+        ).then((x) => x.json());
+        return (detalle.Text ?? detalle.HTML ?? "").match(
+          /https?:\/\/[^\s"'<>]*verify[^\s"'<>]*/,
+        )![0];
+      });
+
+    await page.goto(enlace.replace(/&amp;/g, "&"));
+
+    /*
+     * Aterriza en las condiciones de uso: es una cuenta de empresa y todavía
+     * no las ha aceptado. Que llegue ahí y no al panel del paciente es la
+     * afirmación.
+     */
+    await page.waitForURL(/\/(condiciones|empresa)/);
+
+    const db = admin();
+    const { data: cuenta } = await db
+      .from("profiles")
+      .select("id, role, organization_id, organizacion:organizations(nombre)")
+      .eq("nombre", "Quien")
+      .eq("apellidos", "Administra")
+      .maybeSingle();
+
+    expect(cuenta?.role).toBe("empresa");
+    expect(cuenta?.organization_id).not.toBeNull();
+
+    const org = Array.isArray(cuenta?.organizacion)
+      ? cuenta?.organizacion[0]
+      : cuenta?.organizacion;
+    expect(org?.nombre).toBe(nombreEmpresa);
+
+    // Se recoge, para que la siguiente ejecución encuentre la casa como la
+    // dejó la siembra.
+    await db.auth.admin.deleteUser(cuenta!.id);
+    await db.from("organizations").delete().eq("id", cuenta!.organization_id!);
+  });
+
+  test("un correo ya registrado no se revela", async ({ page }) => {
+    await page.goto("/registro");
+
+    await page.getByLabel(/nombre de la empresa/i).fill("Otra Empresa S.A.S");
+    await page.getByLabel("Nombre", { exact: true }).fill("Otra");
+    await page.getByLabel("Apellidos").fill("Persona");
+    // El correo de la empresa de la siembra, que ya tiene cuenta.
+    await page.getByLabel("Correo electrónico").fill("empresa@psi.test");
+    await page.getByLabel("Contraseña", { exact: true }).fill("psi-local-2026");
+    await page.getByRole("button", { name: /crear cuenta/i }).click();
+
+    /*
+     * Con verificación de correo activada, Supabase responde igual exista o no
+     * la cuenta, así que lo esperado es la pantalla de «revisa tu correo». Lo
+     * que esta prueba fija es que NO aparezca nada que confirme la existencia.
+     */
     await expect(page.getByText(/ya existe una cuenta/i)).toHaveCount(0);
+    await expect(page.getByText(/correo ya registrado/i)).toHaveCount(0);
   });
 });
 

@@ -98,61 +98,102 @@ export function FormularioRegistro({ siguiente }: { siguiente?: string }) {
 
       <ErrorGeneral estado={estado} />
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      {/*
+        Dos bloques, y separados a la vista.
+
+        Aquí se dan de alta DOS cosas a la vez —una organización y la persona
+        que va a administrarla— y sin la separación el formulario se lee como
+        una lista de siete campos donde «Nombre» aparece dos veces queriendo
+        decir cosas distintas.
+      */}
+      <fieldset className="flex flex-col gap-5">
+        <legend className="text-text-strong mb-1 text-sm font-semibold">
+          Tu empresa
+        </legend>
+
         <Field
-          id="nombre"
-          name="nombre"
-          label="Nombre"
-          autoComplete="given-name"
+          id="empresaNombre"
+          name="empresaNombre"
+          label="Nombre de la empresa"
+          autoComplete="organization"
           autoFocus
           required
-          error={estado.errores?.nombre}
+          error={estado.errores?.empresaNombre}
         />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            id="empresaNit"
+            name="empresaNit"
+            label="NIT"
+            optional
+            help="Puedes añadirlo después."
+            autoComplete="off"
+            error={estado.errores?.empresaNit}
+          />
+          <Field
+            id="empresaTelefono"
+            name="empresaTelefono"
+            label="Teléfono"
+            optional
+            type="tel"
+            autoComplete="tel"
+            error={estado.errores?.empresaTelefono}
+          />
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-5">
+        <legend className="text-text-strong mb-1 text-sm font-semibold">
+          Quien la administra
+        </legend>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field
+            id="nombre"
+            name="nombre"
+            label="Nombre"
+            autoComplete="given-name"
+            required
+            error={estado.errores?.nombre}
+          />
+          <Field
+            id="apellidos"
+            name="apellidos"
+            label="Apellidos"
+            autoComplete="family-name"
+            required
+            error={estado.errores?.apellidos}
+          />
+        </div>
+
         <Field
-          id="apellidos"
-          name="apellidos"
-          label="Apellidos"
-          autoComplete="family-name"
+          id="correo"
+          name="correo"
+          type="email"
+          label="Correo electrónico"
+          help="Con esta dirección entrarás, y es por donde te escribiremos para resolver los pagos."
+          autoComplete="email"
           required
-          error={estado.errores?.apellidos}
+          error={estado.errores?.correo}
         />
-      </div>
 
-      <Field
-        id="documento"
-        name="documento"
-        label="Documento de identidad"
-        help="Cédula, pasaporte o el documento con el que te identificas."
-        autoComplete="off"
-        required
-        error={estado.errores?.documento}
-      />
-
-      <Field
-        id="correo"
-        name="correo"
-        type="email"
-        label="Correo electrónico"
-        autoComplete="email"
-        required
-        error={estado.errores?.correo}
-      />
-
-      <div className="flex flex-col gap-2">
-        <Field
-          id="contrasena"
-          name="contrasena"
-          type="password"
-          label="Contraseña"
-          autoComplete="new-password"
-          required
-          error={estado.errores?.contrasena}
-        />
-        <RequisitosContrasena />
-      </div>
+        <div className="flex flex-col gap-2">
+          <Field
+            id="contrasena"
+            name="contrasena"
+            type="password"
+            label="Contraseña"
+            autoComplete="new-password"
+            required
+            error={estado.errores?.contrasena}
+          />
+          <RequisitosContrasena />
+        </div>
+      </fieldset>
 
       <Button type="submit" block loading={enviando ? "Creando…" : undefined}>
-        Crear cuenta
+        Crear cuenta de empresa
       </Button>
     </form>
   );

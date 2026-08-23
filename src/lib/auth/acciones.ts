@@ -157,9 +157,11 @@ export async function registrar(
   formData: FormData,
 ): Promise<EstadoFormulario> {
   const datos = esquemaRegistro.safeParse({
+    empresaNombre: formData.get("empresaNombre"),
+    empresaNit: formData.get("empresaNit"),
+    empresaTelefono: formData.get("empresaTelefono"),
     nombre: formData.get("nombre"),
     apellidos: formData.get("apellidos"),
-    documento: formData.get("documento"),
     correo: formData.get("correo"),
     contrasena: formData.get("contrasena"),
   });
@@ -186,10 +188,21 @@ export async function registrar(
     password: datos.data.contrasena,
     options: {
       emailRedirectTo: `${origen}/auth/callback${retorno}`,
+      /*
+       * Los datos de la empresa viajan en los metadatos porque el disparador
+       * `handle_new_user` los necesita: crea la organización y la cuenta en la
+       * misma transacción, sin sesión de por medio (migración 0058).
+       *
+       * Se mandan con el prefijo `empresa_` para que no se confundan con los
+       * de quien administra, que van sueltos por compatibilidad con lo que ya
+       * leía el disparador.
+       */
       data: {
         nombre: datos.data.nombre,
         apellidos: datos.data.apellidos,
-        documento: datos.data.documento,
+        empresa_nombre: datos.data.empresaNombre,
+        empresa_nit: datos.data.empresaNit,
+        empresa_telefono: datos.data.empresaTelefono,
       },
     },
   });
@@ -198,18 +211,11 @@ export async function registrar(
     /*
      * Un solo mensaje, y no por pereza: por dos razones que se refuerzan.
      *
-     * La primera es de privacidad. El documento es único en toda la
-     * plataforma, pero un choque NO se confirma. Las cédulas son enumerables,
-     * así que decir «ya existe una cuenta con ese documento» convertiría el
-     * registro en un detector de pacientes de una consulta de psicología. Es
-     * la misma razón por la que el ingreso da un único mensaje ante un correo
-     * inexistente y ante una contraseña equivocada.
-     *
-     * La segunda es que NO SE PUEDE distinguir aunque se quisiera. El servidor
-     * de autenticación traga el error de Postgres y devuelve siempre
-     * «Database error saving new user», sin el nombre de la restricción — se
-     * comprobó registrando una cédula repetida y leyendo lo que llega. Una
-     * cédula duplicada y una base caída son indistinguibles desde aquí.
+     * NO SE PUEDE distinguir aunque se quisiera. El servidor de autenticación
+     * traga el error de Postgres y devuelve siempre «Database error saving new
+     * user», sin el nombre de la restricción — se comprobó registrando datos
+     * repetidos y leyendo lo que llega. Un choque en la base y una base caída
+     * son indistinguibles desde aquí.
      *
      * De ahí el texto: cubre los dos casos y, sobre todo, no deja a nadie en
      * un callejón sin salida.

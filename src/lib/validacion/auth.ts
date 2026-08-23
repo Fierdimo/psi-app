@@ -38,23 +38,44 @@ export const esquemaIngreso = z.object({
   contrasena: z.string().min(1, "Escribe tu contraseña"),
 });
 
+/**
+ * El alta pública, que es la de una EMPRESA.
+ *
+ * Antes pedía nombre, apellidos y documento de identidad: eran los datos de un
+ * paciente, y el documento era su identidad en la plataforma —lo que permitía
+ * reconocer que quien aceptaba la invitación de una empresa ya tenía cuenta—.
+ * Ese circuito no existe: quien responde una evaluación no llega a tener
+ * cuenta, así que aquí no hay ninguna identidad que reconocer.
+ *
+ * Lo que se pide ahora son dos cosas distintas en un solo formulario: los
+ * datos de la organización y los de quien va a administrarla.
+ */
 export const esquemaRegistro = z.object({
-  nombre: z.string().trim().min(1, "Escribe tu nombre"),
-  apellidos: z.string().trim().min(1, "Escribe tus apellidos"),
-  /*
-   * Campo libre a propósito: acepta cédula, tarjeta de identidad, cédula de
-   * extranjería, pasaporte o permiso. Un desplegable de tipos dejaría fuera a
-   * quien no encaje en la lista, y quien evalúa a personal operativo se topa
-   * con todas esas variantes.
-   *
-   * Es la identidad de la persona en la plataforma: lo que permite reconocer
-   * que quien acepta la invitación de una empresa es quien ya tenía cuenta.
-   */
-  documento: z
+  empresaNombre: z
     .string()
     .trim()
-    .min(4, "El documento es demasiado corto")
-    .max(30, "El documento es demasiado largo"),
+    .min(2, "Escribe el nombre de la empresa")
+    .max(160, "El nombre es demasiado largo"),
+  /*
+   * El NIT es opcional a propósito, y lo era ya en el modelo de datos: se
+   * puede empezar a trabajar con una empresa antes de tener su papeleo
+   * completo, y exigirlo aquí frena el alta por un dato que nadie necesita
+   * hasta facturar.
+   */
+  empresaNit: z
+    .string()
+    .trim()
+    .max(40, "El NIT es demasiado largo")
+    .transform((v) => (v === "" ? null : v))
+    .nullable(),
+  empresaTelefono: z
+    .string()
+    .trim()
+    .max(40, "El teléfono es demasiado largo")
+    .transform((v) => (v === "" ? null : v))
+    .nullable(),
+  nombre: z.string().trim().min(1, "Escribe tu nombre"),
+  apellidos: z.string().trim().min(1, "Escribe tus apellidos"),
   correo,
   contrasena,
 });

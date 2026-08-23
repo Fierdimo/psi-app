@@ -41,6 +41,15 @@ values
   (:'paciente', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'pac@ej.test',     '', now(), now()),
   (:'doctor',   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'doc@ej.test',     '', now(), now());
 
+/*
+ * Los pacientes, con su rol PUESTO A MANO.
+ *
+ * Desde la migración 0058 toda cuenta nueva nace como empresa: es lo que hace
+ * cierto que el alta pública sea solo de empresas. Estas fixtures se apoyaban
+ * en el rol por defecto, así que se lo devuelven explícitamente — igual que ya
+ * hacían con el del profesional.
+ */
+update public.profiles set role = 'paciente' where id = :'paciente';
 update public.profiles set role = 'profesional' where id = :'doctor';
 update public.profiles set role = 'empresa', organization_id = :'empresa' where id = :'jefe';
 

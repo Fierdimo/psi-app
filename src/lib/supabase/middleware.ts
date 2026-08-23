@@ -40,6 +40,7 @@ export function esRutaPrivada(pathname: string) {
     // Las condiciones de la empresa: hay que tener sesión para aceptarlas, y
     // sin esto quien llegara sin ella vería la pantalla y no el ingreso.
     pathname === "/condiciones" ||
+    pathname === "/alta-de-empresa" ||
     RUTAS_PACIENTE.some(
       (r) => pathname === r || pathname.startsWith(`${r}/`),
     ) ||
@@ -138,14 +139,35 @@ export async function actualizarSesion(request: NextRequest) {
     esRutaPrivada(pathname) &&
     pathname !== "/consentimiento" &&
     pathname !== "/condiciones" &&
+    pathname !== "/alta-de-empresa" &&
     !empiezaPor(pathname, RUTAS_CON_SESION);
 
   if (user && exigeConsentimiento) {
     const { data: perfil } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, organization_id")
       .eq("id", user.id)
       .maybeSingle();
+
+    /*
+     * Primero la empresa, después el documento.
+     *
+     * Una cuenta de empresa sin organización no puede hacer NADA en su área, y
+     * su ausencia produce además un bucle: `exigirEmpresa` la rebota a
+     * `/empresa`, que vuelve a rebotarla. Se manda a completar los datos antes
+     * de pedirle que acepte unas condiciones sobre una empresa que todavía no
+     * existe.
+     *
+     * Casi nunca ocurre —desde la migración 0058 la organización nace con la
+     * cuenta— pero «casi nunca» y «nunca» se comportan igual hasta el día que
+     * no.
+     */
+    if (perfil?.role === "empresa" && !perfil.organization_id) {
+      const destino = request.nextUrl.clone();
+      destino.pathname = "/alta-de-empresa";
+      destino.search = "";
+      return NextResponse.redirect(destino);
+    }
 
     /*
      * Cada rol firma un documento distinto, y ninguno firma el del otro.

@@ -15,10 +15,18 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const siguiente = searchParams.get("siguiente");
 
+  /*
+   * Sin destino explícito, al área de empresa.
+   *
+   * Era `/panel`, el del paciente, que es a quien creaba el registro. Desde
+   * que el alta pública es la de una empresa, quien acaba de verificar su
+   * correo administra una organización — y el enrutado la mandaría allí de
+   * todas formas, pero pasando antes por una pantalla que no es suya.
+   */
   const destino =
     siguiente?.startsWith("/") && !siguiente.startsWith("//")
       ? siguiente
-      : "/panel";
+      : "/empresa";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/ingresar?error=enlace`);

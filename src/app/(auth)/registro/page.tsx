@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArmazonAuth } from "@/components/auth/armazon-auth";
 import { FormularioRegistro } from "@/components/auth/formularios";
 
-export const metadata: Metadata = { title: "Crear cuenta" };
+export const metadata: Metadata = { title: "Crear cuenta de empresa" };
 
 export default async function RegistroPage({
   searchParams,
@@ -15,8 +15,17 @@ export default async function RegistroPage({
 
   return (
     <ArmazonAuth
-      titulo="Crear cuenta"
-      descripcion="Te enviaremos un correo para confirmar que la dirección es tuya."
+      titulo="Crear cuenta de empresa"
+      /*
+        Se dice para quién es, arriba y en el título.
+
+        El alta pública es la de una organización que contrata evaluaciones, y
+        la única: quien va a responder una prueba no crea ninguna cuenta —le
+        llega un enlace— y el profesional tampoco se registra aquí. Sin decirlo,
+        alguien rellena siete campos para descubrir al final que este no era su
+        sitio.
+      */
+      descripcion="Para organizaciones que contratan evaluaciones. Te enviaremos un correo para confirmar que la dirección es tuya."
       pie={
         <p>
           ¿Ya tienes cuenta?{" "}

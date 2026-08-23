@@ -47,17 +47,33 @@ El formulario pasa a pedir, en una sola pantalla:
   canal la solicitud de usos se queda muerta en la bandeja.
 - **De quien administra:** nombre, correo y contraseña.
 
-**Cómo se resuelve el desfase de sesión.** `registrar_empresa()` es
-`security definer` y necesita `auth.uid()`, que no existe hasta que la persona
-verifica su correo y entra. Por eso los datos de la empresa viajan en
-`raw_user_meta_data` del `signUp`, y `/auth/callback` llama a
-`registrar_empresa()` con ellos en el primer ingreso.
+**La cuenta y su organización nacen juntas, en el disparador.** Este documento
+proponía otra cosa —guardar los datos en `raw_user_meta_data` y llamar a
+`registrar_empresa()` desde `/auth/callback`, porque esa función necesita
+`auth.uid()` y no hay sesión hasta verificar el correo—. **El rodeo sobraba:**
+en `handle_new_user` no hace falta `auth.uid()`, se tiene `new.id` delante.
 
-Si esa llamada falla —correo verificado meses después, metadatos perdidos, un
-error transitorio— la cuenta queda autenticada y sin organización. Ese estado
-tiene su propia pantalla, `/empresa/alta`, que pide los mismos datos y llama a
-la misma función. No es un camino alternativo de diseño: es la red bajo el
-alambre, y el middleware manda ahí a toda cuenta sin `organization_id`.
+Hacerlo en un solo paso elimina de golpe toda una familia de estados a medias
+—cuenta verificada sin empresa, metadatos perdidos, la llamada que falla y
+nadie reintenta— que el diseño de dos pasos obligaba a atender con una pantalla
+de rescate. O nacen las dos, o no nace ninguna.
+
+**El rol es `empresa` siempre**, tenga organización o no. Es lo que hace cierto
+que «una cuenta nueva es de empresa»: no depende de que el formulario mande
+bien los metadatos ni de que nadie olvide un paso.
+
+**Que la organización se cree antes de verificar el correo no es un problema.**
+Es inerte: nadie puede entrar, no obtiene ningún dato por existir y nada ocurre
+hasta que solicita usos y el profesional los autoriza comprobando un pago. Lo
+máximo que consigue un alta falsa es ocupar una línea — el mismo razonamiento
+que ya justificaba que una empresa pudiera darse de alta sola.
+
+**Queda una red, `/alta-de-empresa`**, para las cuentas que lleguen sin
+organización por otra vía (la API de administración, un registro sin
+metadatos). No es un camino alternativo de diseño: sin ella esas cuentas
+quedarían atrapadas en un bucle —el área de empresa las rebota por no tener
+organización, y las rebota hacia el área de empresa—. El middleware manda ahí a
+toda cuenta de empresa sin `organization_id`.
 
 ### 2.2 El rol `paciente` se elimina del tipo
 

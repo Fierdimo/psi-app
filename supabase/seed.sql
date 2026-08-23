@@ -153,6 +153,22 @@ update public.profiles
 set role = 'profesional', telefono = '+57 300 000 0000'
 where id = '33333333-3333-3333-3333-333333333333';
 
+/*
+ * Los pacientes de prueba, con su rol PUESTO A MANO.
+ *
+ * Desde la migración 0058 toda cuenta nueva nace como empresa: es lo que hace
+ * cierto que el alta pública sea solo de empresas. Estas tres existen para las
+ * pantallas de paciente que quedan por retirar, así que se les devuelve el rol
+ * explícitamente. Cuando esas pantallas caigan, estas cuentas se van con ellas.
+ */
+update public.profiles
+set role = 'paciente'
+where id in (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '44444444-4444-4444-4444-444444444444'
+);
+
 update public.profiles
 set telefono = '+57 310 111 2222', timezone = 'America/Bogota'
 where id = '11111111-1111-1111-1111-111111111111';
