@@ -204,7 +204,16 @@ test.describe.serial("Área de empresa", () => {
     expect(despues - antes).toBeLessThan(240);
   });
 
-  test("los informes se ven cuando el profesional los firma", async ({
+  /*
+   * «Evaluaciones» e «Informes» son una sola lista.
+   *
+   * Antes eran dos secciones, y esta prueba vivía en la de informes. La
+   * unificación cambia lo que hay que comprobar: ya no es «sin firmar no hay
+   * enlace» —ahora TODA fila se abre— sino que al abrirla se encuentre lo que
+   * corresponde al punto en que está: el estado mientras se prepara, y el
+   * informe dentro cuando ya existe.
+   */
+  test("el informe aparece dentro de su evaluación cuando se firma", async ({
     page,
   }) => {
     const db = admin();
@@ -256,16 +265,46 @@ test.describe.serial("Área de empresa", () => {
       .single();
 
     await entrarComo(page, CUENTAS.empresa);
-    await page.goto("/empresa/informes");
+    await page.goto("/empresa/evaluaciones");
 
     /*
-     * Sin firmar NO hay enlace, y se dice en qué punto está. Un enlace que
-     * lleva a una pantalla vacía se prueba dos veces antes de creérselo.
+     * Sin firmar, la fila se abre igual y dice en qué punto está.
+     *
+     * Es el cambio de la unificación: antes la fila no era pulsable y quien
+     * encargó veinte y veía cinco informes no sabía si las otras quince se
+     * habían perdido. Ahora se abre y lo explica.
      */
-    await expect(page.getByText(/en revisión/i)).toBeVisible();
+    /*
+     * Se apunta a ESTA evaluación por su dirección, no por el nombre.
+     *
+     * Ana María sale dos veces en el listado: la de la convocatoria de la
+     * semilla y la que siembra esta prueba. Antes daba igual porque solo la
+     * publicada era pulsable; ahora TODA fila se abre —que es el cambio— y
+     * buscar por nombre resuelve a dos enlaces.
+     */
+    const suya = page.locator(
+      `a[href="/empresa/evaluaciones/${asignacion!.id}"]`,
+    );
+
+    await expect(page.getByText(/preparando informe/i).first()).toBeVisible();
+
+    await suya.click();
+
+    /*
+     * Con margen: es la primera vez que se pide la ruta interceptada del
+     * modal, y en `next dev` esa compilación tarda más que la espera por
+     * defecto. El fallo aparecía como «el modal no se abre».
+     */
     await expect(
-      page.getByRole("link", { name: /Ana María Restrepo/i }),
-    ).toHaveCount(0);
+      page.getByRole("dialog").getByText(/terminó de responder/i),
+    ).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/Apto para el cargo/)).toHaveCount(0);
+
+    // Cerrar devuelve al listado, que nunca se fue. `exact`, o «Cerrar» también
+    // encaja con «Cerrar sesión» de la cabecera.
+    await page.getByRole("button", { name: "Cerrar", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("table")).toBeVisible();
 
     // El profesional firma.
     await db
@@ -285,15 +324,161 @@ test.describe.serial("Área de empresa", () => {
     });
 
     await page.reload();
-    await page.getByRole("link", { name: /Ana María Restrepo/i }).click();
+    await expect(page.getByText(/informe listo/i).first()).toBeVisible();
 
-    // El informe completo, que es lo que la empresa encargó.
-    await expect(page.getByText(/Apto para el cargo/)).toBeVisible();
-    await expect(page.getByText(/Asertividad situacional baja/)).toBeVisible();
+    await suya.click();
+
+    // El informe completo, dentro del modal: es lo que la empresa encargó.
+    const modal = page.getByRole("dialog");
+    await expect(modal.getByText(/Apto para el cargo/)).toBeVisible();
+    await expect(modal.getByText(/Asertividad situacional baja/)).toBeVisible();
 
     // Y se recoge, para que la siguiente ejecución encuentre la casa como la
     // dejó la semilla.
     await db.from("assignments").delete().eq("id", asignacion!.id);
+  });
+
+  /*
+   * La lista unificada: diez filas, orden por fecha y buscador.
+   *
+   * Los tres van juntos en una prueba porque son la misma decisión: una lista
+   * que crece para siempre —una fila por evaluación encargada, sin borrarse
+   * nunca— solo es utilizable si se pagina corto y se puede buscar. Comprobar
+   * la paginación sin el buscador dejaría verde una pantalla en la que a la
+   * cuarta tanda ya no se encuentra a nadie.
+   */
+  test("las evaluaciones se paginan de diez en diez y se buscan", async ({
+    page,
+  }) => {
+    const db = admin();
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    // Se limpia lo de la corrida anterior antes de sembrar: si no, a la
+    // segunda ejecución hay veinticuatro y las cuentas dejan de cuadrar.
+    await db.from("organization_people").delete().like("documento", "77000%");
+
+    const { data: gente } = await db
+      .from("organization_people")
+      .insert(
+        Array.from({ length: 12 }, (_, i) => ({
+          organization_id: ORGANIZACION,
+          documento: `77000${String(i + 10)}`,
+          nombre: i === 0 ? "Zulema" : "Evaluado",
+          apellidos: `Número ${i + 1}`,
+          email: `ev${i + 1}@caribe.test`,
+        })),
+      )
+      .select("id");
+
+    await db.from("assignments").insert(
+      (gente ?? []).map((p, i) => ({
+        assessment_id: prueba!.id,
+        person_id: p.id,
+        organization_id: ORGANIZACION,
+        assigned_by: doctor!.id,
+        /*
+         * Estados mezclados, para que el filtro tenga algo que filtrar.
+         *
+         * Nueve sin responder, dos con informe y una vencida. Con todas en el
+         * mismo estado, un filtro roto que devolviera siempre la lista entera
+         * pasaría la prueba.
+         */
+        status: (i < 9 ? "asignada" : i < 11 ? "publicada" : "vencida") as
+          "asignada" | "publicada" | "vencida",
+        // Fechas separadas, para poder afirmar el orden sin depender de los
+        // milisegundos con que se insertaron.
+        assigned_at: new Date(Date.now() - i * 86400000).toISOString(),
+      })),
+    );
+
+    await entrarComo(page, CUENTAS.empresa);
+    await page.goto("/empresa/evaluaciones");
+
+    // Diez filas por página, ni once ni veinte.
+    await expect(page.locator("tbody tr")).toHaveCount(10);
+
+    /*
+     * Y la más reciente arriba.
+     *
+     * Zulema se sembró con la fecha de hoy y el resto hacia atrás, así que si
+     * el orden fuera alfabético o de inserción no encabezaría.
+     */
+    await expect(page.locator("tbody tr").first()).toContainText("Zulema");
+
+    await page.getByRole("link", { name: "Siguiente" }).click();
+    await expect(page.locator("tbody tr").first()).toBeVisible();
+
+    // Buscar por nombre deja solo la suya, y la búsqueda vive en la dirección.
+    await page.goto("/empresa/evaluaciones");
+    await page
+      .getByRole("searchbox", { name: /buscar una evaluación/i })
+      .fill("Zulema");
+    await page.getByRole("button", { name: "Buscar" }).click();
+
+    await expect(page).toHaveURL(/q=Zulema/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr").first()).toContainText("Zulema");
+
+    // También por documento, que es lo que se tiene a mano cuando hay
+    // homónimos.
+    await page.goto("/empresa/evaluaciones?q=7700011");
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr").first()).toContainText("Número 2");
+
+    // Y una búsqueda sin resultados lo dice, en vez de enseñar una tabla vacía.
+    await page.goto("/empresa/evaluaciones?q=nadieseasillama");
+    await expect(page.getByText(/nada con estos filtros/i)).toBeVisible();
+
+    /*
+     * EL FILTRO POR ESTADO.
+     *
+     * Se combina con la búsqueda a propósito: la semilla trae sus propias
+     * evaluaciones y sin acotar a las de esta prueba los números dependerían
+     * de lo que hubieran dejado los demás archivos.
+     */
+    await page.goto("/empresa/evaluaciones?q=Evaluado");
+    await expect(page.locator("tbody tr")).toHaveCount(10);
+
+    await page.getByRole("link", { name: /informe listo/i }).click();
+    await expect(page).toHaveURL(/estado=listas/);
+    // La búsqueda sobrevive al cambio de grupo: quien busca a alguien y no lo
+    // encuentra en un grupo mira en otro sin reescribir el nombre.
+    await expect(page).toHaveURL(/q=Evaluado/);
+
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+    await expect(page.getByText("Sin empezar")).toHaveCount(0);
+
+    await page.getByRole("link", { name: /sin completar/i }).click();
+    await expect(page.locator("tbody tr")).toHaveCount(1);
+    await expect(page.locator("tbody tr").first()).toContainText("Vencida");
+
+    // Un grupo vacío lo dice, y ofrece la salida.
+    await page.goto("/empresa/evaluaciones?q=Evaluado&estado=preparando");
+    await expect(page.getByText(/nada con estos filtros/i)).toBeVisible();
+    await expect(page.getByRole("link", { name: /ver todas/i })).toBeVisible();
+
+    // Y el grupo viaja con la paginación: pasar de página no lo pierde.
+    await page.goto("/empresa/evaluaciones?estado=pendientes");
+    await expect(page.getByRole("link", { name: "Siguiente" })).toHaveAttribute(
+      "href",
+      /estado=pendientes/,
+    );
+
+    // Un valor inventado en la dirección se trata como «todas», no como error.
+    await page.goto("/empresa/evaluaciones?estado=inventado&q=Evaluado");
+    await expect(page.locator("tbody tr")).toHaveCount(10);
+
+    await db.from("organization_people").delete().like("documento", "77000%");
   });
 
   test("la ficha de la empresa se puede corregir", async ({ page }) => {

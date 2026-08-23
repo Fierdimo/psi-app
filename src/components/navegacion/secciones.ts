@@ -5,7 +5,7 @@ import {
   Home,
   Inbox,
   Settings,
-  Users,
+  Wallet,
   ClipboardCheck,
   UserCog,
   type LucideIcon,
@@ -66,21 +66,23 @@ export const SECCIONES: readonly Seccion[] = [
    cada área acabara con una navegación distinta sin que nadie lo decidiera.
    ========================================================================== */
 
+/*
+ * El área del profesional, después del giro a evaluaciones por usos.
+ *
+ * Se van «Agenda» y «Pacientes». No hay citas que organizar ni personas
+ * atendidas a las que seguir: lo que llega son evaluaciones encargadas por
+ * empresas, y lo que se decide son compras de usos.
+ *
+ * «Solicitudes» conserva el nombre y cambia de contenido: antes eran fechas
+ * que aceptar, ahora son pagos que confirmar. Es la única decisión que queda
+ * en el circuito, así que va primera.
+ */
 export const SECCIONES_PROFESIONAL: readonly Seccion[] = [
-  { href: "/profesional/agenda", etiqueta: "Agenda", icono: CalendarDays },
-  /*
-   * Lo que espera una decisión, en su propia entrada.
-   *
-   * Estaba dentro de la agenda, debajo del calendario. Confirmar la solicitud
-   * de una empresa obligaba a entrar a una pantalla de otra cosa y buscar: es
-   * la acción más frecuente del día y estaba a dos saltos de distancia.
-   */
   {
     href: "/profesional/solicitudes",
     etiqueta: "Solicitudes",
     icono: Inbox,
   },
-  { href: "/profesional/pacientes", etiqueta: "Pacientes", icono: Users },
   { href: "/profesional/empresas", etiqueta: "Empresas", icono: Building2 },
   {
     href: "/profesional/evaluaciones",
@@ -94,14 +96,32 @@ export const SECCIONES_PROFESIONAL: readonly Seccion[] = [
   },
 ];
 
+/*
+ * El área de empresa, después del giro a evaluaciones por usos.
+ *
+ * «Personas» y «Sesiones» desaparecen, y su fusión es el cambio entero
+ * resumido en un menú: ya no hay plantilla que mantener ni fechas que cuadrar.
+ * Hay ENCARGOS, y cada uno lleva su persona dentro.
+ *
+ * Las pantallas viejas siguen existiendo unos días más —se retiran con su
+ * código— pero dejan de tener entrada aquí: un menú es una declaración de qué
+ * es este producto, y ya no es esto.
+ */
 export const SECCIONES_EMPRESA: readonly Seccion[] = [
   { href: "/empresa", etiqueta: "Inicio", icono: Home, exacta: true },
-  { href: "/empresa/personas", etiqueta: "Personas", icono: Users },
-  { href: "/empresa/sesiones", etiqueta: "Sesiones", icono: CalendarDays },
+  /*
+   * «Informes» tampoco sobrevive, y por una razón distinta a las otras dos:
+   * no es que sobre, es que era la MISMA lista que «Evaluaciones» con otro
+   * nombre. Tenía que enseñar también las no publicadas —o quien encargó
+   * veinte y ve cinco no sabe si las otras quince se perdieron— y acababa
+   * duplicándola. Ahora hay una fila por encargo y el informe está dentro
+   * cuando existe.
+   */
   {
-    href: "/empresa/informes",
-    etiqueta: "Informes",
-    icono: ClipboardList,
+    href: "/empresa/evaluaciones",
+    etiqueta: "Evaluaciones",
+    icono: ClipboardCheck,
   },
+  { href: "/empresa/usos", etiqueta: "Usos", icono: Wallet },
   { href: "/empresa/datos", etiqueta: "Datos", icono: Building2 },
 ];

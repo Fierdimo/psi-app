@@ -26,7 +26,7 @@ export default async function LayoutProfesional({
     <ArmazonPrivado
       nombre={`${perfil.nombre ?? ""} ${perfil.apellidos ?? ""}`.trim()}
       area="profesional"
-      inicio="/profesional/agenda"
+      inicio="/profesional/solicitudes"
       tono="oscuro"
       insignia="Área profesional"
     >

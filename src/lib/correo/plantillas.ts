@@ -31,7 +31,30 @@ export type DatosCita = {
   zona: string;
 };
 
-export type Correo = { asunto: string; texto: string; html: string };
+/**
+ * Un archivo que viaja dentro del correo.
+ *
+ * Existe por el QR de la convocatoria, y hace falta que sea un ADJUNTO EN
+ * LÍNEA y no un `data:` URI en el `src`: Gmail y Outlook bloquean las imágenes
+ * en base64 embebidas, y el QR es justo lo que tiene que poder escanearse
+ * desde el teléfono sin pulsar nada.
+ *
+ * Con `cid`, el HTML lo referencia como `cid:<ese valor>`.
+ */
+export type Adjunto = {
+  nombre: string;
+  /** Contenido en base64, SIN el prefijo `data:...;base64,`. */
+  contenido: string;
+  tipo: string;
+  cid?: string;
+};
+
+export type Correo = {
+  asunto: string;
+  texto: string;
+  html: string;
+  adjuntos?: Adjunto[];
+};
 
 function bloqueDeCita(cita: DatosCita) {
   const fecha = capitalizar(fechaLarga(cita.inicioISO, cita.zona));
@@ -305,6 +328,158 @@ export function informeListo(
       El informe no viaja en este correo: se consulta en la plataforma, donde
       está siempre al día.
     </p>`,
+    ),
+  };
+}
+
+/**
+ * La convocatoria a una evaluación encargada por una empresa.
+ *
+ * Sustituye a `invitacionEvaluacion` para el modelo sin sesiones. Las
+ * diferencias no son cosméticas:
+ *
+ *   · NO LLEVA FECHA NI HORA, porque no las hay. Se responde cuando se pueda,
+ *     dentro del plazo del enlace.
+ *   · NO INVITA A CREAR CUENTA. Quien responde no es usuario de la plataforma
+ *     y no lo va a ser: el enlace es su única credencial, antes y después.
+ *   · LLEVA EL QR EN LÍNEA. La convocatoria se reparte también en persona —un
+ *     folio en la puerta de la planta— y ahí el enlace no se teclea.
+ *
+ * Lo que no cambia es la regla del asunto: dice quién convoca y nada del
+ * contenido de la prueba.
+ */
+export function convocatoriaEvaluacion(datos: {
+  nombre: string | null;
+  empresa: string;
+  instrumento: string;
+  enlace: string;
+  /** PNG del QR en base64, sin prefijo. Sin él, el correo sale solo con enlace. */
+  qr: string | null;
+  /**
+   * Hasta cuándo vale el enlace, y en qué zona decirlo.
+   *
+   * Iba escrito a mano —«caduca en 30 días»— y en cuanto el plazo pasó a ser
+   * configurable esa frase se convirtió en una mentira esperando a ocurrir.
+   * Ahora viaja la fecha que la base estampó al crear la evaluación.
+   *
+   * La zona es la de la EMPRESA que convoca. No se sabe la de la persona —no
+   * tiene cuenta, no ha dicho dónde está— y la de su empleador es la mejor
+   * aproximación disponible: la convocó para su proceso.
+   */
+  venceISO: string;
+  zona: string;
+}): Correo {
+  const limite = capitalizar(fechaLarga(datos.venceISO, datos.zona));
+  const saludo = datos.nombre ? `Hola ${datos.nombre}: ` : "";
+  const cuerpo =
+    `${saludo}${datos.empresa} te ha pedido completar una evaluación. ` +
+    `Antes de empezar leerás las condiciones y decidirás si aceptas; ` +
+    `sin tu consentimiento no se te evalúa.`;
+
+  const texto = [
+    cuerpo,
+    "",
+    "Entra aquí cuando puedas dedicarle un rato sin interrupciones:",
+    datos.enlace,
+    "",
+    `El enlace es solo tuyo: no lo reenvíes. Tienes hasta el ${limite}.`,
+  ].join("\n");
+
+  /*
+   * El QR va DEBAJO del botón, no en su lugar.
+   *
+   * Quien abre el correo en el teléfono pulsa; quien lo recibe impreso escanea.
+   * Poner solo el QR obligaría al primero a apuntar su propio teléfono a su
+   * propia pantalla, que es la clase de detalle que solo se ve probándolo.
+   */
+  const bloqueQr = datos.qr
+    ? `<br><br>
+       <p style="margin:0 0 8px;color:#64748B;font-size:13px">O escanea este código:</p>
+       <img src="cid:qr-evaluacion" width="160" height="160" alt="Código QR con tu enlace de acceso"
+            style="display:block;border:1px solid #E2E8F0;border-radius:8px;background:#FFFFFF;padding:8px">`
+    : "";
+
+  const html = envolver(
+    "Tienes una evaluación pendiente",
+    `${cuerpo}<br><br>
+     <a href="${datos.enlace}" style="display:inline-block;background:#2F49D4;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:500">Empezar mi evaluación</a>
+     ${bloqueQr}
+     <br><br>
+     <span style="color:#64748B;font-size:13px">Si no reconoces esta convocatoria, no hagas nada: sin tu consentimiento no se te evalúa.</span>`,
+    undefined,
+    `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+       El enlace es solo tuyo: no lo reenvíes. Tienes hasta el ${limite}.
+     </p>`,
+  );
+
+  return {
+    asunto: `Tu evaluación · ${datos.empresa}`,
+    texto,
+    html,
+    adjuntos: datos.qr
+      ? [
+          {
+            nombre: "acceso.png",
+            contenido: datos.qr,
+            tipo: "image/png",
+            cid: "qr-evaluacion",
+          },
+        ]
+      : undefined,
+  };
+}
+
+/**
+ * La resolución de una compra de usos, camino de la empresa.
+ *
+ * Sale en los dos sentidos —autorizada y rechazada— porque el silencio es
+ * peor que un no: entre pedir y resolver hay un pago que ocurre fuera de la
+ * plataforma, y quien lo hizo necesita saber que llegó.
+ *
+ * El motivo del rechazo va ENTERO en el correo, no un «entra a verlo». Es lo
+ * único que permite corregir y volver a intentarlo, y obligar a entrar para
+ * leer una línea es hacer trabajar a alguien por nada.
+ */
+export function usosResueltos(datos: {
+  cantidad: number;
+  autorizada: boolean;
+  motivo?: string | null;
+  enlace: string;
+}): Correo {
+  const cuantos = `${datos.cantidad} ${datos.cantidad === 1 ? "uso" : "usos"}`;
+
+  if (datos.autorizada) {
+    return {
+      asunto: "Tus usos ya están disponibles · JBR Psicometrías",
+      texto:
+        `Confirmamos tu pago y añadimos ${cuantos} a tu saldo. ` +
+        `Ya puedes encargar evaluaciones desde tu espacio de empresa.\n\n` +
+        `${datos.enlace}`,
+      html: envolver(
+        "Tus usos ya están disponibles",
+        `Confirmamos tu pago y añadimos <strong>${cuantos}</strong> a tu saldo. ` +
+          `Ya puedes encargar evaluaciones.`,
+        undefined,
+        `<p style="margin:20px 0 0"><a href="${datos.enlace}" style="display:inline-block;background:#2440C4;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600">Encargar una evaluación</a></p>`,
+      ),
+    };
+  }
+
+  const motivo = datos.motivo?.trim() || "No se indicó un motivo.";
+
+  return {
+    asunto: "Sobre tu solicitud de usos · JBR Psicometrías",
+    texto:
+      `No pudimos autorizar tu solicitud de ${cuantos}.\n\n${motivo}\n\n` +
+      `Si crees que hay un error, respóndenos a este correo.`,
+    html: envolver(
+      "Sobre tu solicitud de usos",
+      `No pudimos autorizar tu solicitud de <strong>${cuantos}</strong>.` +
+        `<br><br><span style="color:#16233A">${motivo}</span>`,
+      undefined,
+      `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+         Si crees que hay un error, respóndenos a este correo y lo revisamos.
+       </p>`,
     ),
   };
 }

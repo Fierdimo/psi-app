@@ -6,7 +6,9 @@ import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
 import {
   enviarConPase,
   responderConPase,
+  type ApartadoDeInforme,
 } from "@/lib/evaluaciones/acciones-pase";
+import { InformeAlTerminar } from "@/components/evaluaciones/informe-al-terminar";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/lib/evaluaciones/motor";
@@ -67,7 +69,22 @@ export function Ejecutor({
   items,
   respuestas,
   pase,
-}: Props & { pase?: string }) {
+  persona,
+  instrumento,
+  empresa,
+}: Props & {
+  pase?: string;
+  /**
+   * Quién responde, qué prueba y para quién.
+   *
+   * Solo hacen falta con pase, para encabezar el informe que se enseña al
+   * terminar. Con cuenta, ese informe vive en su espacio privado y esta
+   * pantalla no tiene que dibujarlo.
+   */
+  persona?: string;
+  instrumento?: string;
+  empresa?: string | null;
+}) {
   const [valores, setValores] = useState<Record<string, unknown>>(respuestas);
   const [indice, setIndice] = useState(() => {
     // Se retoma donde se quedó. Si hubo una caída, volver a empezar sería
@@ -77,6 +94,15 @@ export function Ejecutor({
   });
   const [fallo, setFallo] = useState<string | null>(null);
   const [enviando, iniciarEnvio] = useTransition();
+
+  /*
+   * El informe, cuando ya se envió. Nulo mientras se responde.
+   *
+   * Vive en el cliente y no se recarga de la página porque el pase se apaga al
+   * enseñarlo: volver al servidor devolvería «este enlace ya se usó» y borraría
+   * de la pantalla lo único que esta persona va a poder leer.
+   */
+  const [informe, setInforme] = useState<ApartadoDeInforme[] | null>(null);
 
   const item = items[indice];
 
@@ -116,6 +142,27 @@ export function Ejecutor({
         );
       }
     });
+  }
+
+  /*
+   * Enviada la prueba, esta pantalla deja de ser un examen.
+   *
+   * Se sustituye entera en vez de añadir el informe debajo: quedarse el
+   * cuestionario arriba invita a revisar respuestas que ya no se pueden
+   * cambiar, y sobre todo empuja el aviso de «guarda esto ahora» fuera de la
+   * primera pantalla, que es justo donde tiene que estar.
+   */
+  if (informe !== null) {
+    return (
+      <div className="flex max-w-[70ch] flex-col gap-6">
+        <InformeAlTerminar
+          apartados={informe}
+          persona={persona ?? ""}
+          instrumento={instrumento ?? ""}
+          empresa={empresa ?? null}
+        />
+      </div>
+    );
   }
 
   return (
@@ -184,7 +231,11 @@ export function Ejecutor({
               iniciarEnvio(async () => {
                 if (pase) {
                   const r = await enviarConPase(pase);
-                  if (!r.ok) setFallo(r.mensaje ?? "No se pudo enviar.");
+                  if (!r.ok) {
+                    setFallo(r.mensaje ?? "No se pudo enviar.");
+                    return;
+                  }
+                  setInforme(r.informe ?? []);
                   return;
                 }
                 await enviarPrueba({ ok: false, mensaje: "" }, formData);

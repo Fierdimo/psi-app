@@ -53,14 +53,25 @@ test.describe("Acceso al área profesional", () => {
     ).toHaveCount(0);
   });
 
-  test("el profesional ve agenda y pacientes en su navegación", async ({
-    page,
-  }) => {
+  /*
+   * La navegación del profesional, después del giro a evaluaciones por usos.
+   *
+   * Comprobaba «Agenda» y «Pacientes», y las dos se retiraron del menú: no hay
+   * citas que organizar ni personas atendidas a las que seguir. Lo que la
+   * prueba defiende sigue siendo lo mismo —que cada papel llega a SUS
+   * secciones— y por eso se reescribe en vez de borrarse.
+   */
+  test("el profesional ve sus secciones en la navegación", async ({ page }) => {
     await entrarComo(page, CUENTAS.profesional, "/profesional");
 
     const nav = page.getByRole("navigation", { name: "Secciones" });
-    await expect(nav.getByRole("link", { name: "Agenda" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Pacientes" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Solicitudes" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Empresas" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Evaluaciones" })).toBeVisible();
+
+    // Y ya no llega a lo retirado.
+    await expect(nav.getByRole("link", { name: "Agenda" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Pacientes" })).toHaveCount(0);
   });
 });
 
@@ -268,12 +279,33 @@ test.describe.serial("Sesiones de empresa", () => {
 
     await entrarComo(page, CUENTAS.profesional);
 
-    // Desde su propia entrada del menú, no rebuscando en el calendario.
-    await page.goto("/profesional/solicitudes");
+    /*
+     * En la agenda, no en «Solicitudes».
+     *
+     * `/profesional/solicitudes` dejó de ser la bandeja de citas: ahora es la
+     * de compras de usos. La bandeja de sesiones sigue viva en la agenda, que
+     * es donde estuvo siempre además de allí, y ahí es donde esta prueba tiene
+     * que mirar mientras el calendario exista.
+     */
+    await page.goto("/profesional/agenda");
+
+    /*
+     * Dentro de la bandeja, no en cualquier `li` de la pantalla.
+     *
+     * La agenda abre en la rejilla del mes, y sus celdas también son `li`:
+     * buscar por texto en toda la página resolvía a catorce elementos ocultos
+     * y la espera moría en «unexpected value hidden». Se ancla en el
+     * encabezado de la bandeja, que es lo que esta prueba mira de verdad.
+     */
+    const bandeja = page.getByRole("heading", {
+      name: /solicitudes pendientes/i,
+    });
+    await expect(bandeja).toBeVisible();
 
     const solicitud = page
-      .locator("article, li")
+      .getByRole("listitem")
       .filter({ hasText: /Distribuciones del Caribe/i })
+      .filter({ has: page.getByRole("button", { name: "Confirmar" }) })
       .first();
 
     await expect(solicitud).toBeVisible();
@@ -302,9 +334,19 @@ test.describe.serial("Sesiones de empresa", () => {
     );
     await expect(page.getByText(/Runtime Error/i)).toHaveCount(0);
 
-    await expect(page.getByText(/confirmad|confirmó/i).first()).toBeVisible({
-      timeout: 15000,
-    });
+    /*
+     * El primero VISIBLE, no el primero del árbol.
+     *
+     * La rejilla del mes lleva una insignia «Confirmada» por cada cita de cada
+     * celda, todas ocultas hasta que se abre el día: `.first()` a secas
+     * resolvía a treinta y tres nodos y se quedaba esperando a uno oculto.
+     */
+    await expect(
+      page
+        .getByText(/confirmad|confirmó/i)
+        .locator("visible=true")
+        .first(),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("asigna una evaluación una vez y alcanza a todos los convocados", async ({

@@ -121,7 +121,7 @@ export async function cerrarYAvisar(asignacion: string): Promise<void> {
         [persona?.nombre, persona?.apellidos].filter(Boolean).join(" ") ||
           "la persona evaluada",
         prueba.nombre,
-        `${origen}/empresa/informes/${asignacion}`,
+        `${origen}/empresa/evaluaciones/${asignacion}`,
       ),
     );
   } catch (fallo) {

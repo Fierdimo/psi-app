@@ -113,6 +113,20 @@ async function enviarPorHttp(
         subject: correo.asunto,
         text: correo.texto,
         html: correo.html,
+        /*
+         * Los adjuntos en línea, con el nombre que usa este proveedor.
+         *
+         * `content_id` es lo que permite referenciarlos desde el HTML como
+         * `cid:…`. Si el proveedor lo ignorara, el correo sale igual: el QR
+         * quedaría como adjunto suelto en vez de embebido, y el botón —que es
+         * el camino principal— sigue funcionando. Por eso no se comprueba.
+         */
+        attachments: correo.adjuntos?.map((a) => ({
+          filename: a.nombre,
+          content: a.contenido,
+          content_type: a.tipo,
+          content_id: a.cid,
+        })),
       }),
       // Mismo motivo que los topes del SMTP: un envío lento no puede dejar
       // esperando a quien acaba de confirmar una cita.
@@ -153,7 +167,10 @@ export async function enviarCorreo(
   if (!transporte || !remitente) {
     console.info(
       `[correo] sin RESEND_API_KEY ni SMTP_HOST — no se envía nada.\n` +
-        `  para: ${destinatario.correo}\n  asunto: ${correo.asunto}`,
+        `  para: ${destinatario.correo}\n  asunto: ${correo.asunto}` +
+        (correo.adjuntos?.length
+          ? `\n  adjuntos: ${correo.adjuntos.map((a) => a.nombre).join(", ")}`
+          : ""),
     );
     return { enviado: false };
   }
@@ -167,6 +184,12 @@ export async function enviarCorreo(
       subject: correo.asunto,
       text: correo.texto,
       html: correo.html,
+      attachments: correo.adjuntos?.map((a) => ({
+        filename: a.nombre,
+        content: Buffer.from(a.contenido, "base64"),
+        contentType: a.tipo,
+        cid: a.cid,
+      })),
     });
 
     return { enviado: true };

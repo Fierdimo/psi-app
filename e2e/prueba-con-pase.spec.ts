@@ -21,6 +21,7 @@ const SESION = "88888888-0000-4000-8000-0000000000aa";
 test.describe.serial("Evaluación con pase", () => {
   let pase = "";
   let asignacion = "";
+  let invitacionDelPase = "";
 
   test.beforeAll(async () => {
     const db = admin();
@@ -85,7 +86,7 @@ test.describe.serial("Evaluación con pase", () => {
 
     const { data: invitacion } = await db
       .from("invitations")
-      .select("token, person_id")
+      .select("id, token, person_id")
       // Por la convocatoria: cada pase abre la evaluación de SU sesión.
       .eq("appointment_id", SESION)
       .not("token", "is", null)
@@ -93,6 +94,7 @@ test.describe.serial("Evaluación con pase", () => {
       .single();
 
     pase = invitacion!.token;
+    invitacionDelPase = invitacion!.id;
     asignacion = (creadas ?? []).find(
       (a) => a.person_id === invitacion!.person_id,
     )!.id;
@@ -210,5 +212,57 @@ test.describe.serial("Evaluación con pase", () => {
      */
     expect(resultado?.released_by).toBeNull();
     expect(resultado?.released_automatically).toBe(true);
+
+    /*
+     * Y SU COPIA, en la misma pantalla y una sola vez.
+     *
+     * Es la corrección de seguridad de la migración 0055: el enlace deja de
+     * ser una llave permanente al informe, así que el único momento en que la
+     * persona puede leerlo es este —cuando acaba de responder y sabemos con
+     * certeza que es ella—. La advertencia va ENCIMA del informe porque quien
+     * termina baja leyendo y cierra.
+     */
+    await expect(
+      page.getByText(/guarda esto ahora: no podrás volver a abrirlo/i),
+    ).toBeVisible({ timeout: 30000 });
+
+    await expect(
+      page.getByRole("button", { name: /imprimir o guardar como pdf/i }),
+    ).toBeVisible();
+
+    // Y el cuestionario desaparece: no se revisan respuestas que ya no se
+    // pueden cambiar.
+    await expect(page.getByText(/68 de 68 respondidas/i)).toHaveCount(0);
+
+    /*
+     * El pase queda apagado EN LA BASE, no solo en la pantalla.
+     *
+     * El testigo en claro desaparece —era la llave guardada junto a la
+     * cerradura— y la marca de uso es lo que hace que el enlace deje de
+     * resolver.
+     */
+    /*
+     * Por el identificador de LA invitación, no por persona ni por evaluación.
+     *
+     * Por evaluación no vale: este fixture emite el pase con la forma heredada
+     * —por convocatoria, sin `assignment_id`—, que es justamente la que la
+     * primera versión de `cerrar_pase` se dejaba fuera. Y por persona tampoco:
+     * la misma puede estar convocada a dos sesiones y tener dos pases vivos,
+     * de los que solo debe cerrarse el de esta.
+     */
+    const { data: cerrada } = await db
+      .from("invitations")
+      .select("token, usado_at")
+      .eq("id", invitacionDelPase)
+      .single();
+
+    expect(cerrada?.token).toBeNull();
+    expect(cerrada?.usado_at).not.toBeNull();
+
+    // Volver a abrir el enlace no enseña nada, y lo dice con su motivo: no es
+    // «venció», que llevaría a pedirle uno nuevo a la empresa.
+    await page.goto(`/prueba/${pase}`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(/este enlace ya se usó/i)).toBeVisible();
+    await expect(page.getByText(/guarda esto ahora/i)).toHaveCount(0);
   });
 });

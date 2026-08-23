@@ -86,6 +86,16 @@ export default async function PruebaConPasePage({
   );
 
   const enCurso = evaluacion.estado === "en_curso";
+
+  /*
+   * Se acabó el tiempo.
+   *
+   * `asignacion_de_pase` la marca así cuando alguien vuelve pasada la ventana
+   * del instrumento (migración 0056), y sin esta rama la pantalla caía en la
+   * del consentimiento: le pedía consentir otra vez algo que ya no puede
+   * responder, que es la peor respuesta posible a «¿qué ha pasado?».
+   */
+  const vencida = evaluacion.estado === "vencida";
   const terminada = ["enviada", "calificada", "publicada"].includes(
     evaluacion.estado,
   );
@@ -119,7 +129,13 @@ export default async function PruebaConPasePage({
         </p>
       </div>
 
-      {terminada ? (
+      {vencida ? (
+        <Alert tone="warning" title="Se acabó el tiempo">
+          Esta prueba tiene un tiempo límite desde que se empieza, y ya pasó.
+          Tus respuestas no se enviaron. Si aún necesitas hacerla, habla con la
+          empresa que te convocó: puede darte un acceso nuevo.
+        </Alert>
+      ) : terminada ? (
         <div className="flex flex-col gap-4">
           <Alert tone="success" title="Ya enviaste tus respuestas">
             {valores.length > 0
@@ -152,6 +168,9 @@ export default async function PruebaConPasePage({
           items={items}
           respuestas={respuestas}
           pase={token}
+          persona={evaluacion.persona}
+          instrumento={evaluacion.instrumento}
+          empresa={evaluacion.empresa}
         />
       ) : (
         <Consentimiento
