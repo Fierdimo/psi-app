@@ -31,9 +31,18 @@ export async function entrarComo(
    * se quedaba esperando una dirección que nunca iba a llegar y el fallo
    * apuntaba a la prueba en vez de a esta línea.
    */
-  await page.waitForURL(/\/(consentimiento|panel|empresa|profesional\/agenda)/);
+  await page.waitForURL(
+    /\/(consentimiento|condiciones|panel|empresa|profesional\/agenda)/,
+  );
 
-  if (page.url().includes("/consentimiento")) {
+  /*
+   * Cada rol tiene su puerta, y las dos se cruzan igual.
+   *
+   * El paciente otorga el consentimiento de atención; la empresa acepta sus
+   * condiciones de uso, donde vive la obligación de custodiar los informes.
+   * Las dos son bloqueantes y las dos se aceptan con el mismo botón.
+   */
+  if (/\/(consentimiento|condiciones)/.test(page.url())) {
     await page.getByRole("button", { name: /he leído y acepto/i }).click();
   }
 

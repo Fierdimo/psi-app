@@ -323,10 +323,22 @@ export function informeListo(
       `El informe de <strong>${persona}</strong> (${instrumento}) ya está ` +
         `disponible en tu espacio de empresa.`,
       undefined,
+      /*
+       * El recordatorio de custodia, en cada informe.
+       *
+       * No crea la obligación —esa se acepta al contratar, en las condiciones
+       * de uso— pero la mantiene a la vista de quien abre el documento, que es
+       * el momento en que importa. Una obligación firmada hace seis meses y no
+       * repetida nunca es una obligación que nadie recuerda tener.
+       */
       `<p style="margin:20px 0 0"><a href="${enlace}" style="display:inline-block;background:#2440C4;color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600">Ver el informe</a></p>
     <p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
       El informe no viaja en este correo: se consulta en la plataforma, donde
       está siempre al día.
+    </p>
+    <p style="margin:12px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+      Recuerda que respondes de este documento: úsalo solo para el proceso que
+      motivó la evaluación y no lo difundas fuera de él.
     </p>`,
     ),
   };

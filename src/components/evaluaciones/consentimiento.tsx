@@ -12,6 +12,7 @@ import {
   consentirConPase,
   iniciarConPase,
 } from "@/lib/evaluaciones/acciones-pase";
+import { seccionesDelConsentimiento } from "@/lib/consentimiento";
 
 const INICIAL = { ok: false, mensaje: "" };
 
@@ -31,6 +32,7 @@ export function Consentimiento({
   decision,
   pase,
   version = "1",
+  empresa,
 }: {
   asignacion: string;
   decision: string | null;
@@ -43,6 +45,14 @@ export function Consentimiento({
    */
   pase?: string;
   version?: string;
+  /**
+   * Quién encarga la evaluación.
+   *
+   * Va al primer apartado del documento: «te evalúan por encargo de alguien»
+   * sin nombrarlo informa a medias, y es lo primero que cualquiera quiere
+   * saber antes de decidir.
+   */
+  empresa?: string | null;
 }) {
   const [estado, accion, enviando] = useActionState(
     consentirEvaluacion,
@@ -77,42 +87,33 @@ export function Consentimiento({
           Antes de empezar, tu consentimiento
         </h2>
 
-        <div className="text-muted mt-4 flex flex-col gap-3 text-sm">
-          <p>
-            Vas a responder una evaluación psicológica y psicotécnica. Su
-            propósito es conocer habilidades, competencias y aptitudes
-            relacionadas con el puesto del proceso en el que participas.
-          </p>
-          {/*
-            Esto decía que un profesional revisa y firma antes de que el
-            resultado exista para nadie. Dejó de ser cierto: al enviar, el
-            informe se calcula y se envía solo. Un consentimiento que describe
-            un procedimiento que no ocurre no es un consentimiento informado.
-          */}
-          <p>
-            Al terminar, el sistema calcula tu informe y lo envía a la empresa
-            que encargó la evaluación. Ocurre de forma automática, sin que un
-            profesional lo revise antes. Después puede revisarlo y corregirlo, y
-            en ese caso la empresa ve la versión corregida.
-          </p>
-          <p>
-            El informe lo reciben la empresa y tú. Nadie más. Lo que la empresa
-            NO recibe es tu hoja de respuestas: qué marcaste en cada pregunta no
-            sale de la consulta.
-          </p>
-          <p>
-            <strong className="text-text-strong">
-              Tu participación es voluntaria.
-            </strong>{" "}
-            Puedes negarte ahora, o aceptar ahora y retirar tu consentimiento
-            antes de enviar la prueba. Ten en cuenta que al enviarla el informe
-            sale de inmediato: a partir de ese momento, retirarlo ya no lo
-            detiene. Y si cambias de idea antes, puedes aceptar otra vez: esta
-            decisión no se agota mientras no hayas enviado.
-          </p>
-          <p>
-            También puedes cerrar esta página sin responder y volver cuando
-            quieras. No pasa nada y nadie recibe aviso.
+        {/*
+          EL TEXTO SALE DEL MÓDULO VERSIONADO, no de aquí.
+
+          Estuvo escrito a mano en este componente mientras la versión que se
+          guardaba como evidencia salía de `consentimiento.ts`, cuyo texto era
+          otro: se registraba haber aceptado una redacción que quien firmaba no
+          había visto nunca. El punto entero de versionar un consentimiento es
+          poder demostrar qué se aceptó, así que había un solo sitio posible
+          para el texto.
+        */}
+        <div className="text-text-body mt-4 flex flex-col gap-5 text-sm">
+          {seccionesDelConsentimiento(empresa).map((seccion) => (
+            <section key={seccion.titulo} className="flex flex-col gap-1.5">
+              <h3 className="text-text-strong font-semibold">
+                {seccion.titulo}
+              </h3>
+              {(Array.isArray(seccion.cuerpo)
+                ? seccion.cuerpo
+                : [seccion.cuerpo]
+              ).map((parrafo, n) => (
+                <p key={n}>{parrafo}</p>
+              ))}
+            </section>
+          ))}
+
+          <p className="text-text-muted text-micro tabular">
+            Versión {version}
           </p>
         </div>
 

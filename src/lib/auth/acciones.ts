@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
+import { CONDICIONES_EMPRESA } from "@/lib/legal/condiciones-empresa";
 import { origenDeLaPeticion } from "@/lib/http/origen";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
 import { crearClienteServidor } from "@/lib/supabase/server";
@@ -17,7 +18,12 @@ import {
   type EstadoFormulario,
 } from "@/lib/validacion/auth";
 
-import { inicioSegunRol, tieneConsentimientoVigente, type Rol } from "./perfil";
+import {
+  inicioSegunRol,
+  tieneCondicionesAceptadas,
+  tieneConsentimientoVigente,
+  type Rol,
+} from "./perfil";
 
 /**
  * Mensaje único para cualquier fallo de credenciales.
@@ -123,6 +129,24 @@ export async function ingresar(
     !(await tieneConsentimientoVigente(data.user.id))
   ) {
     redirect("/consentimiento");
+  }
+
+  /*
+   * La empresa acepta sus condiciones, y se manda AQUÍ y no solo desde el
+   * middleware.
+   *
+   * El middleware también lo comprueba —es la barrera de verdad, la que cubre
+   * llegar por cualquier otro camino— pero si el ingreso mandara a `/empresa`
+   * y el rebote ocurriera después, la navegación es del enrutador de React:
+   * pinta las condiciones y deja la barra de direcciones diciendo otra cosa.
+   * Se vio en la prueba de extremo a extremo, con la pantalla correcta y la
+   * URL equivocada.
+   *
+   * Es el mismo motivo por el que el consentimiento del paciente se resuelve
+   * dos líneas más arriba en vez de dejárselo al middleware.
+   */
+  if (rol === "empresa" && !(await tieneCondicionesAceptadas(data.user.id))) {
+    redirect("/condiciones");
   }
 
   redirect(destino);
@@ -320,4 +344,55 @@ export async function cerrarSesion() {
   revalidatePath("/", "layout");
 
   redirect("/ingresar");
+}
+
+/**
+ * La empresa acepta sus condiciones de uso.
+ *
+ * Es la pieza que hace verdadera una frase del consentimiento de la persona
+ * evaluada: allí se le dice que la empresa se obliga a custodiar su informe, y
+ * un documento entre la persona y la consulta no puede obligar a un tercero.
+ * La obligación se crea aquí, o no existe.
+ *
+ * Se registra con la clave de servicio y con la IP y el agente REALES de la
+ * petición, igual que el consentimiento: si lo hiciera el cliente, esos campos
+ * serían lo que el navegador quisiera declarar y no servirían como evidencia.
+ */
+export async function aceptarCondicionesEmpresa(): Promise<EstadoFormulario> {
+  const supabase = await crearClienteServidor();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/ingresar");
+
+  const encabezados = await headers();
+  const ip =
+    encabezados.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    encabezados.get("x-real-ip");
+
+  const admin = crearClienteAdmin();
+  const { error } = await admin.from("consents").insert({
+    user_id: user.id,
+    document_key: CONDICIONES_EMPRESA.clave,
+    version: CONDICIONES_EMPRESA.version,
+    ip: ip || null,
+    user_agent: encabezados.get("user-agent"),
+  });
+
+  // Aceptar dos veces no es un error: el índice único lo impide y el resultado
+  // deseado —que conste la aceptación— ya se cumplió.
+  if (error && error.code !== "23505") {
+    return {
+      ok: false,
+      mensaje: "No pudimos registrar tu aceptación. Inténtalo de nuevo.",
+    };
+  }
+
+  // Imprescindible, por lo mismo que en `aceptarConsentimiento`: el layout se
+  // resolvió hace un instante como «redirige a las condiciones», y sin
+  // invalidar esa caché la empresa acepta y vuelve a ver esta pantalla.
+  revalidatePath("/", "layout");
+
+  redirect("/empresa");
 }

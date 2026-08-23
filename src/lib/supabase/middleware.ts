@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
+import { CONDICIONES_EMPRESA } from "@/lib/legal/condiciones-empresa";
 
 /** Rutas privadas del paciente. Prefijos. */
 /*
@@ -36,6 +37,9 @@ const empiezaPor = (pathname: string, rutas: string[]) =>
 export function esRutaPrivada(pathname: string) {
   return (
     empiezaPor(pathname, RUTAS_CON_SESION) ||
+    // Las condiciones de la empresa: hay que tener sesión para aceptarlas, y
+    // sin esto quien llegara sin ella vería la pantalla y no el ingreso.
+    pathname === "/condiciones" ||
     RUTAS_PACIENTE.some(
       (r) => pathname === r || pathname.startsWith(`${r}/`),
     ) ||
@@ -133,6 +137,7 @@ export async function actualizarSesion(request: NextRequest) {
   const exigeConsentimiento =
     esRutaPrivada(pathname) &&
     pathname !== "/consentimiento" &&
+    pathname !== "/condiciones" &&
     !empiezaPor(pathname, RUTAS_CON_SESION);
 
   if (user && exigeConsentimiento) {
@@ -142,20 +147,43 @@ export async function actualizarSesion(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    const loOtorga = perfil?.role === "paciente";
+    /*
+     * Cada rol firma un documento distinto, y ninguno firma el del otro.
+     *
+     * El paciente otorga el consentimiento de atención —esa rama muere con su
+     * área—. La empresa acepta sus condiciones de uso, y eso NO es un trámite
+     * simétrico: dentro va la obligación de custodiar el informe de una
+     * persona que no está en la sala. El consentimiento que ella firma le
+     * promete justamente eso, así que si aquí no se pidiera, aquella promesa
+     * sería falsa.
+     */
+    const documento =
+      perfil?.role === "paciente"
+        ? {
+            clave: CONSENTIMIENTO.clave,
+            version: CONSENTIMIENTO.version,
+            ruta: "/consentimiento",
+          }
+        : perfil?.role === "empresa"
+          ? {
+              clave: CONDICIONES_EMPRESA.clave,
+              version: CONDICIONES_EMPRESA.version,
+              ruta: "/condiciones",
+            }
+          : null;
 
-    if (loOtorga) {
-      const { data: consentimiento } = await supabase
+    if (documento) {
+      const { data: aceptado } = await supabase
         .from("consents")
         .select("id")
         .eq("user_id", user.id)
-        .eq("document_key", CONSENTIMIENTO.clave)
-        .eq("version", CONSENTIMIENTO.version)
+        .eq("document_key", documento.clave)
+        .eq("version", documento.version)
         .maybeSingle();
 
-      if (!consentimiento) {
+      if (!aceptado) {
         const destino = request.nextUrl.clone();
-        destino.pathname = "/consentimiento";
+        destino.pathname = documento.ruta;
         destino.search = "";
         return NextResponse.redirect(destino);
       }

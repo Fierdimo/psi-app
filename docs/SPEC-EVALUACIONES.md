@@ -516,13 +516,27 @@ Con el rol `paciente` fuera, **es el único consentimiento que queda en el
 producto**. El circuito de `/consentimiento` —el de tratamiento individual, que
 bloqueaba la entrada al área del paciente— se retira con ella.
 
-### 7.2 El texto hay que reescribirlo entero, no retocarlo
+### 7.2 El texto se reescribió entero, no se retocó
 
-`SECCIONES_CONSENTIMIENTO` está escrito para un paciente de la consulta. Habla
-de «tus citas», «tu profesional», «Mis datos», «solicitar la eliminación de tu
-cuenta» y «agendar citas, avisarte de cambios». Después de este giro, **nada de
-eso existe** para quien lo firma: no tiene citas, no tiene profesional
-asignado, no tiene «Mis datos» y no tiene cuenta que eliminar.
+`SECCIONES_CONSENTIMIENTO` estaba escrito para un paciente de la consulta.
+Hablaba de «tus citas», «tu profesional», «Mis datos», «solicitar la
+eliminación de tu cuenta» y «agendar citas, avisarte de cambios». Después de
+este giro, **nada de eso existe** para quien lo firma: no tiene citas, no tiene
+profesional asignado, no tiene «Mis datos» y no tiene cuenta que eliminar.
+
+**Y arrastraba un problema peor, que solo se ve leyendo las dos pantallas
+juntas.** El texto que de verdad leía quien respondía estaba **escrito a mano
+dentro de `consentimiento.tsx`**, mientras la versión que se guardaba como
+evidencia salía de `consentimiento.ts`, cuyo texto era otro. Se registraba
+haber aceptado una redacción que esa persona no había visto nunca — y el punto
+entero de versionar un consentimiento es poder demostrar qué se aceptó. Ahora
+hay un solo texto y las dos pantallas lo leen del mismo sitio.
+
+El documento es una **función** y no una constante, porque el primer apartado
+nombra a quien encarga: «te evalúan por encargo de alguien» sin decir quién
+informa a medias. Que lleve un hueco no rompe la evidencia — la versión
+identifica la redacción y la evaluación identifica a la empresa, y las dos
+quedan en la misma fila de `consents`.
 
 Un consentimiento que describe un procedimiento que no ocurre no informa de
 nada — es el mismo motivo por el que ya se subió dos veces la versión. Se
@@ -564,8 +578,8 @@ Diez apartados. Los tres marcados son los que hoy no dice y hay que añadir.
     —eso ya lo dice el correo de convocatoria— y los datos de contacto del
     responsable para ejercer acceso, corrección o supresión.
 
-**La versión se sube** al desplegarlo. La regla del archivo es explícita —«no
-edites el texto sin subir la versión»— y aquí no es un formalismo: nadie ha
+**La versión se subió** a `2026-08-23`. La regla del archivo es explícita —«no
+edites el texto sin subir la versión»— y aquí no era un formalismo: nadie había
 aceptado esta redacción.
 
 ### 7.4 La obligación de la empresa no se crea en el consentimiento de la persona
@@ -576,14 +590,28 @@ custodiar tus resultados» informa a quien no puede hacer nada al respecto y no
 obliga a quien sí.
 
 Para que la obligación exista de verdad hace falta que la empresa la acepte
-**en su lado**, y son dos sitios:
+**en su lado**, y son tres sitios:
 
-- **En el alta de empresa** (§2.1), como condición de uso que se acepta con
-  casilla y queda registrada en `consents` con su versión — la tabla ya sirve
-  para esto, solo hay que darle otra `document_key`. Sin aceptarla no hay
-  organización.
-- **En cada correo de informe** (§8.2), como recordatorio de una línea. No
-  crea la obligación; la mantiene a la vista de quien abre el documento.
+- **Una pantalla bloqueante**, `/condiciones`, antes de entrar a su área.
+  Pantalla propia y no una casilla al pie de nada, por el mismo motivo que el
+  consentimiento de la persona: lo que se acepta incluye responder de un dato
+  sensible de alguien que no está en la sala. Queda en `consents` con su
+  versión, su fecha, su IP y su agente — la misma tabla y la misma evidencia.
+- **En el alta de empresa** (§2.1), cuando exista: una casilla más en el mismo
+  formulario. La pantalla bloqueante seguirá haciendo falta para las cuentas ya
+  creadas y para cada vez que se suba la versión.
+- **En cada correo de informe** (§8.2), como recordatorio de una línea. No crea
+  la obligación; la mantiene a la vista de quien abre el documento, que es el
+  momento en que importa. Una obligación firmada hace seis meses y no repetida
+  nunca es una obligación que nadie recuerda tener.
+
+**El ingreso manda a la pantalla, además del middleware.** El middleware es la
+barrera de verdad —cubre llegar por cualquier otro camino— pero si el rebote
+ocurriera solo ahí, la navegación sería del enrutador de React: pinta las
+condiciones y deja la barra de direcciones diciendo otra cosa. Se vio en la
+prueba de extremo a extremo, con la pantalla correcta y la URL equivocada. Es
+el mismo motivo por el que el consentimiento del paciente ya se resolvía en el
+ingreso.
 
 En el consentimiento de la persona se dice lo que le corresponde saber: _que la
 empresa asume esa responsabilidad desde que recibe el informe_. Eso es

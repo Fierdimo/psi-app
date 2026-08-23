@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 
 import { CONSENTIMIENTO } from "@/lib/consentimiento";
+import { CONDICIONES_EMPRESA } from "@/lib/legal/condiciones-empresa";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export type Rol = "paciente" | "profesional" | "empresa";
@@ -42,6 +43,27 @@ export function inicioSegunRol(rol: Rol) {
   if (rol === "profesional") return "/profesional/agenda";
   if (rol === "empresa") return "/empresa";
   return "/panel";
+}
+
+/**
+ * ¿Aceptó esta empresa la versión vigente de sus condiciones de uso?
+ *
+ * Se pregunta por separado del consentimiento porque son documentos distintos
+ * y los firma gente distinta: uno lo otorga quien va a ser evaluado, el otro
+ * lo acepta quien encarga la evaluación y con él se obliga a custodiar el
+ * informe de esa persona.
+ */
+export async function tieneCondicionesAceptadas(userId: string) {
+  const supabase = await crearClienteServidor();
+  const { data } = await supabase
+    .from("consents")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("document_key", CONDICIONES_EMPRESA.clave)
+    .eq("version", CONDICIONES_EMPRESA.version)
+    .maybeSingle();
+
+  return Boolean(data);
 }
 
 /** ¿Aceptó esta persona la versión vigente del consentimiento? */

@@ -290,7 +290,7 @@ decirlo antes de empezar, no después.
 
 ---
 
-### F4b · Consentimiento y devolución del informe — M (2–3 días)
+### F4b · Consentimiento y condiciones de la empresa — M (2–3 días) · **HECHA**
 
 Va aquí, después de que el circuito funcione y **antes** del corte: el
 documento nuevo describe el sistema nuevo, así que no puede escribirse antes de
@@ -468,7 +468,7 @@ actualiza el recorrido de demostración.
 | F5   | El corte                                 | M · 2–3 d |
 | F6   | Pruebas y cierre                         | M · 2–3 d |
 
-**Total: 16–23 días.** De ellos, **F1 a F4 y F4a están hechas**.
+**Total: 16–23 días.** De ellos, **F1 a F4b están hechas**. Queda F5, el corte.
 
 > **Estado de la suite de extremo a extremo, medido:** 90 en verde, 3 en rojo.
 > Las tres son de `profesional.spec.ts`, del circuito de citas, y **ya estaban

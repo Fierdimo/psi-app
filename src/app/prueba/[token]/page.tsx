@@ -182,6 +182,7 @@ export default async function PruebaConPasePage({
           }
           pase={token}
           version={CONSENTIMIENTO.version}
+          empresa={evaluacion.empresa}
         />
       )}
     </Marco>
