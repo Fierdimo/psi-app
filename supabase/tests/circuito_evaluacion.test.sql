@@ -20,6 +20,19 @@ create extension if not exists pgtap;
 
 select plan(25);
 
+-- Las dos tablas de usos van PRIMERO, y por delante de `auth.users`.
+--
+-- Se quedaron fuera de este preámbulo cuando la migración 0053 las creó, y el
+-- fallo estuvo escondido todo este tiempo: `ticket_orders.solicitada_por`
+-- apunta a `profiles` sin cascada, así que borrar usuarios revienta en cuanto
+-- exista UNA solicitud. Con la base recién sembrada no hay ninguna, y solo la
+-- suite de extremo a extremo las crea — de ahí que estos ficheros pasaran
+-- solos y fallaran después de correr Playwright.
+--
+-- El libro mayor antes que las órdenes: apunta a ellas.
+delete from public.ticket_ledger;
+delete from public.ticket_orders;
+
 delete from public.consents;
 delete from public.result_values;
 delete from public.results;
