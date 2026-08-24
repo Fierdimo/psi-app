@@ -24,6 +24,17 @@ import {
 export const CONSENTIMIENTO = {
   clave: "consentimiento_informado",
   /*
+   * 2026-08-24.3: el informe deja de mostrarse en pantalla al terminar.
+   *
+   * DECISIÓN DEL CLIENTE. El apartado «Tu copia» prometía que el informe
+   * aparecía en pantalla en cuanto se enviaban las respuestas, y ahora esa
+   * pantalla es una despedida: dice a dónde salió el PDF, quién va a escribir
+   * y que se puede cerrar la página.
+   *
+   * Se sube la versión porque es exactamente el caso para el que existe el
+   * versionado: prometer una pantalla que ya no aparece es informar mal, y
+   * alguien podría dar por perdido su informe al no verlo salir.
+   *
    * 2026-08-24.2: se añade el «Certifico que».
    *
    * El documento DESCRIBÍA —qué datos se guardan, quién recibe el informe— y
@@ -71,7 +82,7 @@ export const CONSENTIMIENTO = {
    * 2026-08-19: decía que aquí no se guardaba contenido clínico, y desde el
    * motor de evaluaciones se guardan respuestas e informes.
    */
-  version: "2026-08-24.2",
+  version: "2026-08-24.3",
 } as const;
 
 /**
@@ -129,9 +140,9 @@ export function seccionesDelConsentimiento(
       ],
     },
     {
-      titulo: "Tu copia: en pantalla y en tu correo",
+      titulo: "Tu copia: en tu correo",
       cuerpo: [
-        "En cuanto envías tus respuestas, tu informe aparece en pantalla. Y te llega en PDF al mismo correo por el que recibiste el enlace, para que lo conserves.",
+        "En cuanto envías tus respuestas, tu informe se te envía en PDF al mismo correo por el que recibiste el enlace, para que lo conserves. No se muestra en la pantalla: al terminar verás una confirmación de que salió, y desde ahí puedes descargarlo en ese momento si prefieres guardarlo tú.",
         "Tu enlace de acceso queda cerrado en ese momento y no vuelve a abrirse. No es un descuido: ese enlace viaja por correo, se imprime en un código QR y se queda en el historial del navegador, y mientras siguiera abriendo tu informe cualquiera que lo tuviera podría leerlo.",
         `Si pierdes el correo, puedes pedírselo a ${quien} o ejercer tu derecho de acceso escribiendo a ${RESPONSABLE.correo}.`,
       ],

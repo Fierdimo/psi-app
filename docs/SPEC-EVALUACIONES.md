@@ -760,7 +760,54 @@ así que una evaluación ajena responde **404 y no 403**: distinguirlos
 convertiría una dirección adivinable en un detector de evaluaciones de otros.
 
 Quien respondió **no entra por aquí**: su copia le llegó por correo y su enlace
-se apagó al enseñársela. Abrir esta puerta a `anon` sería deshacer eso.
+se apagó al terminar. Abrir esta puerta a `anon` sería deshacer eso.
+
+### 8.4.3 Al terminar NO se enseña el informe · **decisión revisada**
+
+**DECISIÓN DEL CLIENTE**, y revierte lo que esta misma sección sostuvo. La
+pantalla del final dibujaba el perfil entero, con este argumento: el pase se
+apaga ahí, así que es la única ocasión que tiene la persona de leerlo.
+
+Dejó de ser única en §8.3, cuando el PDF pasó a salir también hacia ella. Y lo
+que quedaba era peor que redundante: un perfil psicológico completo —patrón,
+cuadrante, descriptores— leído a solas, recién salido de media hora de prueba
+y sin nadie que lo interprete.
+
+Lo que la pantalla dice ahora, **en este orden**, que es el orden en que se lo
+pregunta quien acaba de terminar:
+
+1. Se acabó y salió bien, con su nombre.
+2. Dónde están sus resultados: en su correo, no aquí.
+3. Que puede descargarlos ahora si quiere.
+4. Quién le va a escribir y para qué —«{empresa} se pondrá en contacto contigo
+   para continuar con los siguientes pasos»—.
+5. Que puede cerrar la página cuando quiera.
+
+El punto 5 no es cortesía. Sin él, alguien que termina y no ve resultados se
+queda esperando a que aparezca algo.
+
+**El botón descarga, ya no imprime.** Imprimir funcionaba porque el informe
+estaba dibujado debajo; sin informe en pantalla no hay nada que imprimir. Y el
+archivo **no cuelga de una dirección**: viaja en base64 dentro de la respuesta
+de la acción y el navegador lo rearma. Una dirección que devolviera el informe
+sería exactamente la credencial al portador que el pase acaba de cerrar.
+
+El PDF se compone **por segunda vez** en esa acción. El cierre automático ya
+generó uno para los correos, pero no lo devuelve: no lanza nunca y se corta
+antes si la empresa no tiene correo de contacto. Atar la copia de la persona a
+que la empresa tenga buzón sería unir dos caminos que fallan por motivos
+distintos, y el precio es medio segundo por evaluación terminada.
+
+**Si la composición falla, no hay botón.** Un botón que descarga un archivo
+roto es peor que ninguno: su copia ya va por correo, que es el camino bueno.
+
+**Y arrastró el consentimiento otra vez.** El apartado se titulaba «Tu copia:
+en pantalla y en tu correo» y prometía que el informe aparecía al enviar.
+Versión **`2026-08-24.3`**.
+
+La misma regla vale para volver a abrir un enlace todavía vivo —el caso raro
+en que el motor no llegó a publicar—: tampoco enseña resultados, solo dice por
+dónde llega el PDF y a quién preguntar.
 
 ### 8.4.2 Cómo se genera el PDF
 

@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
@@ -217,21 +219,57 @@ test.describe.serial("Evaluación con pase", () => {
     expect(resultado?.released_automatically).toBe(true);
 
     /*
-     * Y SU COPIA, en la misma pantalla y una sola vez.
+     * Y LA DESPEDIDA, que ya no es el informe.
      *
-     * Es la corrección de seguridad de la migración 0055: el enlace deja de
-     * ser una llave permanente al informe, así que el único momento en que la
-     * persona puede leerlo es este —cuando acaba de responder y sabemos con
-     * certeza que es ella—. La advertencia va ENCIMA del informe porque quien
-     * termina baja leyendo y cierra.
+     * Decisión del cliente: el perfil sale por correo a la persona y a la
+     * empresa, y esta pantalla solo dice qué pasó, quién le va a escribir y
+     * que puede irse. Se comprueban las cuatro cosas porque cada una responde
+     * a una pregunta distinta de quien acaba de terminar, y la última —«puedes
+     * cerrar»— es la que evita que se quede esperando algo que no va a salir.
      */
+    await expect(page.getByText(/terminaste tu evaluación/i)).toBeVisible({
+      timeout: 30000,
+    });
     await expect(
-      page.getByText(/este es tu informe, y también te lo enviamos/i),
-    ).toBeVisible({ timeout: 30000 });
-
-    await expect(
-      page.getByRole("button", { name: /imprimir o guardar como pdf/i }),
+      page.getByText(/tus resultados salieron por correo/i),
     ).toBeVisible();
+    await expect(
+      page.getByText(/se pondrá en contacto contigo/i),
+    ).toBeVisible();
+    await expect(page.getByText(/ya puedes cerrar esta página/i)).toBeVisible();
+
+    /*
+     * Y EL PERFIL NO ESTÁ EN LA PANTALLA. Es el punto del cambio.
+     *
+     * Sin esta aserción, volver a dibujar el informe aquí pasaría todas las
+     * demás: la despedida seguiría estando, solo que con el perfil debajo.
+     */
+    await expect(page.getByText(/perfil disc evaluado/i)).toHaveCount(0);
+    await expect(page.getByText(/perfil neurolateral/i)).toHaveCount(0);
+
+    /*
+     * El botón descarga UN PDF DE VERDAD.
+     *
+     * El archivo no viene de una dirección —eso sería reabrir la credencial
+     * que el pase acaba de cerrar—: viaja en base64 dentro de la respuesta de
+     * la acción y el navegador lo rearma. Ese camino se corrompe en silencio
+     * si alguien deja que `Blob` codifique la cadena como texto, y un PDF roto
+     * abre en nada sin lanzar ningún error. Por eso se mira el archivo.
+     */
+    const descarga = await Promise.all([
+      page.waitForEvent("download"),
+      page
+        .getByRole("button", { name: /descargar mi informe en pdf/i })
+        .click(),
+    ]).then(([d]) => d);
+
+    expect(descarga.suggestedFilename()).toMatch(/\.pdf$/);
+
+    const guardado = await descarga.path();
+    const bytes = await readFile(guardado);
+    expect(bytes.length).toBeGreaterThan(10_000);
+    // La firma de un PDF son sus cuatro primeros bytes.
+    expect(bytes.subarray(0, 4).toString()).toBe("%PDF");
 
     // Y el cuestionario desaparece: no se revisan respuestas que ya no se
     // pueden cambiar.
@@ -310,6 +348,10 @@ test.describe.serial("Evaluación con pase", () => {
     // «venció», que llevaría a pedirle uno nuevo a la empresa.
     await page.goto(`/prueba/${pase}`, { waitUntil: "domcontentloaded" });
     await expect(page.getByText(/este enlace ya se usó/i)).toBeVisible();
-    await expect(page.getByText(/guarda esto ahora/i)).toHaveCount(0);
+    // Y no queda rastro de la despedida: el enlace no reabre nada.
+    await expect(page.getByText(/terminaste tu evaluación/i)).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /descargar mi informe en pdf/i }),
+    ).toHaveCount(0);
   });
 });

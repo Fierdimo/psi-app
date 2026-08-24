@@ -6,9 +6,9 @@ import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
 import {
   enviarConPase,
   responderConPase,
-  type InformeCompleto,
+  type CierreDeLaPrueba,
 } from "@/lib/evaluaciones/acciones-pase";
-import { InformeAlTerminar } from "@/components/evaluaciones/informe-al-terminar";
+import { FinDeLaPrueba } from "@/components/evaluaciones/fin-de-la-prueba";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/lib/evaluaciones/motor";
@@ -77,9 +77,8 @@ export function Ejecutor({
   /**
    * Quién responde, qué prueba y para quién.
    *
-   * Solo hacen falta con pase, para encabezar el informe que se enseña al
-   * terminar. Con cuenta, ese informe vive en su espacio privado y esta
-   * pantalla no tiene que dibujarlo.
+   * Se pintan en la cabecera de la página del pase, que es lo que le confirma
+   * a quien abre un enlace recibido por correo que la prueba es la suya.
    */
   persona?: string;
   instrumento?: string;
@@ -96,18 +95,18 @@ export function Ejecutor({
   const [enviando, iniciarEnvio] = useTransition();
 
   /*
-   * El informe, cuando ya se envió. Nulo mientras se responde.
+   * La despedida, cuando ya se envió. Nula mientras se responde.
    *
-   * Vive en el cliente y no se recarga de la página porque el pase se apaga al
-   * enseñarlo: volver al servidor devolvería «este enlace ya se usó» y borraría
-   * de la pantalla lo único que esta persona va a poder leer.
+   * Vive en el cliente y no se recarga de la página porque el pase se apaga en
+   * el mismo gesto: volver al servidor devolvería «este enlace ya se usó» en
+   * vez de la pantalla final, y con ella se iría el botón de descarga.
    */
-  const [informe, setInforme] = useState<InformeCompleto | null>(null);
+  const [cierre, setCierre] = useState<CierreDeLaPrueba | null>(null);
 
   /*
-   * Enviada aparte del informe, y hace falta que sean dos cosas.
+   * Enviada aparte del cierre, y hace falta que sean dos cosas.
    *
-   * `informe` en nulo significa «el motor no llegó a publicar», que es un caso
+   * `cierre` en nulo significa «el motor no llegó a publicar», que es un caso
    * real —el cierre automático está escrito para no lanzar nunca— y también es
    * el estado inicial. Sin este testigo, una prueba enviada sin informe
    * volvería al cuestionario como si no se hubiera enviado.
@@ -157,13 +156,13 @@ export function Ejecutor({
   /*
    * Enviada la prueba, esta pantalla deja de ser un examen.
    *
-   * Se sustituye entera en vez de añadir el informe debajo: quedarse el
+   * Se sustituye entera en vez de añadir la despedida debajo: quedarse el
    * cuestionario arriba invita a revisar respuestas que ya no se pueden
-   * cambiar, y sobre todo empuja el aviso de «guarda esto ahora» fuera de la
-   * primera pantalla, que es justo donde tiene que estar.
+   * cambiar, y deja el «ya puedes cerrar esta página» a 68 preguntas de scroll
+   * de donde tiene que estar.
    */
   if (enviada) {
-    return <InformeAlTerminar informe={informe} />;
+    return <FinDeLaPrueba cierre={cierre} />;
   }
 
   return (
@@ -239,11 +238,10 @@ export function Ejecutor({
                   /*
                    * `null` cuando el motor no llegó a publicar.
                    *
-                   * No es lo mismo que «no hay apartados»: la pantalla del
-                   * final lo distingue para decir «se está preparando» en vez
-                   * de enseñar un informe vacío.
+                   * La pantalla del final lo distingue para decir «se está
+                   * preparando» en vez de prometer un correo que no salió.
                    */
-                  setInforme(r.informe ?? null);
+                  setCierre(r.cierre ?? null);
                   setEnviada(true);
                   return;
                 }

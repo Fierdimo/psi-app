@@ -100,25 +100,6 @@ export default async function PruebaConPasePage({
     evaluacion.estado,
   );
 
-  /*
-   * Su informe, por su pase.
-   *
-   * Es el único camino que le queda: la evaluación no vive en su perfil aunque
-   * tenga cuenta. El consentimiento le promete que lo recibe, así que sin esto
-   * el documento prometería algo imposible.
-   */
-  const { data: informe } = terminada
-    ? await supabase.rpc("informe_de_pase", { p_token: token })
-    : { data: null };
-
-  const valores = (informe ?? []) as {
-    parameter_key: string;
-    etiqueta: string;
-    valor: unknown;
-    texto: string | null;
-    nota_global: string | null;
-  }[];
-
   return (
     <Marco>
       <div className="flex flex-col gap-1">
@@ -136,32 +117,22 @@ export default async function PruebaConPasePage({
           empresa que te convocó: puede darte un acceso nuevo.
         </Alert>
       ) : terminada ? (
-        <div className="flex flex-col gap-4">
-          <Alert tone="success" title="Ya enviaste tus respuestas">
-            {valores.length > 0
-              ? "Tu informe está abajo. Si el profesional lo corrige, verás aquí la versión corregida."
-              : "Tu informe se está preparando. Vuelve a abrir este mismo enlace en un rato."}
-          </Alert>
-
-          {valores.length > 0 && (
-            <div className="border-line bg-panel flex flex-col gap-4 rounded-xl border p-6">
-              {valores[0]?.nota_global && (
-                <p className="text-text-body">{valores[0].nota_global}</p>
-              )}
-
-              {valores.map((v) => (
-                <div key={v.parameter_key} className="flex flex-col gap-1">
-                  <h2 className="text-text-strong font-semibold">
-                    {v.etiqueta}
-                  </h2>
-                  {v.texto && (
-                    <p className="text-text-body max-w-[68ch]">{v.texto}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        /*
+         * Ya respondió y sigue teniendo enlace, que es una combinación rara.
+         *
+         * Solo pasa cuando el cierre automático no llegó a publicar: en ese
+         * caso el pase se deja vivo a propósito para que la persona pueda
+         * volver. Aquí TAMPOCO se enseñan resultados —esta plataforma entrega
+         * el perfil por correo, no en pantalla— así que lo único que puede
+         * hacer esta página es decirle por dónde le llega y a quién preguntar.
+         */
+        <Alert tone="success" title="Ya enviaste tus respuestas">
+          Tu informe se envía en PDF al correo por el que recibiste este enlace,
+          junto con la copia de{" "}
+          {evaluacion.empresa ?? "la empresa que encargó la evaluación"}. Si
+          pasado un rato no te ha llegado, avísales: ellos pueden consultarlo en
+          la plataforma.
+        </Alert>
       ) : enCurso ? (
         <Ejecutor
           asignacion={evaluacion.assignment_id}
