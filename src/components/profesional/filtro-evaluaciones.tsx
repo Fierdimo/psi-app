@@ -2,15 +2,16 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 
 /**
- * El filtro y el buscador de la cola de evaluaciones.
+ * El filtro y el buscador de las evaluaciones.
  *
  * Existen porque esta lista SOLO CRECE. Cada persona evaluada deja una fila
- * para siempre, así que a los dos años son miles y la pantalla deja de servir
- * para lo que se abre: ver qué espera tu revisión hoy.
+ * para siempre, así que a los dos años son miles y la pantalla deja de servir.
  *
- * La partición no es por comodidad, es por lo que se hace con cada grupo:
+ * La partición es por lo que se hace con cada grupo:
  *
- *   · «Por revisar» es trabajo tuyo, y drena: lo calificas y sale.
+ *   · «Todas» es la portada: lo último que ha llegado, de cualquier empresa.
+ *   · «Por revisar» es trabajo tuyo, y drena: lo calificas y sale. Desde que
+ *     el informe se publica solo, está vacía casi siempre.
  *   · «En marcha» es de otros —están respondiendo— y también drena.
  *   · «Publicadas» ya no es una lista, es un archivo. No se recorre, se busca.
  *
@@ -21,7 +22,16 @@ import { Search } from "lucide-react";
 
 export type Vista = "revisar" | "curso" | "publicadas" | "todas";
 
+/*
+ * «Todas» va primera, y es la que se abre por defecto.
+ *
+ * Encabezaba «Por revisar» cuando esto era una cola: lo que esperaba tu
+ * revisión era el trabajo del día. Con el informe publicándose solo esa
+ * pestaña está vacía casi siempre, y abrir en una lista vacía parece una
+ * pantalla rota.
+ */
 export const VISTAS: { clave: Vista; texto: string; estados: string[] }[] = [
+  { clave: "todas", texto: "Todas", estados: [] },
   {
     clave: "revisar",
     texto: "Por revisar",
@@ -29,7 +39,6 @@ export const VISTAS: { clave: Vista; texto: string; estados: string[] }[] = [
   },
   { clave: "curso", texto: "En marcha", estados: ["asignada", "en_curso"] },
   { clave: "publicadas", texto: "Publicadas", estados: ["publicada"] },
-  { clave: "todas", texto: "Todas", estados: [] },
 ];
 
 export function FiltroEvaluaciones({
@@ -59,7 +68,8 @@ export function FiltroEvaluaciones({
               href={{
                 pathname: "/profesional/evaluaciones",
                 query: {
-                  ...(v.clave === "revisar" ? {} : { estado: v.clave }),
+                  // «todas» es el valor por defecto: no ensucia la dirección.
+                  ...(v.clave === "todas" ? {} : { estado: v.clave }),
                   ...(busqueda ? { q: busqueda } : {}),
                 },
               }}
@@ -88,7 +98,7 @@ export function FiltroEvaluaciones({
         action="/profesional/evaluaciones"
         className="flex flex-wrap items-end gap-2"
       >
-        {vista !== "revisar" && (
+        {vista !== "todas" && (
           <input type="hidden" name="estado" value={vista} />
         )}
 
@@ -118,7 +128,7 @@ export function FiltroEvaluaciones({
           <Link
             href={{
               pathname: "/profesional/evaluaciones",
-              query: vista === "revisar" ? {} : { estado: vista },
+              query: vista === "todas" ? {} : { estado: vista },
             }}
             className="text-text-muted hover:text-text-body ease-psi self-center text-sm underline underline-offset-4 transition-colors duration-150"
           >

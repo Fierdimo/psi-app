@@ -43,7 +43,18 @@ export default async function EvaluacionesPage({
   const pedida = String(parametros.estado ?? "");
   const vista: Vista = VISTAS.some((v) => v.clave === pedida)
     ? (pedida as Vista)
-    : "revisar";
+    : /*
+       * «Todas» por defecto, no «Por revisar».
+       *
+       * Aquella pestaña era la portada cuando esto era una COLA: lo que
+       * esperaba tu revisión era el trabajo del día. Con el informe
+       * publicándose solo, «Por revisar» está vacía casi siempre, y una
+       * pantalla que abre en blanco parece rota aunque no lo esté.
+       *
+       * Y coincide con lo que ve la empresa, que también abre en todas: los
+       * dos lados miran la misma lista antes de filtrar.
+       */
+      "todas";
   const busqueda = String(parametros.q ?? "").trim();
   const pagina = Math.max(1, Number(parametros.pagina ?? 1) || 1);
 
@@ -236,7 +247,7 @@ export default async function EvaluacionesPage({
    */
   const enlace = (destino: number) => {
     const params = new URLSearchParams();
-    if (vista !== "revisar") params.set("estado", vista);
+    if (vista !== "todas") params.set("estado", vista);
     if (busqueda) params.set("q", busqueda);
     if (destino > 1) params.set("pagina", String(destino));
 
@@ -296,16 +307,23 @@ export default async function EvaluacionesPage({
             Nada coincide con «{busqueda}» aquí. Prueba en otra pestaña: la
             búsqueda se conserva al cambiar.
           </p>
-        ) : vista === "revisar" ? (
+        ) : vista === "todas" ? (
+          /* Vacío de verdad: no hay ninguna evaluación en el sistema. Es lo
+             primero que ve el profesional el día uno, así que dice de dónde
+             van a venir. */
           <EstadoVacio
             icono={ClipboardList}
-            titulo="No hay nada esperando tu revisión"
-            descripcion="Cuando alguien envíe su prueba aparecerá aquí para que la califiques. Lo que sigue en marcha está en la pestaña de al lado."
-            enlace={{ href: "/profesional/agenda", texto: "Ir a la agenda" }}
+            titulo="Todavía no hay evaluaciones"
+            descripcion="Aparecerán aquí cuando una empresa encargue la primera. Antes de eso tiene que solicitar usos y tú autorizarlos."
+            enlace={{
+              href: "/profesional/solicitudes",
+              texto: "Ver las solicitudes",
+            }}
           />
         ) : (
           <p className="text-text-muted text-sm">
-            No hay ninguna evaluación en este estado.
+            No hay ninguna evaluación en este estado. En «Todas» está lo que sí
+            hay.
           </p>
         )
       ) : (
