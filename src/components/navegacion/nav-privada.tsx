@@ -45,7 +45,7 @@ export function BarraLateral({ area = "paciente" }: { area?: Area }) {
   return (
     <nav
       aria-label="Secciones"
-      className="border-line hidden w-[248px] shrink-0 border-r lg:block"
+      className="border-line hidden w-[248px] shrink-0 border-r lg:block print:hidden"
     >
       {/*
         Se fija JUSTO DEBAJO de la cabecera, no en `top-0`.
@@ -127,7 +127,7 @@ export function BarraInferior({ area = "paciente" }: { area?: Area }) {
   return (
     <nav
       aria-label="Secciones"
-      className="border-line bg-panel sticky bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="border-line bg-panel sticky bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden"
     >
       <ul className="grid grid-cols-4">
         {principales.map((seccion) => {

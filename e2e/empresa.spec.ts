@@ -478,6 +478,36 @@ test.describe.serial("Área de empresa", () => {
     await page.goto("/empresa/evaluaciones?estado=inventado&q=Evaluado");
     await expect(page.locator("tbody tr")).toHaveCount(10);
 
+    /*
+     * LA EXPORTACIÓN SE LLEVA LO FILTRADO Y COMPLETO.
+     *
+     * Son las dos mitades de la misma decisión: no la página que se tenía
+     * delante —serían diez de doce— y no la lista entera cuando hay un filtro
+     * puesto. Y la hoja declara con qué filtros salió: una tabla impresa que
+     * no lo dice engaña sin querer.
+     */
+    // El diálogo del navegador no se abre en la prueba: lo que se comprueba es
+    // el documento, no el visor del sistema.
+    await page.addInitScript(() => {
+      window.print = () => {};
+    });
+
+    // Once, no diez: en pantalla cabía una página y en el papel van todas.
+    await page.goto("/empresa/evaluaciones/exportar?q=Evaluado");
+    await expect(page.locator("tbody tr")).toHaveCount(11);
+    await expect(page.getByText(/11 evaluaciones/)).toBeVisible();
+    await expect(page.getByText(/búsqueda: «Evaluado»/)).toBeVisible();
+
+    await page.goto("/empresa/evaluaciones/exportar?q=Evaluado&estado=listas");
+    await expect(page.locator("tbody tr")).toHaveCount(2);
+    await expect(page.getByText(/Informe listo/).first()).toBeVisible();
+
+    // Y el botón del listado la alcanza con sus filtros puestos.
+    await page.goto("/empresa/evaluaciones?q=Evaluado&estado=listas");
+    await expect(
+      page.getByRole("link", { name: /imprimir o pdf/i }),
+    ).toHaveAttribute("href", /estado=listas/);
+
     await db.from("organization_people").delete().like("documento", "77000%");
   });
 

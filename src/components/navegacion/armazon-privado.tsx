@@ -53,9 +53,23 @@ export function ArmazonPrivado({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      {/*
+        Al imprimir, el armazón desaparece.
+
+        Cabecera, barra lateral, barra inferior y crédito no son el documento:
+        son cómo se llega a él. En papel ocupan la primera plana y no dicen
+        nada, y la barra lateral además parte la tabla en dos columnas
+        inservibles.
+
+        Las dos barras llevan su `print:hidden` DENTRO, en su propio elemento.
+        Envolverlas aquí en un `div` las sustituía como hijas del flex: la
+        lateral perdía su ancho fijo y el `sticky` de dentro cambiaba de
+        contenedor, así que dejaba de quedarse quieta al desplazar. Lo detectó
+        la prueba que vigila justo eso.
+      */}
       <header
         className={cn(
-          "sticky top-0 z-20 h-[var(--alto-cabecera)] border-b",
+          "sticky top-0 z-20 h-[var(--alto-cabecera)] border-b print:hidden",
           oscura ? "bg-brand-800 border-brand-900" : "border-line bg-panel",
         )}
       >
@@ -125,7 +139,7 @@ export function ArmazonPrivado({
         tono más bajo de la escala y después de todo el contenido, no
         compitiendo con la barra de navegación.
       */}
-      <footer className="border-line mx-auto w-full max-w-[1800px] border-t px-4 py-5 sm:px-6">
+      <footer className="border-line mx-auto w-full max-w-[1800px] border-t px-4 py-5 sm:px-6 print:hidden">
         <p className="text-text-muted text-micro">
           Desarrollado por{" "}
           <a

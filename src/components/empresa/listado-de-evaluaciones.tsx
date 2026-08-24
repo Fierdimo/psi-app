@@ -1,4 +1,4 @@
-import { ClipboardCheck, Search } from "lucide-react";
+import { ClipboardCheck, Printer, Search } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -17,6 +17,7 @@ import {
   VISTAS_EMPRESA,
   type VistaEvaluaciones,
 } from "@/lib/evaluaciones/estados-empresa";
+import { filtroDeBusqueda } from "@/lib/evaluaciones/busqueda";
 import { fechaCorta } from "@/lib/fechas/formato";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
@@ -63,25 +64,7 @@ export async function ListadoDeEvaluaciones({
 
   const desde = (pagina - 1) * POR_PAGINA;
 
-  /**
-   * Qué se mira al buscar. Definido UNA vez y aplicado en los dos sitios.
-   *
-   * Lo compartido es esto y no la consulta entera: el `select` tiene que ser
-   * una cadena literal o el comprobador de tipos de la biblioteca no puede
-   * deducir la forma de lo que vuelve, y una función que lo elija con un
-   * ternario devuelve `any` disfrazado de error.
-   *
-   * Se busca por lo que se recuerda de alguien: un nombre a medias, un
-   * apellido, la cédula, el correo por el que se le mandó el enlace.
-   */
-  const filtroDeTexto = busqueda
-    ? [
-        `nombre.ilike.%${busqueda}%`,
-        `apellidos.ilike.%${busqueda}%`,
-        `documento.ilike.%${busqueda}%`,
-        `email.ilike.%${busqueda}%`,
-      ].join(",")
-    : null;
+  const filtroDeTexto = filtroDeBusqueda(busqueda);
 
   /*
    * `!inner` en la persona, y no es un detalle de sintaxis.
@@ -164,6 +147,18 @@ export async function ListadoDeEvaluaciones({
     return cadena ? `/empresa/evaluaciones?${cadena}` : "/empresa/evaluaciones";
   };
 
+  /* La exportación se lleva los filtros puestos: saca lo que se está viendo,
+     completo, no la página que se tenía delante. */
+  const enlaceExportar = () => {
+    const p = new URLSearchParams();
+    if (vista !== "todas") p.set("estado", vista);
+    if (busqueda) p.set("q", busqueda);
+    const c = p.toString();
+    return c
+      ? `/empresa/evaluaciones/exportar?${c}`
+      : "/empresa/evaluaciones/exportar";
+  };
+
   const etiquetaVista =
     VISTAS_EMPRESA.find((v) => v.clave === vista)?.texto ?? "Todas";
 
@@ -173,12 +168,34 @@ export async function ListadoDeEvaluaciones({
         titulo="Evaluaciones"
         descripcion="Cada evaluación que has encargado. Cuando está lista, se abre y el informe está dentro."
       >
-        <Link
-          href="/empresa/evaluaciones/nueva"
-          className={buttonVariants({ variant: "primary" })}
-        >
-          Encargar una evaluación
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {/*
+            En una pestaña nueva, y a propósito.
+
+            La vista de impresión abre sola el diálogo del navegador; si se
+            cancela, se cierra la pestaña y el listado sigue detrás con sus
+            filtros como estaban. En la misma pestaña, cancelar dejaría a
+            alguien plantado en una hoja pelada.
+          */}
+          {filas.length > 0 && (
+            <a
+              href={enlaceExportar()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              <Printer aria-hidden="true" className="size-4" />
+              Imprimir o PDF
+            </a>
+          )}
+
+          <Link
+            href="/empresa/evaluaciones/nueva"
+            className={buttonVariants({ variant: "primary" })}
+          >
+            Encargar una evaluación
+          </Link>
+        </div>
       </EncabezadoPagina>
 
       <FiltroDeEvaluaciones
