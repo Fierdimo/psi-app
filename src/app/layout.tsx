@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: `%s · ${BRAND_NAME}`,
   },
   description:
-    "Portal privado para consultar tus citas y gestionar tus datos con tu profesional de la psicología.",
+    "Evaluaciones psicométricas para empresas: se encargan en línea, las responde cada persona desde su enlace y el informe llega por correo.",
   robots: {
     // El portal no debe indexarse. Solo la landing lo permitirá explícitamente.
     index: false,

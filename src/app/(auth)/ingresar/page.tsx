@@ -18,7 +18,15 @@ export default async function IngresarPage({
   return (
     <ArmazonAuth
       titulo="Entrar"
-      descripcion="Accede a tu espacio para consultar tus citas."
+      /*
+        Se dice para quién es esta puerta, igual que en el alta.
+
+        Decía «para consultar tus citas», que ya no existen. Y quien más
+        probablemente aterrice aquí por error es alguien convocado a una
+        evaluación buscando dónde entrar: su enlace no lleva contraseña,
+        así que se le dice aquí en vez de dejarle probar correos.
+      */
+      descripcion="Entra a la cuenta de tu empresa para pedir evaluaciones y ver sus informes. Si te convocaron a una evaluación, no necesitas cuenta: usa el enlace que te llegó por correo."
       pie={
         <>
           <p>

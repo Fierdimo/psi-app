@@ -22,19 +22,31 @@ type ArmazonAuthProps = {
   /** Enlaces bajo el formulario (registro, recuperación, etc.). */
   pie?: React.ReactNode;
   /** El texto del panel cambia según a quién se dirige la pantalla. */
-  variante?: "paciente" | "profesional";
+  variante?: "empresa" | "profesional";
 };
 
+/*
+ * Las dos únicas puertas que existen.
+ *
+ * La variante por defecto se llamaba `paciente` y hablaba de citas, de cuando
+ * cada persona traía su cuenta. Hoy quien responde una evaluación NO entra por
+ * aquí —le llega un enlace y no crea nada—, así que este formulario solo lo
+ * ven dos figuras: la empresa que encarga las evaluaciones y el profesional.
+ *
+ * Importa que el panel lo diga: prometerle a alguien «tus citas» en la
+ * pantalla donde escribe su contraseña es la forma más barata de que crea que
+ * se equivocó de sitio.
+ */
 const PANEL = {
-  paciente: {
-    titulo: "Tu espacio privado",
+  empresa: {
+    titulo: "El espacio de tu empresa",
     cuerpo:
-      "Aquí consultas tus citas y gestionas tus datos. Solo tú y tu profesional pueden ver esta información.",
+      "Aquí pides evaluaciones, sigues su avance y consultas los informes de tu organización. Solo tu empresa y el profesional pueden verlos.",
   },
   profesional: {
     titulo: "Acceso profesional",
     cuerpo:
-      "Estás entrando a un área con datos de tus pacientes. Cierra la sesión cuando termines si compartes el equipo.",
+      "Estás entrando a un área con los informes de las personas evaluadas. Cierra la sesión cuando termines si compartes el equipo.",
   },
 } as const;
 
@@ -43,7 +55,7 @@ export function ArmazonAuth({
   descripcion,
   children,
   pie,
-  variante = "paciente",
+  variante = "empresa",
 }: ArmazonAuthProps) {
   const panel = PANEL[variante];
 
