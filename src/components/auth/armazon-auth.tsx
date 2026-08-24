@@ -1,4 +1,5 @@
 import { Lock } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { Brand } from "@/components/marca/brand";
@@ -54,9 +55,32 @@ export function ArmazonAuth({
           <Brand tone="dark" size="md" />
         </Link>
 
-        <div className="hidden max-w-[38ch] flex-col gap-4 lg:flex">
-          <h2 className="text-surface-0 text-h2">{panel.titulo}</h2>
-          <p className="text-brand-200 text-lg">{panel.cuerpo}</p>
+        <div className="hidden max-w-[38ch] flex-col gap-6 lg:flex">
+          <div className="flex flex-col gap-4">
+            <h2 className="text-surface-0 text-h2">{panel.titulo}</h2>
+            <p className="text-brand-200 text-lg">{panel.cuerpo}</p>
+          </div>
+
+          {/*
+            La firma, debajo de la promesa.
+
+            El comentario de arriba dice que el trabajo de este panel es
+            responder «¿esto es serio?» antes de que nadie escriba su correo, y
+            una firma manuscrita hace eso mejor que otro párrafo. Es la misma
+            que encabeza los informes, así que quien ya recibió uno la
+            reconoce.
+
+            Solo desde `lg`, con el resto del panel: en móvil este bloque no se
+            enseña y la firma suelta sería un adorno sin contexto.
+          */}
+          <Image
+            src="/marca/firma_digital-removebg-preview.png"
+            alt=""
+            aria-hidden="true"
+            width={810}
+            height={308}
+            className="h-auto w-full max-w-[280px] opacity-90"
+          />
         </div>
 
         <p className="text-brand-200 hidden items-center gap-2.5 text-sm lg:flex">

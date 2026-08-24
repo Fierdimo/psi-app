@@ -730,30 +730,54 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <ul className="text-brand-200 flex flex-col gap-3">
-                <li>
-                  <a
-                    href={`tel:${PROFESIONAL.telefono.replace(/\s/g, "")}`}
-                    className="hover:text-surface-0 ease-psi flex items-center gap-3 transition-colors duration-150"
-                  >
-                    <Phone aria-hidden="true" className="size-4 shrink-0" />
-                    {PROFESIONAL.telefono}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={`mailto:${PROFESIONAL.correo}`}
-                    className="hover:text-surface-0 ease-psi flex items-center gap-3 transition-colors duration-150"
-                  >
-                    <Mail aria-hidden="true" className="size-4 shrink-0" />
-                    {PROFESIONAL.correo}
-                  </a>
-                </li>
-                <li className="flex items-center gap-3">
-                  <MapPin aria-hidden="true" className="size-4 shrink-0" />
-                  Cartagena, Colombia · y en línea
-                </li>
-              </ul>
+              <div className="flex flex-col gap-6">
+                {/*
+                  La firma cierra la página, que es donde va una firma.
+
+                  Es la misma que encabeza los informes, en su versión clara —
+                  por eso solo aparece sobre las bandas azul marino: sobre
+                  blanco no se vería—. Aquí no informa de nada nuevo; hace lo
+                  que hace una firma al pie de una carta, que es decir quién la
+                  escribe.
+
+                  Decorativa para el lector de pantalla: el nombre y la
+                  profesión ya están en la portada, y repetirlos aquí sería
+                  leerlos dos veces.
+                */}
+                <Image
+                  src="/marca/firma_digital-removebg-preview.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={810}
+                  height={308}
+                  className="h-auto w-full max-w-[300px] opacity-90"
+                />
+
+                <ul className="text-brand-200 flex flex-col gap-3">
+                  <li>
+                    <a
+                      href={`tel:${PROFESIONAL.telefono.replace(/\s/g, "")}`}
+                      className="hover:text-surface-0 ease-psi flex items-center gap-3 transition-colors duration-150"
+                    >
+                      <Phone aria-hidden="true" className="size-4 shrink-0" />
+                      {PROFESIONAL.telefono}
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`mailto:${PROFESIONAL.correo}`}
+                      className="hover:text-surface-0 ease-psi flex items-center gap-3 transition-colors duration-150"
+                    >
+                      <Mail aria-hidden="true" className="size-4 shrink-0" />
+                      {PROFESIONAL.correo}
+                    </a>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <MapPin aria-hidden="true" className="size-4 shrink-0" />
+                    Cartagena, Colombia · y en línea
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </section>
