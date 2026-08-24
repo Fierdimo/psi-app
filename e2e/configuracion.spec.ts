@@ -108,6 +108,22 @@ test.describe.serial("Configuración del profesional", () => {
     await page.getByLabel(/días para abrir el enlace/i).fill("0");
     await formPlazo.getByRole("button", { name: /guardar/i }).click();
     await expect(page.getByText(/al menos un día/i)).toBeVisible();
+
+    /*
+     * Y se devuelve el plazo a los 30 días con los que nace la base.
+     *
+     * Este ajuste es UNO SOLO para toda la consulta y no se borra al acabar la
+     * prueba: sin esta línea, la primera ejecución lo deja en 7 y la siguiente
+     * falla en la primera aserción —«ahora mismo 30 días»— sin haber tocado
+     * nada. La prueba pasaba una vez y solo una, que es la peor forma de
+     * fallar: parece que el código se rompió cuando el que ensucia es el test.
+     *
+     * Las demás pruebas del archivo ya se limpian solas; esta se había quedado
+     * a medias porque su último gesto es un valor rechazado, que no guarda.
+     */
+    await page.getByLabel(/días para abrir el enlace/i).fill("30");
+    await formPlazo.getByRole("button", { name: /guardar/i }).click();
+    await expect(page.getByText(/ahora mismo\s*30 días/i)).toBeVisible();
   });
 
   test("se fija el tiempo y se puede quitar", async ({ page }) => {
