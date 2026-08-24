@@ -12,6 +12,7 @@ import {
 } from "@/components/navegacion/encabezado-pagina";
 import { RevisionInforme } from "@/components/profesional/revision-informe";
 import { exigirProfesional } from "@/lib/auth/perfil";
+import { consentimientoFirmado } from "@/lib/evaluaciones/consentimiento-firmado";
 import { crearClienteServidor } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -97,6 +98,12 @@ export default async function RevisarEvaluacionPage({
     ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")
     : "Sin nombre";
 
+  const consentimiento = await consentimientoFirmado(supabase, id, {
+    nombre,
+    documento: quien?.documento ?? null,
+    empresa: uno<{ nombre: string }>(asignacion.organizacion)?.nombre ?? null,
+  });
+
   return (
     <Pantalla>
       <Link
@@ -106,17 +113,27 @@ export default async function RevisarEvaluacionPage({
         ← Volver a evaluaciones
       </Link>
 
-      <EncabezadoPagina
-        titulo={nombre}
-        descripcion={[
-          uno<{ nombre: string }>(asignacion.assessment)?.nombre,
-          quien?.documento ? `Documento ${quien.documento}` : null,
-          quien?.cargo ?? null,
-          uno<{ nombre: string }>(asignacion.organizacion)?.nombre,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      />
+      {/*
+        SIN ENCABEZADO PROPIO cuando hay informe.
+
+        Repetía el nombre, el documento, la prueba y la empresa, que es
+        exactamente la cabecera del documento que se enseña debajo. Dos veces
+        lo mismo, y con formatos distintos, obliga a comprobar si dicen lo
+        mismo. Mientras no hay informe sí hace falta: es lo único que identifica
+        la pantalla.
+      */}
+      {asignacion.status !== "publicada" ? (
+        <EncabezadoPagina
+          titulo={nombre}
+          descripcion={[
+            uno<{ nombre: string }>(asignacion.assessment)?.nombre,
+            quien?.documento ? `Documento ${quien.documento}` : null,
+            uno<{ nombre: string }>(asignacion.organizacion)?.nombre,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        />
+      ) : null}
 
       {/* Solo cuando ya hay algo que publicar: antes de eso lo dice la propia
           pantalla de abrir el examen, y repetirlo sería ruido. */}
@@ -141,7 +158,7 @@ export default async function RevisarEvaluacionPage({
       {asignacion.status === "publicada" ? (
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-h4">Así lo recibe la empresa</h2>
+            <h1 className="text-h3">Así lo recibe la empresa</h1>
             <a
               href={`/api/informe/${id}`}
               className={buttonVariants({ variant: "secondary" })}
@@ -168,20 +185,51 @@ export default async function RevisarEvaluacionPage({
                   null,
                 fechaISO: asignacion.assigned_at,
               }}
+              consentimiento={consentimiento}
             />
           </div>
         </section>
       ) : null}
 
-      <RevisionInforme
-        asignacion={id}
-        status={asignacion.status}
-        parametros={parametros ?? []}
-        valores={valores ?? []}
-        notaGlobal={resultado?.nota_global ?? null}
-        publicado={resultado?.released_at ?? null}
-        consentimiento={(decision as string | null) ?? null}
-      />
+      {/*
+        EL EDITOR, PLEGADO cuando ya hay informe.
+
+        Enseña los mismos apartados con los mismos textos, en campos editables:
+        junto al documento es la misma información dos veces y cuesta saber
+        cuál se está leyendo. Pero no se puede quitar — el consentimiento
+        promete que el profesional puede corregir el informe y que la empresa
+        verá la versión corregida—, así que se guarda detrás de un gesto.
+
+        Sin informe todavía va abierto: ahí es lo único que hay que hacer.
+      */}
+      {asignacion.status === "publicada" ? (
+        <details className="border-line rounded-lg border">
+          <summary className="text-text-strong cursor-pointer px-4 py-3 font-medium">
+            Corregir este informe
+          </summary>
+          <div className="border-line border-t p-4">
+            <RevisionInforme
+              asignacion={id}
+              status={asignacion.status}
+              parametros={parametros ?? []}
+              valores={valores ?? []}
+              notaGlobal={resultado?.nota_global ?? null}
+              publicado={resultado?.released_at ?? null}
+              consentimiento={(decision as string | null) ?? null}
+            />
+          </div>
+        </details>
+      ) : (
+        <RevisionInforme
+          asignacion={id}
+          status={asignacion.status}
+          parametros={parametros ?? []}
+          valores={valores ?? []}
+          notaGlobal={resultado?.nota_global ?? null}
+          publicado={resultado?.released_at ?? null}
+          consentimiento={(decision as string | null) ?? null}
+        />
+      )}
     </Pantalla>
   );
 }

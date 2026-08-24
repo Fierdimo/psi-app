@@ -16,6 +16,8 @@ import {
   COLORES,
   estructuraDelInforme,
   fechaDelInforme,
+  momentoDelAcuse,
+  type ConsentimientoInforme,
   type EstructuraInforme,
   type EvaluadoInforme,
   type ParametroInforme,
@@ -163,11 +165,13 @@ function Documento({
   datos,
   evaluado,
   notaGlobal,
+  consentimiento,
   imagenes,
 }: {
   datos: EstructuraInforme;
   evaluado: EvaluadoInforme;
   notaGlobal: string | null;
+  consentimiento: ConsentimientoInforme | null;
   imagenes: {
     neurodisc: string | null;
     firma: string | null;
@@ -594,6 +598,79 @@ function Documento({
           </View>
         ) : null}
 
+        {/*
+          El consentimiento CIERRA el documento.
+          
+          En el que se entregaba hoy abría, y se movió al final a propósito:
+          quien recibe el informe viene a leer un perfil, no un contrato. Va
+          detrás como el respaldo de que la persona supo a qué accedía —que es
+          para lo que sirve— y en su propia página, para poder separarlo.
+        */}
+        {consentimiento ? (
+          <View break>
+            <Text style={e.banda}>CONSENTIMIENTO INFORMADO</Text>
+
+            {consentimiento.secciones ? (
+              <View style={{ marginTop: 6 }}>
+                {consentimiento.secciones.map((sec) => (
+                  <View
+                    key={sec.titulo}
+                    style={{ marginBottom: 4 }}
+                    wrap={false}
+                  >
+                    <Text style={e.negrita}>{sec.titulo}</Text>
+                    {(Array.isArray(sec.cuerpo)
+                      ? sec.cuerpo
+                      : [sec.cuerpo]
+                    ).map((parrafo, n) => (
+                      <Text key={n}>{parrafo}</Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={{ marginTop: 6 }}>
+                El texto de la versión {consentimiento.version} está archivado
+                con el documento firmado. Aquí consta su aceptación.
+              </Text>
+            )}
+
+            <View
+              style={{
+                marginTop: 18,
+                marginHorizontal: "auto",
+                width: 200,
+                borderTopWidth: 0.5,
+                borderTopColor: COLORES.tinta,
+                paddingTop: 2,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={[
+                  e.negrita,
+                  e.cursiva,
+                  { fontSize: 6.5, color: COLORES.rojo },
+                ]}
+              >
+                ACEPTACIÓN ELECTRÓNICA
+              </Text>
+              <Text style={[e.negrita, { color: COLORES.azul }]}>
+                {consentimiento.nombre}
+              </Text>
+              {consentimiento.documento ? (
+                <Text style={e.negrita}>ID {consentimiento.documento}</Text>
+              ) : null}
+              <Text style={{ fontSize: 6.5 }}>
+                Versión {consentimiento.version}
+                {momentoDelAcuse(consentimiento.aceptadoEl)
+                  ? ` · ${momentoDelAcuse(consentimiento.aceptadoEl)}`
+                  : ""}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <Text
           fixed
           render={({ pageNumber, totalPages }) =>
@@ -677,12 +754,14 @@ export async function informeComoPdf({
   textosFijos,
   notaGlobal,
   evaluado,
+  consentimiento = null,
 }: {
   parametros: ParametroInforme[];
   valores: ValorInforme[];
   textosFijos: Record<string, string>;
   notaGlobal: string | null;
   evaluado: EvaluadoInforme;
+  consentimiento?: ConsentimientoInforme | null;
 }): Promise<string> {
   const datos = estructuraDelInforme({ parametros, valores, textosFijos });
 
@@ -697,6 +776,7 @@ export async function informeComoPdf({
       datos={datos}
       evaluado={evaluado}
       notaGlobal={notaGlobal}
+      consentimiento={consentimiento}
       imagenes={{ neurodisc, firma, cerebro }}
     />,
   ).toBlob();
@@ -758,7 +838,11 @@ export async function informeAdjunto(
 
     if (!valores || valores.length === 0) return null;
 
+    const { consentimientoFirmado } =
+      await import("@/lib/evaluaciones/consentimiento-firmado");
+
     return await informeComoPdf({
+      consentimiento: await consentimientoFirmado(admin, asignacion, evaluado),
       valores: valores as ValorInforme[],
       parametros: (parametros ?? []) as ParametroInforme[],
       textosFijos: Object.fromEntries(

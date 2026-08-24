@@ -28,12 +28,19 @@ import {
   COLORES,
   estructuraDelInforme,
   fechaDelInforme,
+  momentoDelAcuse,
+  type ConsentimientoInforme,
   type EvaluadoInforme,
   type ParametroInforme,
   type ValorInforme,
 } from "@/lib/evaluaciones/estructura-informe";
 
-export type { EvaluadoInforme, ParametroInforme, ValorInforme };
+export type {
+  ConsentimientoInforme,
+  EvaluadoInforme,
+  ParametroInforme,
+  ValorInforme,
+};
 
 export function Informe({
   parametros,
@@ -48,12 +55,15 @@ export function Informe({
    * aceptable: los puntajes y sus interpretaciones son lo que no puede faltar.
    */
   textosFijos = {},
+  consentimiento,
 }: {
   parametros: ParametroInforme[];
   valores: ValorInforme[];
   notaGlobal: string | null;
   evaluado?: EvaluadoInforme;
   textosFijos?: Record<string, string>;
+  /** El consentimiento que firmó esta persona, si consta. */
+  consentimiento?: ConsentimientoInforme | null;
 }) {
   const d = estructuraDelInforme({ parametros, valores, textosFijos });
 
@@ -338,6 +348,61 @@ export function Informe({
         <section className="mt-8">
           <Banda>Recomendación profesional</Banda>
           <p className="mt-3 whitespace-pre-line">{d.recomendacion}</p>
+        </section>
+      ) : null}
+
+      {/* ==================================================================
+          El consentimiento CIERRA el informe.
+
+          En el documento que se entregaba hoy abría, y se movió al final a
+          propósito: quien lo recibe viene a leer un perfil, no un contrato. Va
+          detrás como el respaldo de que la persona supo a qué accedía.
+          ================================================================== */}
+      {consentimiento ? (
+        <section className="mt-8 break-before-page">
+          <Banda>Consentimiento informado</Banda>
+
+          {consentimiento.secciones ? (
+            <div className="mt-3 flex flex-col gap-2">
+              {consentimiento.secciones.map((sec) => (
+                <div key={sec.titulo}>
+                  <p className="font-bold">{sec.titulo}</p>
+                  {(Array.isArray(sec.cuerpo) ? sec.cuerpo : [sec.cuerpo]).map(
+                    (parrafo, n) => (
+                      <p key={n}>{parrafo}</p>
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3">
+              El texto de la versión {consentimiento.version} está archivado con
+              el documento firmado. Aquí consta su aceptación.
+            </p>
+          )}
+
+          {/* El acuse, centrado y bajo una línea, como en el documento. */}
+          <div className="mx-auto mt-6 max-w-[320px] border-t pt-1 text-center">
+            <p
+              className="text-[10px] font-bold uppercase italic"
+              style={{ color: COLORES.rojo }}
+            >
+              Aceptación electrónica
+            </p>
+            <p className="font-semibold" style={{ color: COLORES.azul }}>
+              {consentimiento.nombre}
+            </p>
+            {consentimiento.documento ? (
+              <p className="font-bold">ID {consentimiento.documento}</p>
+            ) : null}
+            <p className="text-[10px]">
+              Versión {consentimiento.version}
+              {momentoDelAcuse(consentimiento.aceptadoEl)
+                ? ` · ${momentoDelAcuse(consentimiento.aceptadoEl)}`
+                : ""}
+            </p>
+          </div>
         </section>
       ) : null}
     </article>

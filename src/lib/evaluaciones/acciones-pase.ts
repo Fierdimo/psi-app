@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 
 import { cerrarYAvisar } from "@/lib/evaluaciones/cierre-automatico";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
+import { consentimientoFirmado } from "@/lib/evaluaciones/consentimiento-firmado";
 import type {
+  ConsentimientoInforme,
   EvaluadoInforme,
   ParametroInforme,
   ValorInforme,
@@ -100,6 +102,7 @@ export async function responderConPase(
  * el camino: con ella no se podía dibujar ni una barra.
  */
 export type InformeCompleto = {
+  consentimiento: ConsentimientoInforme | null;
   valores: ValorInforme[];
   parametros: ParametroInforme[];
   textosFijos: Record<string, string>;
@@ -235,7 +238,17 @@ async function leerInformeCompleto(
   }>(cabecera.persona);
   const empresa = uno<{ nombre: string }>(cabecera.organizacion);
 
+  const evaluado = {
+    nombre:
+      [persona?.nombre, persona?.apellidos].filter(Boolean).join(" ") ||
+      "Sin nombre",
+    documento: persona?.documento ?? null,
+    empresa: empresa?.nombre ?? null,
+    fechaISO: cabecera.assigned_at,
+  };
+
   return {
+    consentimiento: await consentimientoFirmado(admin, asignacion, evaluado),
     valores: valores as ValorInforme[],
     parametros: (parametros ?? []) as ParametroInforme[],
     textosFijos: Object.fromEntries(
@@ -244,13 +257,6 @@ async function leerInformeCompleto(
       ),
     ),
     notaGlobal: resultado?.nota_global ?? null,
-    evaluado: {
-      nombre:
-        [persona?.nombre, persona?.apellidos].filter(Boolean).join(" ") ||
-        "Sin nombre",
-      documento: persona?.documento ?? null,
-      empresa: empresa?.nombre ?? null,
-      fechaISO: cabecera.assigned_at,
-    },
+    evaluado,
   };
 }

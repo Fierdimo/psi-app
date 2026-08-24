@@ -12,6 +12,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { exigirEmpresa } from "@/lib/auth/perfil";
+import { consentimientoFirmado } from "@/lib/evaluaciones/consentimiento-firmado";
 import { estadoParaLaEmpresa } from "@/lib/evaluaciones/estados-empresa";
 import { fechaLarga } from "@/lib/fechas/formato";
 import { origenDeLaPeticion } from "@/lib/http/origen";
@@ -88,7 +89,13 @@ export async function FichaDeEvaluacion({
    * pantalla, para siempre.
    */
   const informe = publicada
-    ? await leerInforme(id, evaluacion.assessment_id, perfil.organization_id)
+    ? await leerInforme(
+        id,
+        evaluacion.assessment_id,
+        perfil.organization_id,
+        nombre,
+        persona?.documento ?? null,
+      )
     : null;
   const pase = publicada ? null : await leerPase(id);
 
@@ -167,6 +174,7 @@ export async function FichaDeEvaluacion({
                   empresa: informe.empresa,
                   fechaISO: evaluacion.assigned_at,
                 }}
+                consentimiento={informe.consentimiento}
               />
             </div>
           ) : (
@@ -218,6 +226,8 @@ async function leerInforme(
   id: string,
   assessmentId: string,
   organizacion: string,
+  nombreDelEvaluado: string,
+  documentoDelEvaluado: string | null,
 ) {
   const supabase = await crearClienteServidor();
 
@@ -255,6 +265,11 @@ async function leerInforme(
   if (!valores || valores.length === 0) return null;
 
   return {
+    consentimiento: await consentimientoFirmado(supabase, id, {
+      nombre: nombreDelEvaluado,
+      documento: documentoDelEvaluado,
+      empresa: empresa?.nombre ?? null,
+    }),
     valores: valores as ValorInforme[],
     parametros: (parametros ?? []) as ParametroInforme[],
     notaGlobal: resultado?.nota_global ?? null,

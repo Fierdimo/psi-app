@@ -448,12 +448,18 @@ distintas creyendo hablar de la misma—:
   el informe publicándose solo dejó de serlo: lo que llega es un flujo, y de un
   flujo se mira lo último. Y sobre todo, «la primera de la lista» tenía que
   significar la misma fila a los dos lados.
-- **El documento, en la pantalla de revisión.** Revisaba sobre una lista de
-  campos y firmaba sin haber visto nunca lo que iba a recibir la empresa.
-  Publicar es afirmar que respondes por ese documento, y no se puede responder
-  por algo que no se ha mirado. Es el mismo componente que ve la empresa y que
-  vio la persona evaluada: tres versiones de un informe se separan a la primera
-  corrección; una sola no puede.
+- **El documento, en la pantalla de revisión, y SOLO el documento.** Revisaba
+  sobre una lista de campos y firmaba sin haber visto nunca lo que iba a
+  recibir la empresa. Publicar es afirmar que respondes por ese documento, y no
+  se puede responder por algo que no se ha mirado.
+  - El encabezado de la pantalla repetía nombre, documento, prueba y empresa,
+    que es exactamente la cabecera del informe de debajo. Dos veces lo mismo
+    con formatos distintos obliga a comprobar si dicen lo mismo: se retira
+    mientras haya informe.
+  - **El editor se pliega.** Enseña los mismos apartados en campos editables, y
+    junto al documento cuesta saber cuál se está leyendo. No se puede quitar
+    —el consentimiento promete que el profesional puede corregir el informe y
+    que la empresa verá la versión corregida— así que queda detrás de un gesto.
 
 #### La configuración se queda en un solo ajuste
 
@@ -707,6 +713,36 @@ que si la perdía tendría que pedírsela a la empresa. Dejó de ser cierto, as�
 que se reescribió el apartado y **se subió la versión a `2026-08-24`**: un
 consentimiento que promete de menos informa tan mal como uno que promete de
 más, y alguien podría negarse a responder creyendo que no va a conservar nada.
+
+### 8.3.1 El consentimiento va DENTRO del informe
+
+Cierra el documento, en su propia página. En el que se entregaba hasta ahora
+abría, y se movió al final a propósito: quien recibe el informe viene a leer un
+perfil, no un contrato. Va detrás como el respaldo de que la persona supo a qué
+accedía, que es para lo que sirve.
+
+**Se incluye el texto que ESA persona firmó, no el vigente hoy.** Es toda la
+diferencia entre una evidencia y un adorno: el consentimiento se versiona
+precisamente para poder demostrar qué redacción exacta se aceptó y cuándo, y
+enseñar la de hoy junto a una fecha de hace un año sería afirmar algo que no
+ocurrió.
+
+Como el texto vive en el código y no en la base, solo se puede reconstruir el
+de la versión vigente. Si la aceptada fue otra, se enseña el acuse —quién,
+cuándo, qué versión— y se dice dónde está esa redacción. Un acuse sin texto es
+incompleto; un texto equivocado es peor.
+
+Debajo, el bloque de **aceptación electrónica**: nombre, documento, versión y
+el momento exacto. Es lo que convierte la página en prueba y no en anexo.
+
+> **Una trampa que costó encontrar.** La base registra ese consentimiento con
+> `document_key = 'consentimiento_evaluacion'` mientras el módulo lo llama
+> `consentimiento_informado`. La discrepancia viene de la migración 0021 —una
+> es el documento, la otra el acto— y la VERSIÓN sí se corresponde, así que la
+> evidencia es válida. No se unifica: cambiar la clave que escribe la base
+> dejaría huérfanos los consentimientos ya firmados. El síntoma mientras no se
+> sabe es que el informe sale sin consentimiento y **sin ningún error**, porque
+> una consulta que no encuentra nada no falla.
 
 ### 8.4.1 Y se descarga desde la plataforma
 

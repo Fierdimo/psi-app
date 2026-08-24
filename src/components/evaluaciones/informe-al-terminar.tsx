@@ -80,6 +80,7 @@ export function InformeAlTerminar({
           notaGlobal={informe.notaGlobal}
           textosFijos={informe.textosFijos}
           evaluado={informe.evaluado}
+          consentimiento={informe.consentimiento}
         />
       </div>
 

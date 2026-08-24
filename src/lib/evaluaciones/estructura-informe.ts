@@ -272,3 +272,43 @@ export function fechaDelInforme(iso: string | null) {
     year: "numeric",
   });
 }
+
+/* ============================================================================
+   El consentimiento, dentro del informe
+
+   El documento que la consulta entrega abre con él, y tiene sentido: quien
+   recibe un perfil psicológico necesita ver, en el mismo archivo, que la
+   persona supo a qué accedía y lo aceptó.
+
+   SE INCLUYE EL TEXTO QUE ESA PERSONA FIRMÓ, no el que esté vigente hoy. Es
+   toda la diferencia entre una evidencia y un adorno: el consentimiento se
+   versiona precisamente para poder demostrar qué redacción exacta se aceptó y
+   cuándo, y enseñar la de hoy junto a una fecha de hace un año sería afirmar
+   algo falso.
+
+   Como el texto vive en el código y no en la base, solo se puede reconstruir
+   el de la versión vigente. Si la aceptada fue otra, se enseña el acuse —quién,
+   cuándo, qué versión— y se dice dónde está esa redacción. Un acuse sin texto
+   es incompleto; un texto equivocado es peor.
+   ========================================================================== */
+
+export type ConsentimientoInforme = {
+  /** Nulo cuando la versión aceptada ya no es la vigente. */
+  secciones: readonly { titulo: string; cuerpo: string | string[] }[] | null;
+  version: string;
+  aceptadoEl: string | null;
+  nombre: string;
+  documento: string | null;
+};
+
+/** Fecha y hora del acuse, que en una evidencia importan las dos. */
+export function momentoDelAcuse(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
