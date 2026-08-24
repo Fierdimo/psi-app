@@ -6,7 +6,7 @@ import { enviarPrueba, responder } from "@/lib/evaluaciones/acciones";
 import {
   enviarConPase,
   responderConPase,
-  type ApartadoDeInforme,
+  type InformeCompleto,
 } from "@/lib/evaluaciones/acciones-pase";
 import { InformeAlTerminar } from "@/components/evaluaciones/informe-al-terminar";
 import { Alert } from "@/components/ui/alert";
@@ -102,7 +102,17 @@ export function Ejecutor({
    * enseñarlo: volver al servidor devolvería «este enlace ya se usó» y borraría
    * de la pantalla lo único que esta persona va a poder leer.
    */
-  const [informe, setInforme] = useState<ApartadoDeInforme[] | null>(null);
+  const [informe, setInforme] = useState<InformeCompleto | null>(null);
+
+  /*
+   * Enviada aparte del informe, y hace falta que sean dos cosas.
+   *
+   * `informe` en nulo significa «el motor no llegó a publicar», que es un caso
+   * real —el cierre automático está escrito para no lanzar nunca— y también es
+   * el estado inicial. Sin este testigo, una prueba enviada sin informe
+   * volvería al cuestionario como si no se hubiera enviado.
+   */
+  const [enviada, setEnviada] = useState(false);
 
   const item = items[indice];
 
@@ -152,17 +162,8 @@ export function Ejecutor({
    * cambiar, y sobre todo empuja el aviso de «guarda esto ahora» fuera de la
    * primera pantalla, que es justo donde tiene que estar.
    */
-  if (informe !== null) {
-    return (
-      <div className="flex max-w-[70ch] flex-col gap-6">
-        <InformeAlTerminar
-          apartados={informe}
-          persona={persona ?? ""}
-          instrumento={instrumento ?? ""}
-          empresa={empresa ?? null}
-        />
-      </div>
-    );
+  if (enviada) {
+    return <InformeAlTerminar informe={informe} />;
   }
 
   return (
@@ -235,7 +236,15 @@ export function Ejecutor({
                     setFallo(r.mensaje ?? "No se pudo enviar.");
                     return;
                   }
-                  setInforme(r.informe ?? []);
+                  /*
+                   * `null` cuando el motor no llegó a publicar.
+                   *
+                   * No es lo mismo que «no hay apartados»: la pantalla del
+                   * final lo distingue para decir «se está preparando» en vez
+                   * de enseñar un informe vacío.
+                   */
+                  setInforme(r.informe ?? null);
+                  setEnviada(true);
                   return;
                 }
                 await enviarPrueba({ ok: false, mensaje: "" }, formData);

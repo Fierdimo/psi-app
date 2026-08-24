@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 
 import { cerrarYAvisar } from "@/lib/evaluaciones/cierre-automatico";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
+import type {
+  EvaluadoInforme,
+  ParametroInforme,
+  ValorInforme,
+} from "@/components/evaluaciones/informe";
 
 /**
  * La evaluación de quien no tiene cuenta.
@@ -83,12 +88,23 @@ export async function responderConPase(
  * no tiene forma de arreglarlo. La evaluación se queda en «enviada», que es el
  * estado en el que el profesional la ve pendiente de calificar.
  */
-/** Un apartado del informe, tal como se le enseña a quien respondió. */
-export type ApartadoDeInforme = {
-  parameter_key: string;
-  etiqueta: string;
-  texto: string | null;
-  nota_global: string | null;
+/**
+ * El informe entero, tal como se le enseña a quien respondió.
+ *
+ * ES LA MISMA FORMA QUE VE LA EMPRESA, y eso es deliberado: el proyecto ya
+ * decidió que las dos partes lean exactamente lo mismo —dos versiones del
+ * informe acabarían diciendo cosas distintas al primer cambio— y desde que el
+ * documento reproduce el que se entrega en papel, «lo mismo» incluye la forma.
+ *
+ * Antes viajaba una lista de «etiqueta + párrafo», que perdía los puntajes por
+ * el camino: con ella no se podía dibujar ni una barra.
+ */
+export type InformeCompleto = {
+  valores: ValorInforme[];
+  parametros: ParametroInforme[];
+  textosFijos: Record<string, string>;
+  notaGlobal: string | null;
+  evaluado: EvaluadoInforme;
 };
 
 /**
@@ -119,7 +135,7 @@ export type ApartadoDeInforme = {
 export async function enviarConPase(pase: string): Promise<{
   ok: boolean;
   mensaje?: string;
-  informe?: ApartadoDeInforme[];
+  informe?: InformeCompleto;
 }> {
   const { data, error } = await anonimo().rpc("enviar_con_pase", {
     p_token: pase,
@@ -132,21 +148,16 @@ export async function enviarConPase(pase: string): Promise<{
   await cerrarYAvisar(asignacion);
 
   const admin = crearClienteAdmin();
-
-  const { data: apartados } = await admin.rpc("informe_publicado", {
-    p_assignment: asignacion,
-  });
-
-  const informe = (apartados ?? []) as ApartadoDeInforme[];
+  const informe = await leerInformeCompleto(asignacion);
 
   /*
    * Sin informe, el pase NO se apaga.
    *
-   * Es la red descrita arriba. Que la lista venga vacía significa que el
-   * cierre automático no llegó a publicar —motor caído, resultado a medias— y
-   * en ese caso quitarle el enlace sería castigar a quien no pudo hacer nada.
+   * Es la red descrita arriba. Que no haya valores significa que el cierre
+   * automático no llegó a publicar —motor caído, resultado a medias— y en ese
+   * caso quitarle el enlace sería castigar a quien no pudo hacer nada.
    */
-  if (informe.length > 0) {
+  if (informe) {
     await admin.rpc("cerrar_pase", { p_assignment: asignacion });
   }
 
@@ -160,5 +171,86 @@ export async function enviarConPase(pase: string): Promise<{
    * El informe viaja en esta respuesta y lo pinta el cliente. La página del
    * servidor no tiene que enterarse de nada.
    */
-  return { ok: true, informe };
+  return { ok: true, informe: informe ?? undefined };
+}
+
+/**
+ * El informe publicado de una evaluación, con todo lo que hace falta para
+ * dibujarlo.
+ *
+ * Se lee con la clave de servicio porque quien acaba de responder no tiene
+ * sesión: su credencial era el pase, y el pase se apaga en el mismo gesto. El
+ * identificador ya está resuelto y comprobado antes de llegar aquí.
+ */
+async function leerInformeCompleto(
+  asignacion: string,
+): Promise<InformeCompleto | null> {
+  const admin = crearClienteAdmin();
+
+  const { data: cabecera } = await admin
+    .from("assignments")
+    .select(
+      "assessment_id, assigned_at, persona:organization_people(nombre, apellidos, documento), organizacion:organizations(nombre)",
+    )
+    .eq("id", asignacion)
+    .maybeSingle();
+
+  if (!cabecera) return null;
+
+  const [
+    { data: valores },
+    { data: resultado },
+    { data: parametros },
+    { data: fijos },
+  ] = await Promise.all([
+    admin
+      .from("result_values")
+      .select("parameter_key, valor, sugerido, nota")
+      .eq("assignment_id", asignacion),
+    admin
+      .from("results")
+      .select("nota_global, released_at")
+      .eq("assignment_id", asignacion)
+      .maybeSingle(),
+    admin
+      .from("assessment_parameters")
+      .select("clave, etiqueta, kind, seccion")
+      .eq("assessment_id", cabecera.assessment_id)
+      .order("posicion"),
+    admin.rpc("textos_fijos_del_instrumento", {
+      p_assessment: cabecera.assessment_id,
+    }),
+  ]);
+
+  // Sin valores o sin publicar no hay informe que enseñar.
+  if (!valores || valores.length === 0 || !resultado?.released_at) return null;
+
+  const uno = <T>(v: unknown): T | null =>
+    Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
+
+  const persona = uno<{
+    nombre: string;
+    apellidos: string | null;
+    documento: string | null;
+  }>(cabecera.persona);
+  const empresa = uno<{ nombre: string }>(cabecera.organizacion);
+
+  return {
+    valores: valores as ValorInforme[],
+    parametros: (parametros ?? []) as ParametroInforme[],
+    textosFijos: Object.fromEntries(
+      ((fijos ?? []) as { parameter_key: string; cuerpo: string }[]).map(
+        (t) => [t.parameter_key, t.cuerpo],
+      ),
+    ),
+    notaGlobal: resultado?.nota_global ?? null,
+    evaluado: {
+      nombre:
+        [persona?.nombre, persona?.apellidos].filter(Boolean).join(" ") ||
+        "Sin nombre",
+      documento: persona?.documento ?? null,
+      empresa: empresa?.nombre ?? null,
+      fechaISO: cabecera.assigned_at,
+    },
+  };
 }

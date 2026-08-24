@@ -86,7 +86,7 @@ export async function FichaDeEvaluacion({
    * pantalla, para siempre.
    */
   const informe = publicada
-    ? await leerInforme(id, evaluacion.assessment_id)
+    ? await leerInforme(id, evaluacion.assessment_id, perfil.organization_id)
     : null;
   const pase = publicada ? null : await leerPase(id);
 
@@ -139,6 +139,13 @@ export async function FichaDeEvaluacion({
               parametros={informe.parametros}
               valores={informe.valores}
               notaGlobal={informe.notaGlobal}
+              textosFijos={informe.textosFijos}
+              evaluado={{
+                nombre,
+                documento: persona?.documento ?? null,
+                empresa: informe.empresa,
+                fechaISO: evaluacion.assigned_at,
+              }}
             />
           ) : (
             /* Publicada y sin valores: no debería pasar, pero callarlo dejaría
@@ -178,27 +185,50 @@ export async function FichaDeEvaluacion({
   );
 }
 
-/** El informe publicado, con sus parámetros para poder titular cada apartado. */
-async function leerInforme(id: string, assessmentId: string) {
+/**
+ * El informe publicado, con todo lo que hace falta para dibujarlo.
+ *
+ * Los textos fijos —qué mide cada escala— van aparte de los valores porque no
+ * son del resultado de nadie: son del instrumento, iguales para todo el mundo,
+ * y por eso no se copian en cada `result_values`.
+ */
+async function leerInforme(
+  id: string,
+  assessmentId: string,
+  organizacion: string,
+) {
   const supabase = await crearClienteServidor();
 
-  const [{ data: valores }, { data: resultado }, { data: parametros }] =
-    await Promise.all([
-      supabase
-        .from("result_values")
-        .select("parameter_key, valor, sugerido, nota")
-        .eq("assignment_id", id),
-      supabase
-        .from("results")
-        .select("nota_global")
-        .eq("assignment_id", id)
-        .maybeSingle(),
-      supabase
-        .from("assessment_parameters")
-        .select("clave, etiqueta, kind, seccion")
-        .eq("assessment_id", assessmentId)
-        .order("posicion"),
-    ]);
+  const [
+    { data: valores },
+    { data: resultado },
+    { data: parametros },
+    { data: fijos },
+    { data: empresa },
+  ] = await Promise.all([
+    supabase
+      .from("result_values")
+      .select("parameter_key, valor, sugerido, nota")
+      .eq("assignment_id", id),
+    supabase
+      .from("results")
+      .select("nota_global")
+      .eq("assignment_id", id)
+      .maybeSingle(),
+    supabase
+      .from("assessment_parameters")
+      .select("clave, etiqueta, kind, seccion")
+      .eq("assessment_id", assessmentId)
+      .order("posicion"),
+    supabase.rpc("textos_fijos_del_instrumento", {
+      p_assessment: assessmentId,
+    }),
+    supabase
+      .from("organizations")
+      .select("nombre")
+      .eq("id", organizacion)
+      .maybeSingle(),
+  ]);
 
   if (!valores || valores.length === 0) return null;
 
@@ -206,6 +236,12 @@ async function leerInforme(id: string, assessmentId: string) {
     valores: valores as ValorInforme[],
     parametros: (parametros ?? []) as ParametroInforme[],
     notaGlobal: resultado?.nota_global ?? null,
+    textosFijos: Object.fromEntries(
+      ((fijos ?? []) as { parameter_key: string; cuerpo: string }[]).map(
+        (t) => [t.parameter_key, t.cuerpo],
+      ),
+    ),
+    empresa: empresa?.nombre ?? null,
   };
 }
 
