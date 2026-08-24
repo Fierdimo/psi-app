@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
+/** El buzón de desarrollo que levanta `supabase start`. */
+const MAILPIT = "http://127.0.0.1:54324";
+
 /**
  * La evaluación de quien no tiene cuenta, y su cierre automático.
  *
@@ -223,7 +226,7 @@ test.describe.serial("Evaluación con pase", () => {
      * termina baja leyendo y cierra.
      */
     await expect(
-      page.getByText(/guarda esto ahora: no podrás volver a abrirlo/i),
+      page.getByText(/este es tu informe, y también te lo enviamos/i),
     ).toBeVisible({ timeout: 30000 });
 
     await expect(
@@ -258,6 +261,50 @@ test.describe.serial("Evaluación con pase", () => {
 
     expect(cerrada?.token).toBeNull();
     expect(cerrada?.usado_at).not.toBeNull();
+
+    /*
+     * EL PDF SALE POR CORREO A LOS DOS.
+     *
+     * A la empresa, que es quien lo encargó, y a la persona, que así conserva
+     * su copia sin depender de haberla guardado en esta pantalla. Se comprueba
+     * el adjunto y no solo el asunto: un correo que anuncia un informe sin
+     * llevarlo es peor que ninguno.
+     */
+    const correos = await expect
+      .poll(
+        async () => {
+          const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
+          const { messages } = await r.json();
+          return (messages ?? []).filter(
+            (m: { Subject: string; Attachments: number }) =>
+              /informe/i.test(m.Subject) && m.Attachments > 0,
+          ).length;
+        },
+        { timeout: 30_000 },
+      )
+      .toBeGreaterThanOrEqual(2)
+      .then(async () => {
+        const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
+        return (await r.json()).messages as {
+          ID: string;
+          Subject: string;
+          Attachments: number;
+        }[];
+      });
+
+    const conInforme = correos.filter(
+      (m) => /informe/i.test(m.Subject) && m.Attachments > 0,
+    );
+
+    // Y es un PDF de verdad, no un adjunto vacío con nombre bonito.
+    const detalle = await fetch(
+      `${MAILPIT}/api/v1/message/${conInforme[0].ID}`,
+    ).then((r) => r.json());
+
+    const adjunto = detalle.Attachments[0];
+    expect(adjunto.ContentType).toBe("application/pdf");
+    expect(adjunto.FileName).toMatch(/\.pdf$/);
+    expect(adjunto.Size).toBeGreaterThan(10_000);
 
     // Volver a abrir el enlace no enseña nada, y lo dice con su motivo: no es
     // «venció», que llevaría a pedirle uno nuevo a la empresa.

@@ -24,6 +24,15 @@ import {
 export const CONSENTIMIENTO = {
   clave: "consentimiento_informado",
   /*
+   * 2026-08-24: el informe pasa a enviarse por correo, en PDF, a la empresa y
+   * a la persona evaluada.
+   *
+   * El texto decía que su copia se le mostraba UNA SOLA VEZ y que si la perdía
+   * tendría que pedírsela a la empresa. Dejó de ser cierto —ahora le llega
+   * adjunta a su correo— y un consentimiento que promete de menos informa tan
+   * mal como uno que promete de más: alguien podría negarse a responder
+   * creyendo que no va a conservar nada.
+   *
    * 2026-08-23: reescrito ENTERO, y esta vez no por un párrafo que dejó de ser
    * cierto sino porque el documento le hablaba a alguien que ya no existe.
    *
@@ -45,7 +54,7 @@ export const CONSENTIMIENTO = {
    * 2026-08-19: decía que aquí no se guardaba contenido clínico, y desde el
    * motor de evaluaciones se guardan respuestas e informes.
    */
-  version: "2026-08-23",
+  version: "2026-08-24",
 } as const;
 
 /**
@@ -98,16 +107,16 @@ export function seccionesDelConsentimiento(
     {
       titulo: "Quién recibe el informe",
       cuerpo: [
-        `${quien}, completo. Es la finalidad por la que lo encargó.`,
-        "Se calcula y se le envía automáticamente en cuanto terminas de responder, sin que un profesional lo revise antes. Después puede revisarlo y corregirlo, y en ese caso la empresa ve la versión corregida.",
+        `${quien}, completo y en PDF por correo. Es la finalidad por la que lo encargó.`,
+        "Se calcula y se le envía automáticamente en cuanto terminas de responder, sin que un profesional lo revise antes. Después puede revisarlo y corregirlo, y en ese caso la empresa ve la versión corregida en la plataforma.",
       ],
     },
     {
-      titulo: "Tu copia se te muestra UNA VEZ, al terminar",
+      titulo: "Tu copia: en pantalla y en tu correo",
       cuerpo: [
-        "En cuanto envías tus respuestas, tu informe aparece en pantalla. Guárdalo o imprímelo en ese momento.",
-        "Tu enlace de acceso queda cerrado ahí mismo y no vuelve a abrirse. No es un descuido: ese enlace viaja por correo, se imprime en un código QR y se queda en el historial del navegador, y mientras siguiera abriendo tu informe cualquiera que lo tuviera podría leerlo.",
-        `Si lo pierdes, tendrás que pedírselo a ${quien}, o ejercer tu derecho de acceso escribiendo a ${RESPONSABLE.correo}.`,
+        "En cuanto envías tus respuestas, tu informe aparece en pantalla. Y te llega en PDF al mismo correo por el que recibiste el enlace, para que lo conserves.",
+        "Tu enlace de acceso queda cerrado en ese momento y no vuelve a abrirse. No es un descuido: ese enlace viaja por correo, se imprime en un código QR y se queda en el historial del navegador, y mientras siguiera abriendo tu informe cualquiera que lo tuviera podría leerlo.",
+        `Si pierdes el correo, puedes pedírselo a ${quien} o ejercer tu derecho de acceso escribiendo a ${RESPONSABLE.correo}.`,
       ],
     },
     {

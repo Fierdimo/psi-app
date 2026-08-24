@@ -1,4 +1,5 @@
 import { capitalizar, fechaLarga, rangoHorario } from "@/lib/fechas/formato";
+import { RESPONSABLE } from "@/lib/legal/responsable";
 import { MODALIDAD, type Modalidad } from "@/lib/citas/estados";
 
 /**
@@ -309,19 +310,29 @@ export function informeListo(
   persona: string,
   instrumento: string,
   enlace: string,
+  /** Si el PDF va adjunto, el texto deja de mandar a la plataforma a buscarlo. */
+  conAdjunto = false,
 ): Correo {
   const titulo = "Ya está disponible un informe";
 
   return {
     asunto: "Informe disponible · JBR Psicometrías",
-    texto:
-      `El informe de ${persona} (${instrumento}) ya está disponible ` +
-      `en tu espacio de empresa.\n\n${enlace}\n\n` +
-      `Si necesitas comentarlo, escríbenos.`,
+    texto: conAdjunto
+      ? `El informe de ${persona} (${instrumento}) va adjunto a este correo.\n\n` +
+        `También queda en tu espacio de empresa, donde está siempre al día si ` +
+        `se corrige:\n${enlace}\n\n` +
+        `Recuerda que respondes de este documento: úsalo solo para el proceso ` +
+        `que motivó la evaluación y no lo difundas fuera de él.`
+      : `El informe de ${persona} (${instrumento}) ya está disponible ` +
+        `en tu espacio de empresa.\n\n${enlace}\n\n` +
+        `Si necesitas comentarlo, escríbenos.`,
     html: envolver(
       titulo,
-      `El informe de <strong>${persona}</strong> (${instrumento}) ya está ` +
-        `disponible en tu espacio de empresa.`,
+      conAdjunto
+        ? `El informe de <strong>${persona}</strong> (${instrumento}) va ` +
+            `adjunto a este correo.`
+        : `El informe de <strong>${persona}</strong> (${instrumento}) ya está ` +
+            `disponible en tu espacio de empresa.`,
       undefined,
       /*
        * El recordatorio de custodia, en cada informe.
@@ -491,6 +502,52 @@ export function usosResueltos(datos: {
       undefined,
       `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
          Si crees que hay un error, respóndenos a este correo y lo revisamos.
+       </p>`,
+    ),
+  };
+}
+
+/**
+ * Su copia del informe, para quien respondió la prueba.
+ *
+ * Va a la dirección donde le llegó la convocatoria. No añade un destinatario
+ * que no tuviera ya acceso —a ese mismo buzón viajó su enlace— pero sí conviene
+ * saber el borde: en un proceso de selección puede ser un correo corporativo
+ * que también lee quien decide. Por eso el asunto no dice de qué va la prueba.
+ *
+ * El PDF va adjunto. Antes su copia solo existía en la pantalla del final y se
+ * perdía al cerrar la pestaña; ahora la conserva sin depender de eso.
+ */
+export function informeParaLaPersona(
+  nombre: string | null,
+  instrumento: string,
+  empresa: string,
+): Correo {
+  const saludo = nombre ? `Hola ${nombre}: ` : "";
+  const cuerpo =
+    `${saludo}adjuntamos tu informe de la evaluación que respondiste ` +
+    `(${instrumento}), encargada por ${empresa}. Es tuyo: guárdalo.`;
+
+  return {
+    asunto: `Tu informe · ${empresa}`,
+    texto: [
+      cuerpo,
+      "",
+      `${empresa} recibió una copia, porque es quien encargó la evaluación.`,
+      "",
+      "Si tienes dudas sobre el documento o quieres ejercer tus derechos sobre",
+      `tus datos, escríbenos a ${RESPONSABLE.correo}.`,
+    ].join("\n"),
+    html: envolver(
+      "Tu informe",
+      `${cuerpo}<br><br>
+       <span style="color:#64748B;font-size:13px">
+         ${empresa} recibió una copia, porque es quien encargó la evaluación.
+       </span>`,
+      undefined,
+      `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
+         Si tienes dudas sobre el documento o quieres ejercer tus derechos sobre
+         tus datos, escríbenos a ${RESPONSABLE.correo}.
        </p>`,
     ),
   };

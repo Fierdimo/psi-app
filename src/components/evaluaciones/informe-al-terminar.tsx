@@ -63,13 +63,13 @@ export function InformeAlTerminar({
       */}
       <div className="mx-auto w-full max-w-[70ch] print:hidden">
         <Alert
-          tone="warning"
-          title="Guarda esto ahora: no podrás volver a abrirlo"
+          tone="success"
+          title="Este es tu informe, y también te lo enviamos"
         >
-          Este es tu informe y esta es la única vez que se te muestra. Tu enlace
-          de acceso queda cerrado desde este momento. Imprímelo o guárdalo como
-          PDF con el botón de abajo; también lo recibió la empresa que encargó
-          la evaluación.
+          Te llega en PDF al mismo correo por el que recibiste tu enlace, así
+          que no tienes que hacer nada para conservarlo. Tu enlace de acceso
+          queda cerrado desde este momento; si prefieres guardarlo ahora, usa el
+          botón de abajo. La empresa que encargó la evaluación recibió su copia.
         </Alert>
       </div>
 

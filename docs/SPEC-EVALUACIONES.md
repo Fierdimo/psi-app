@@ -649,78 +649,68 @@ llevar: quién convoca, el botón al enlace, y **el QR como adjunto en línea
 base64 embebidas en el `src`, y el QR es justo lo que hay que poder escanear
 desde el teléfono sin pulsar nada.
 
-### 8.2 El informe → a la empresa
+### 8.2 El informe → a la empresa · **en PDF adjunto**
 
-`informeListo` ya existe, ya sale del cierre automático y ya apunta a
-`/empresa/informes/[id]`. Gana **una línea**: el recordatorio de que desde que
-recibe ese informe es la empresa quien responde de su custodia (§7.4).
+`informeListo` sale del cierre automático **con el informe adjunto en PDF**, y
+además con el enlace a la plataforma, donde el documento está siempre al día si
+se corrige. Lleva la línea de recordatorio de custodia (§7.4).
 
-### 8.3 A la persona no se le manda ningún informe · **decisión revisada**
+### 8.3 El informe → a la persona evaluada · **en PDF adjunto**
 
-Una versión anterior de este documento proponía un tercer correo con el enlace
-a su pase. **Se retira**, y con él la propuesta de §8.4 de que ese pase no
-caducara nunca. El motivo es una revisión de seguridad del enlace de acceso, y
-está en §8.4.
+El mismo documento, al mismo tiempo, a la dirección donde le llegó la
+convocatoria.
 
-Su copia la obtiene **en pantalla, al terminar la prueba** (§8.4). No hay
-ninguna dirección web que lea ese informe después.
+Se envía **después** del de la empresa y en su propio `try`: que la persona se
+quede sin copia no puede impedir que llegue lo que la empresa pagó.
 
-**Lo que se evita con esto.** La objeción de fondo era que la dirección de
-correo **la escribe la empresa**, no la persona: en un proceso de selección, la
-persona y quien decide sobre ella pueden compartir un buzón corporativo. Sin
-correo de informe y sin enlace de lectura, ese buzón deja de ser una vía al
-documento.
+**Efecto de borde que sigue vigente:** esa dirección la escribió la empresa, y
+en un proceso de selección puede ser un buzón corporativo que también lee quien
+decide. No añade un destinatario que no tuviera ya acceso —a ese mismo buzón
+viajó su enlace— pero el formulario de §3.3 sugiere usar el correo personal.
 
-Queda vivo el efecto de borde de la **convocatoria**, que sí va a esa
-dirección: quien lea ese buzón antes que la persona puede hacer la prueba en su
-lugar. Eso no tiene arreglo técnico sin cuentas —el enlace tiene que bastar
-para entrar— y sí tiene arreglo de producto: el formulario de §3.3 sugiere usar
-el correo personal cuando se tenga.
+### 8.4 El informe VIAJA en el correo · **decisión revisada**
 
-### 8.4 El pase se apaga en cuanto el informe está en pantalla
+Este documento sostuvo lo contrario, y con un argumento que sigue siendo
+cierto: un perfil psicológico con nombre y cédula cruza servidores de correo
+que no controlamos, y por eso viajaba solo el aviso con un enlace.
 
-**Esta sección revierte una decisión anterior mía**, y conviene que quede
-escrito por qué: proponía que el pase de lectura no caducara nunca, para que la
-persona no perdiera su informe. Eso convierte un enlace al portador en una
-credencial permanente a un perfil psicológico con nombre y apellidos.
+**Se acepta a cambio de lo que se gana**, que es lo que el cliente pidió: la
+empresa archiva el documento donde archiva lo demás, y la persona evaluada
+conserva su copia sin depender de haberla guardado en la pantalla del final.
 
-**Lo que el enlace pone en riesgo no es responder, es leer.** Responder ya está
-cerrado por ESTADO: `asignacion_de_pase` solo resuelve evaluaciones en
-`asignada` o `en_curso`, así que una prueba enviada no se puede volver a
-contestar aunque el enlace circule. Lo que seguía abriendo era el informe, para
-siempre y para cualquiera que lo tuviera: el correo reenviado, el QR impreso
-que quedó sobre una mesa, el historial de un navegador compartido.
+Lo que **no** cambia:
 
-Y había un agravante que no se vio en su momento. La migración 0013 escribió
-como principio que el testigo **nunca** se guarda en claro; la 0037 lo revirtió
-—añadió la columna `token`— para que la empresa pudiera reenseñar el mismo QR.
-Lo único que borraba ese texto en claro era `aceptar_invitacion`, la vía de
-crear cuenta, **que en el modelo nuevo ya no existe**. El testigo pasó a vivir
-hasta su caducidad, y con él la llave del informe en una tabla de la base.
+- El asunto sigue sin decir de qué va la prueba.
+- **El pase sigue apagándose** al enseñar el informe. El enlace no era el
+  vehículo del documento, era una credencial al portador; que ahora haya PDF no
+  lo vuelve inofensivo.
+- El recordatorio de custodia acompaña al adjunto.
 
-**Cómo queda:**
+**Y arrastró el consentimiento.** Decía que su copia se mostraba UNA SOLA VEZ y
+que si la perdía tendría que pedírsela a la empresa. Dejó de ser cierto, así
+que se reescribió el apartado y **se subió la versión a `2026-08-24`**: un
+consentimiento que promete de menos informa tan mal como uno que promete de
+más, y alguien podría negarse a responder creyendo que no va a conservar nada.
 
-1. Al enviar la prueba, el servidor califica, publica, avisa a la empresa y
-   **enseña el informe en la misma pantalla**.
-2. Con el informe ya delante, apaga el pase: `token` a nulo y `usado_at`
-   marcado. A partir de ahí el enlace no abre nada, ni la prueba ni el informe,
-   con su propio mensaje —«este enlace ya se usó»— y no con el de vencido, que
-   llevaría a pedirle a la empresa uno nuevo que no existe.
-3. El informe se lee **por identificador y no por testigo** (`informe_publicado`,
-   solo para el servidor). Es lo que permite enseñárselo sin que el enlace
-   vuelva a viajar, y por tanto lo que permite apagarlo en el mismo gesto.
+### 8.4.1 Cómo se genera el PDF
 
-**Se apaga después de tener el informe, no al recibir las respuestas.** El
-cierre automático está escrito para no lanzar nunca; si el motor falla, apagar
-el pase al enviar dejaría a la persona con la prueba respondida, sin informe y
-sin enlace por el que volver. Cerrándolo cuando el informe ya está en pantalla,
-ese fallo se degrada a lo tolerable: el pase sigue vivo y puede volver más
-tarde.
+**No con un navegador sin cabeza**, que sería la fidelidad perfecta —el PDF
+sería literalmente la pantalla— y se descartó por dos motivos en este orden:
 
-**El precio, dicho sin adornos:** si cierra la pestaña sin guardarlo, no hay
-forma de recuperarlo desde la plataforma. Tiene que pedírselo a la empresa. La
-pantalla lo advierte **encima** del informe, no debajo, y el consentimiento lo
-dice antes de empezar (§7.3).
+1. `PLAN.md §3.3` deja abiertos dos destinos de despliegue, un contenedor en un
+   VPS y una plataforma gestionada tipo Cloudflare Workers. Un Chromium en
+   tiempo de ejecución elimina el segundo, y esa no es una decisión que deba
+   tomar el generador de un documento.
+2. Aunque el destino sea el VPS, ahí conviven la aplicación y la base en 4 GB.
+   Levantar un navegador por informe —y salen en tandas, cuando varias personas
+   terminan la misma mañana— es la clase de consumo que tumba la máquina entera
+   por generar dos folios.
+
+Se usa un generador en JavaScript puro. **El precio es tener el documento
+escrito dos veces**, y se paga con `estructura-informe`: qué DICE el informe
+—qué bloques, en qué orden, con qué textos y qué números— se decide una sola
+vez ahí, y cada renderizador solo sabe cómo dibujarlo. Añadir un apartado sigue
+siendo un cambio en un solo sitio.
 
 ### 8.5 Lo que se retira y lo que se añade
 
