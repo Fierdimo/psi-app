@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { EnlacesDeAcceso } from "@/components/citas/enlaces-de-acceso";
@@ -9,6 +10,7 @@ import {
 } from "@/components/evaluaciones/informe";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { exigirEmpresa } from "@/lib/auth/perfil";
 import { estadoParaLaEmpresa } from "@/lib/evaluaciones/estados-empresa";
 import { fechaLarga } from "@/lib/fechas/formato";
@@ -135,18 +137,38 @@ export async function FichaDeEvaluacion({
       <div className="border-line border-t pt-6">
         {publicada ? (
           informe ? (
-            <Informe
-              parametros={informe.parametros}
-              valores={informe.valores}
-              notaGlobal={informe.notaGlobal}
-              textosFijos={informe.textosFijos}
-              evaluado={{
-                nombre,
-                documento: persona?.documento ?? null,
-                empresa: informe.empresa,
-                fechaISO: evaluacion.assigned_at,
-              }}
-            />
+            <div className="flex flex-col gap-4">
+              {/*
+                Descargar, no imprimir.
+
+                Da EXACTAMENTE el mismo archivo que salió por correo —lo genera
+                la misma función— así que quien lo archive aquí y quien lo
+                archive desde el correo tienen el mismo documento. Imprimir
+                sigue estando y sirve para papel; esto es para guardar.
+              */}
+              <div className="flex justify-end print:hidden">
+                <a
+                  href={`/api/informe/${id}`}
+                  className={buttonVariants({ variant: "secondary" })}
+                >
+                  <Download aria-hidden="true" className="size-4" />
+                  Descargar el PDF
+                </a>
+              </div>
+
+              <Informe
+                parametros={informe.parametros}
+                valores={informe.valores}
+                notaGlobal={informe.notaGlobal}
+                textosFijos={informe.textosFijos}
+                evaluado={{
+                  nombre,
+                  documento: persona?.documento ?? null,
+                  empresa: informe.empresa,
+                  fechaISO: evaluacion.assigned_at,
+                }}
+              />
+            </div>
           ) : (
             /* Publicada y sin valores: no debería pasar, pero callarlo dejaría
                una pantalla en blanco sin explicación. */

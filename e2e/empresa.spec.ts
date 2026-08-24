@@ -511,6 +511,136 @@ test.describe.serial("Área de empresa", () => {
     await db.from("organization_people").delete().like("documento", "77000%");
   });
 
+  /*
+   * LA DESCARGA DEL PDF, y que respeta de quién es.
+   *
+   * Es la misma función que genera el adjunto del correo, así que quien
+   * archive desde aquí y quien archive desde el correo tienen el mismo
+   * documento. Y la dirección es adivinable —`/api/informe/<uuid>`— así que lo
+   * que se comprueba de verdad es que no baste con escribirla.
+   */
+  test("el informe se descarga en PDF, y solo por quien puede", async ({
+    page,
+  }) => {
+    /*
+     * Con margen: es la primera vez que se pide la ruta del PDF, y en
+     * `next dev` esa compilación tarda más que la espera por defecto — a lo
+     * que se suma generar el documento con sus tres imágenes.
+     */
+    test.setTimeout(120_000);
+
+    const db = admin();
+
+    const { data: prueba } = await db
+      .from("assessments")
+      .select("id")
+      .eq("clave", "disc_dominancia")
+      .single();
+    const { data: doctor } = await db
+      .from("profiles")
+      .select("id")
+      .eq("role", "profesional")
+      .single();
+
+    // Su propia evaluación publicada: la de la prueba anterior se recoge al
+    // terminar, así que apoyarse en ella la haría depender del orden.
+    await db.from("organization_people").delete().eq("documento", "88000001");
+
+    const { data: gente } = await db
+      .from("organization_people")
+      .insert({
+        organization_id: ORGANIZACION,
+        documento: "88000001",
+        nombre: "Descarga",
+        apellidos: "De Prueba",
+        email: "descarga@caribe.test",
+      })
+      .select("id")
+      .single();
+
+    const { data: asignacion } = await db
+      .from("assignments")
+      .insert({
+        assessment_id: prueba!.id,
+        person_id: gente!.id,
+        organization_id: ORGANIZACION,
+        assigned_by: doctor!.id,
+        status: "publicada" as const,
+      })
+      .select("id")
+      .single();
+
+    await db.from("results").insert({
+      assignment_id: asignacion!.id,
+      released_at: new Date().toISOString(),
+      nota_global: "Apto.",
+    });
+    await db.from("result_values").insert([
+      {
+        assignment_id: asignacion!.id,
+        parameter_key: "D",
+        valor: 3,
+        sugerido: "Asertividad moderada.",
+      },
+      {
+        assignment_id: asignacion!.id,
+        parameter_key: "I",
+        valor: 2,
+        sugerido: "Interacción selectiva.",
+      },
+      {
+        assignment_id: asignacion!.id,
+        parameter_key: "S",
+        valor: 6,
+        sugerido: "Prefiere la continuidad.",
+      },
+      {
+        assignment_id: asignacion!.id,
+        parameter_key: "C",
+        valor: 4,
+        sugerido: "Atención a la calidad.",
+      },
+    ]);
+
+    await entrarComo(page, CUENTAS.empresa);
+
+    const respuesta = await page.request.get(`/api/informe/${asignacion!.id}`);
+    expect(respuesta.status()).toBe(200);
+    expect(respuesta.headers()["content-type"]).toBe("application/pdf");
+    expect(respuesta.headers()["content-disposition"]).toContain("attachment");
+
+    // Un PDF de verdad: la firma del formato y un tamaño creíble.
+    const cuerpo = await respuesta.body();
+    expect(cuerpo.subarray(0, 4).toString()).toBe("%PDF");
+    expect(cuerpo.length).toBeGreaterThan(10_000);
+
+    // Y el botón está donde tiene que estar, en la ficha.
+    await page.goto(`/empresa/evaluaciones/${asignacion!.id}`);
+    await expect(
+      page.getByRole("link", { name: /descargar el pdf/i }),
+    ).toBeVisible({ timeout: 20000 });
+
+    /*
+     * Una evaluación de OTRA empresa no se baja escribiendo su dirección.
+     *
+     * Responde 404 y no 403 a propósito: distinguirlos convertiría esta
+     * dirección en un detector de evaluaciones ajenas.
+     */
+    const { data: ajena } = await db
+      .from("assignments")
+      .select("id")
+      .neq("organization_id", ORGANIZACION)
+      .limit(1)
+      .maybeSingle();
+
+    if (ajena) {
+      const negada = await page.request.get(`/api/informe/${ajena.id}`);
+      expect(negada.status()).toBe(404);
+    }
+
+    await db.from("organization_people").delete().eq("documento", "88000001");
+  });
+
   test("la ficha de la empresa se puede corregir", async ({ page }) => {
     await entrarComo(page, CUENTAS.empresa);
     await page.goto("/empresa/datos");

@@ -439,6 +439,22 @@ El profesional **ya no habilita exámenes ni asigna evaluaciones**: la empresa
 las encarga sola contra su saldo. Lo que le queda es autorizar compras y
 corregir informes que salieron solos.
 
+**Ve lo mismo que la empresa, y en el mismo orden.** Dos correcciones que van
+juntas porque nacen del mismo error —que los dos lados hablaran de cosas
+distintas creyendo hablar de la misma—:
+
+- **El listado va de la más reciente a la más antigua**, como el de la empresa.
+  Antes «Por revisar» iba al revés, con el argumento de que era una cola. Con
+  el informe publicándose solo dejó de serlo: lo que llega es un flujo, y de un
+  flujo se mira lo último. Y sobre todo, «la primera de la lista» tenía que
+  significar la misma fila a los dos lados.
+- **El documento, en la pantalla de revisión.** Revisaba sobre una lista de
+  campos y firmaba sin haber visto nunca lo que iba a recibir la empresa.
+  Publicar es afirmar que respondes por ese documento, y no se puede responder
+  por algo que no se ha mirado. Es el mismo componente que ve la empresa y que
+  vio la persona evaluada: tres versiones de un informe se separan a la primera
+  corrección; una sola no puede.
+
 #### La configuración se queda en un solo ajuste
 
 Esa pantalla era la de las reglas de la agenda: anticipación mínima, duración
@@ -692,7 +708,25 @@ que se reescribió el apartado y **se subió la versión a `2026-08-24`**: un
 consentimiento que promete de menos informa tan mal como uno que promete de
 más, y alguien podría negarse a responder creyendo que no va a conservar nada.
 
-### 8.4.1 Cómo se genera el PDF
+### 8.4.1 Y se descarga desde la plataforma
+
+`/api/informe/[id]` devuelve **el mismo archivo que salió por correo** —lo
+genera la misma función, sobre la misma estructura— así que quien compare el
+adjunto con lo descargado no encuentra diferencias. Imprimir sigue estando en
+la pantalla y sirve para papel; esto es para archivar.
+
+El botón vive en el modal de la empresa y en la pantalla de revisión del
+profesional.
+
+**Quién puede, comprobado contra la base y no contra quién ve el botón:** el
+profesional, y la empresa dueña de esa evaluación. La consulta pasa por RLS,
+así que una evaluación ajena responde **404 y no 403**: distinguirlos
+convertiría una dirección adivinable en un detector de evaluaciones de otros.
+
+Quien respondió **no entra por aquí**: su copia le llegó por correo y su enlace
+se apagó al enseñársela. Abrir esta puerta a `anon` sería deshacer eso.
+
+### 8.4.2 Cómo se genera el PDF
 
 **No con un navegador sin cabeza**, que sería la fidelidad perfecta —el PDF
 sería literalmente la pantalla— y se descartó por dos motivos en este orden:

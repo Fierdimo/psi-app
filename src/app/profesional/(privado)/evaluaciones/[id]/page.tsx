@@ -1,8 +1,11 @@
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { Informe } from "@/components/evaluaciones/informe";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button";
 import {
   EncabezadoPagina,
   Pantalla,
@@ -34,7 +37,7 @@ export default async function RevisarEvaluacionPage({
   const { data: asignacion } = await supabase
     .from("assignments")
     .select(
-      "id, status, assessment_id, habilitado_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos, documento), organizacion:organizations(nombre)",
+      "id, status, assessment_id, habilitado_at, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, cargo), paciente:profiles!assignments_patient_id_fkey(nombre, apellidos, documento), organizacion:organizations(nombre)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -59,6 +62,7 @@ export default async function RevisarEvaluacionPage({
     { data: valores },
     { data: resultado },
     { data: decision },
+    { data: fijos },
   ] = await Promise.all([
     supabase
       .from("assessment_parameters")
@@ -75,7 +79,19 @@ export default async function RevisarEvaluacionPage({
       .eq("assignment_id", id)
       .maybeSingle(),
     supabase.rpc("consentimiento_de", { p_assignment: id }),
+    /* Las descripciones fijas de cada escala: sin ellas el documento se dibuja
+       igual pero pierde el párrafo de «qué mide esto». */
+    supabase.rpc("textos_fijos_del_instrumento", {
+      p_assessment: asignacion.assessment_id,
+    }),
   ]);
+
+  const textosFijos = Object.fromEntries(
+    ((fijos ?? []) as { parameter_key: string; cuerpo: string }[]).map((t) => [
+      t.parameter_key,
+      t.cuerpo,
+    ]),
+  );
 
   const nombre = quien
     ? [quien.nombre, quien.apellidos].filter(Boolean).join(" ")
@@ -110,6 +126,51 @@ export default async function RevisarEvaluacionPage({
           Esta persona no tiene un consentimiento aceptado para esta evaluación.
           Puedes revisarla, pero no se podrá publicar mientras siga así.
         </Alert>
+      ) : null}
+
+      {/*
+        EL DOCUMENTO TAL COMO SALE, antes del editor.
+
+        El profesional revisaba sobre una lista de campos y firmaba sin haber
+        visto nunca lo que iba a recibir la empresa. Publicar es afirmar que
+        respondes por ese documento, y no se puede responder por algo que no se
+        ha mirado.
+
+        Va arriba y el editor debajo: primero qué dice, después dónde se toca.
+      */}
+      {asignacion.status === "publicada" ? (
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-h4">Así lo recibe la empresa</h2>
+            <a
+              href={`/api/informe/${id}`}
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              <Download aria-hidden="true" className="size-4" />
+              Descargar el PDF
+            </a>
+          </div>
+
+          {/* El mismo componente que ve la empresa y que vio la persona
+              evaluada. Tres versiones de un informe se separan a la primera
+              corrección; una sola no puede. */}
+          <div className="border-line overflow-hidden rounded-xl border">
+            <Informe
+              parametros={parametros ?? []}
+              valores={valores ?? []}
+              notaGlobal={resultado?.nota_global ?? null}
+              textosFijos={textosFijos}
+              evaluado={{
+                nombre,
+                documento: quien?.documento ?? null,
+                empresa:
+                  uno<{ nombre: string }>(asignacion.organizacion)?.nombre ??
+                  null,
+                fechaISO: asignacion.assigned_at,
+              }}
+            />
+          </div>
+        </section>
       ) : null}
 
       <RevisionInforme

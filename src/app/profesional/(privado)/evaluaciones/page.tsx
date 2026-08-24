@@ -165,13 +165,20 @@ export default async function EvaluacionesPage({
         ),
     )
       /*
-       * Lo que lleva más tiempo esperando, primero.
+       * De la más reciente a la más antigua, en todas las pestañas.
        *
-       * En «Publicadas» el orden natural es el contrario —lo último firmado es
-       * lo que se vuelve a mirar— pero esa pestaña se usa buscando, no
-       * recorriendo, así que un solo orden para todas evita explicar dos.
+       * Antes «Por revisar» iba al revés —lo que llevaba más tiempo esperando,
+       * primero— con el argumento de que era una cola. Con el giro a
+       * evaluaciones por encargo dejó de serlo: no hay cola que drenar porque
+       * el informe se publica solo; lo que llega es un flujo, y de un flujo se
+       * mira lo último.
+       *
+       * Y sobre todo: la empresa ve sus evaluaciones de la más reciente a la
+       * más antigua. Que el profesional las viera al revés hacía que los dos
+       * lados hablaran de «la primera de la lista» refiriéndose a filas
+       * distintas.
        */
-      .order("assigned_at", { ascending: vista !== "publicadas" })
+      .order("assigned_at", { ascending: false })
       /*
        * Desempate estable.
        *
@@ -180,7 +187,7 @@ export default async function EvaluacionesPage({
        * página se calcula por su cuenta y la misma persona aparece en dos
        * mientras otra no aparece en ninguna.
        */
-      .order("id")
+      .order("id", { ascending: false })
       .range(desde, desde + POR_PAGINA - 1),
 
     // Los contadores de las pestañas, sin traerse las filas.
