@@ -612,12 +612,14 @@ function Documento({
 
             {consentimiento.secciones ? (
               <View style={{ marginTop: 6 }}>
+                {/*
+                  Sin `wrap={false}`: el apartado «Certifico que» son seis
+                  declaraciones largas y no cabe en un fragmento de página.
+                  Forzarlo a no partirse lo empujaría entero a la siguiente y
+                  dejaría media hoja en blanco.
+                */}
                 {consentimiento.secciones.map((sec) => (
-                  <View
-                    key={sec.titulo}
-                    style={{ marginBottom: 4 }}
-                    wrap={false}
-                  >
+                  <View key={sec.titulo} style={{ marginBottom: 4 }}>
                     <Text style={e.negrita}>{sec.titulo}</Text>
                     {(Array.isArray(sec.cuerpo)
                       ? sec.cuerpo

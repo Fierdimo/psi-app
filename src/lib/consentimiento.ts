@@ -24,6 +24,23 @@ import {
 export const CONSENTIMIENTO = {
   clave: "consentimiento_informado",
   /*
+   * 2026-08-24.2: se añade el «Certifico que».
+   *
+   * El documento DESCRIBÍA —qué datos se guardan, quién recibe el informe— y
+   * la persona no declaraba nada. Un consentimiento es un acto de voluntad, y
+   * sin una parte en primera persona se lee como un aviso legal que se acepta
+   * por inercia. El documento que la consulta entrega en papel lo tiene desde
+   * siempre; faltaba aquí.
+   *
+   * Es LITERALMENTE el del documento en papel, a petición del cliente y con
+   * un motivo que pesa: quien ya firmó uno de estos en un proceso anterior
+   * tiene que reconocer el mismo texto. Lo único que no va escrito a mano es
+   * el nombre y la marca del profesional, que salen de `RESPONSABLE` para que
+   * no haya un documento diciendo una cosa y dos diciendo otra.
+   *
+   * El sufijo `.2` porque es el segundo cambio del mismo día y la versión
+   * tiene que distinguir dos redacciones, no dos fechas.
+   *
    * 2026-08-24: el informe pasa a enviarse por correo, en PDF, a la empresa y
    * a la persona evaluada.
    *
@@ -54,7 +71,7 @@ export const CONSENTIMIENTO = {
    * 2026-08-19: decía que aquí no se guardaba contenido clínico, y desde el
    * motor de evaluaciones se guardan respuestas e informes.
    */
-  version: "2026-08-24",
+  version: "2026-08-24.2",
 } as const;
 
 /**
@@ -137,6 +154,34 @@ export function seccionesDelConsentimiento(
       cuerpo: [
         "No se te ha creado ningún usuario y no hay ninguna contraseña que buscar. El enlace que recibiste es tu único acceso, y deja de servir cuando terminas.",
         "Tampoco se guarda un historial tuyo entre empresas: si otra te evalúa mañana, para el sistema es otra evaluación y no se cruza con esta.",
+      ],
+    },
+    {
+      /*
+       * El cierre en primera persona.
+       *
+       * Cada punto se corresponde con un apartado de arriba, en el mismo
+       * orden, y no dice nada que el documento no haya explicado antes: un
+       * «reconozco que comprendo» sobre algo no explicado es una firma en
+       * blanco. Por eso se escribió después del resto y no antes.
+       */
+      titulo: "Certifico que",
+      cuerpo: [
+        "1. Reconozco: que he sido informado(a) y comprendo completamente el propósito, los procedimientos y los posibles beneficios y riesgos asociados con la evaluación psicológica y psicotécnica que voy a someterme como parte del proceso de selección.",
+        "2. Propósito: Entiendo que el propósito de esta evaluación es obtener información sobre mis habilidades, competencias, personalidad y aptitudes relevantes para el puesto al que estoy aplicando. Comprendo que esta evaluación ayudará a la empresa a tomar decisiones informadas sobre mi idoneidad para el puesto.",
+        "3. Procedimientos: Reconozco que la evaluación psicológica y psicotécnica puede incluir una variedad de pruebas, cuestionarios y ejercicios diseñados para evaluar diferentes aspectos de mi personalidad, habilidades cognitivas y aptitudes. Acepto participar activamente en todas las actividades propuestas durante el proceso de evaluación.",
+        "4. Confidencialidad: Entiendo que toda la información recopilada durante este proceso será tratada de manera confidencial y solo será accesible para el equipo de selección designado. Acepto que mis resultados puedan ser utilizados únicamente con fines de evaluación en el contexto de este proceso de selección.",
+        "5. Beneficios y Riesgos: Reconozco que la evaluación psicológica y psicotécnica puede proporcionar información valiosa tanto para la empresa como para mí mismo(a), ayudando a garantizar una mejor coincidencia entre mis habilidades y el puesto. Sin embargo, entiendo que los resultados de la evaluación pueden no siempre reflejar completamente mi capacidad o idoneidad para el trabajo. Además, comprendo que podría experimentar cierto nivel de estrés o incomodidad durante el proceso de evaluación.",
+        "6. Voluntariedad y Retirada: Afirmo que mi participación en esta evaluación es voluntaria y que tengo derecho a retirar mi consentimiento en cualquier momento sin consecuencias negativas para mi proceso de selección. Entiendo que puedo solicitar más información en cualquier momento y que puedo abstenerme de responder cualquier pregunta o participar en cualquier ejercicio con el que no me sienta cómodo(a).",
+        "Al ACEPTAR la participación en este formulario, certifico que he leído y comprendido completamente la información proporcionada y que doy mi consentimiento para participar en el proceso de evaluación psicológica y psicotécnica descrito anteriormente.",
+        /*
+         * El nombre y la marca salen de `RESPONSABLE` y no van escritos aquí,
+         * que es la única desviación respecto al documento en papel. El texto
+         * resultante se lee igual, y evita que el día que cambie un dato haya
+         * un documento diciendo una cosa y dos diciendo otra — que es
+         * exactamente para lo que existe ese módulo.
+         */
+        `Por la presente doy conocimiento a ${RESPONSABLE.marca.toUpperCase()}, y al ${RESPONSABLE.nombre.toUpperCase()} - ${RESPONSABLE.profesion.toUpperCase()}, a realizar el proceso de DILIGENCIAMIENTO Y EVALUACIÓN. Manifiesto conocer las normas de funcionamiento del mismo y estar satisfecho(a) con las explicaciones que se me han brindado por lo cual ACEPTO participar colaborativamente.`,
       ],
     },
     {
