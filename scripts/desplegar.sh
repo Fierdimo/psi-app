@@ -16,7 +16,7 @@ set -euo pipefail
 
 SERVIDOR=psi-vps
 DESTINO=/opt/psi/app
-SITIO="https://portal.jbrpsicometrias.com"
+SITIO="https://jbrpsicometrias.com"
 
 cd "$(dirname "$0")/.."
 

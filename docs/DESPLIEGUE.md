@@ -24,7 +24,7 @@ había forma de ver cómo quedaba una invitación sin desplegarla.
 ## 0 · La dirección del sitio
 
 ```bash
-NEXT_PUBLIC_SITE_URL="https://portal.jbrpsicometrias.com"
+NEXT_PUBLIC_SITE_URL="https://jbrpsicometrias.com"
 ```
 
 Es lo primero porque de ahí salen **todos los enlaces que se envían fuera**:
@@ -35,91 +35,64 @@ Sin ella se deduce de los encabezados de la petición, que sirve en local pero
 no es de fiar detrás de un proxy: un enlace con el host interno funciona en la
 pantalla de quien lo genera y no funciona en el teléfono de quien lo recibe.
 
-### El dominio ya está ocupado, y no hace falta desocuparlo
+### El dominio: la aplicación se quedó con la raíz
 
-`jbrpsicometrias.com` está registrado **en Wix**, servido por su DNS, y con la
-página del cliente en la raíz. Esto es lo que había el 26 de agosto de 2026:
+`jbrpsicometrias.com` está registrado **en Wix** y su DNS lo sirve Wix
+(`ns2/ns3.wixdns.net`). Ahí vivía la página del cliente. El **27 de agosto de
+2026** se retiró y la raíz pasó a la aplicación.
 
-| Registro    | Valor                                 | De quién es                 |
-| ----------- | ------------------------------------- | --------------------------- |
-| Registrador | Wix.com Ltd.                          | Wix es el dueño registral   |
-| NS          | `ns2.wixdns.net`, `ns3.wixdns.net`    | el DNS lo sirve Wix         |
-| A (raíz)    | `185.230.63.107 / .171 / .186`        | la página de Wix            |
-| `www`       | `cdn1.wixdns.net`                     | la página de Wix            |
-| **MX**      | `aspmx.l.google.com` y cuatro más     | **Google Workspace**        |
-| TXT         | `v=spf1 include:_spf.google.com ~all` | el SPF de ese mismo Google  |
-| TXT         | `google-site-verification=…`          | la verificación del dominio |
+| Registro | Antes                                | Ahora                                |
+| -------- | ------------------------------------ | ------------------------------------ |
+| A (raíz) | `185.230.63.107 / .171 / .186` (Wix) | `200.58.127.167`                     |
+| `www`    | `cdn1.wixdns.net` (Wix)              | `200.58.127.167`, redirige a la raíz |
+| **MX**   | `aspmx.l.google.com` y cuatro más    | **sin tocar**                        |
+| TXT      | SPF de Google + verificación         | **sin tocar**                        |
 
-Los MX son la parte que importa: **el correo del dominio ya está en Google
-Workspace**, que es exactamente la vía del paso 1. Y también es lo que se
-rompería al mover el dominio entero, sin que nada avise: un MX perdido no da
-error, solo deja de llegar el correo — el de la consulta y el de las
-invitaciones.
+**Los MX son la parte delicada de cualquier cambio aquí.** El correo del
+dominio está en Google Workspace, y un MX perdido no da error: simplemente deja
+de llegar el correo —el de la consulta y el de las invitaciones—. Cambiar los
+registros A no los toca; lo que sí los pondría en riesgo es desconectar el
+dominio del sitio en Wix o cambiar de nameservers sin recrearlos.
 
-Por eso la aplicación va en un **subdominio**. No es un apaño provisional
-mientras se decide: es el camino que no toca nada de lo que ya funciona.
+Se llegó aquí pasando primero por un subdominio (`portal`), que sirvió para
+probar el servidor entero sin tocar la página que estaba en producción. Es el
+orden recomendable si algún día hay que repetir la maniobra: montar en un
+subdominio, verificarlo, y mover la raíz al final.
 
-|                   | Mover el dominio entero                | Añadir un subdominio |
-| ----------------- | -------------------------------------- | -------------------- |
-| La página de Wix  | hay que desconectarla o perderla       | sigue igual          |
-| Correo de Google  | hay que recrear MX, SPF y verificación | no se toca           |
-| Corte de servicio | el que tarde en propagar               | ninguno              |
-| Vuelta atrás      | otra propagación                       | borrar un registro   |
-| Qué hay que hacer | varios registros y una madrugada       | **un registro**      |
+### Los registros, y las tres trampas
 
-### El único registro que hay que añadir
+| Tipo | Host       | Valor            |
+| ---- | ---------- | ---------------- |
+| A    | `@` (raíz) | `200.58.127.167` |
+| A    | `www`      | `200.58.127.167` |
 
-| Tipo | Host     | Valor         | TTL                                  |
-| ---- | -------- | ------------- | ------------------------------------ |
-| A    | `portal` | la IP del VPS | 3600 (300 el primer día, por probar) |
+En el panel de Wix: **Dominios → el dominio → Avanzado → Editar registros DNS**.
+Y ojo, esa página está en el nivel de **cuenta** (`manage.wix.com/account/domains`),
+no en el del sitio (`manage.wix.com/dashboard/<id>/…`), que es donde se pierde
+todo el mundo. Si el dominio aparece sin opciones de edición y con anuncios de
+compra, es que pertenece a otra cuenta de Wix.
 
-En el panel de Wix: **Dominios → el dominio → Avanzado → Editar registros DNS
-→ A (Host) → Añadir**. Se puede hacer **con el sitio de Wix conectado**: Wix
-bloquea el registro de la raíz (`@`) mientras sirve la página, pero no los
-subdominios.
+- **Nada de AAAA.** El servidor tiene IPv6 de salida pero **no acepta nada
+  entrante por IPv6** —comprobado puerto por puerto—. Con un AAAA publicado los
+  navegadores lo preferirían y verían el sitio caído mientras desde el servidor
+  todo parece bien.
+- **Durante la propagación conviven las dos versiones.** Con el TTL viejo de
+  3600 s, hasta una hora en la que un resolutor devuelve Wix y otro el VPS. Y
+  Wix redirige la raíz a `www`, así que hasta que `www` también apunte aquí,
+  parte de la gente acaba en la página vieja igualmente. Se distinguen por la
+  cabecera `x-wix-request-id`.
+- **El certificado no se pide solo si Caddy ya se rindió.** Reintenta con espera
+  creciente —llegó a 20 minutos—, así que tras cambiar el DNS conviene un
+  `systemctl restart caddy` en vez de esperar.
 
-`portal` es una propuesta; el nombre lo elige el cliente y es lo único que
-cambia —el host del registro y la variable de arriba—. `evaluaciones`, `citas`
-o `app` sirven igual.
+### Lo que hay que cambiar en la aplicación
 
-Tres avisos:
-
-- **AAAA solo si el VPS tiene IPv6 de verdad.** Si se añade y no responde, los
-  navegadores lo prefieren y la mitad de la gente ve un sitio caído mientras
-  desde el servidor todo parece bien.
-- **El certificado, solo para el subdominio.** Pedirle a Let's Encrypt la raíz
-  falla: la raíz está en Wix y la validación no llega. Y hay que emitirlo
-  **después** de que el registro resuelva.
-- **Comprobar que no se movió nada más**, en cuanto propague:
-
-  ```bash
-  dig +short A portal.jbrpsicometrias.com   # la IP del VPS
-  dig +short MX jbrpsicometrias.com         # los cinco de Google, intactos
-  ```
-
-### Lo que cambia en la aplicación
-
-Poco, y todo en configuración:
-
-- `NEXT_PUBLIC_SITE_URL` con el subdominio completo y `https`.
-- En Supabase → **Authentication → URL Configuration**: la _Site URL_ y
-  `https://portal.jbrpsicometrias.com/**` en las _Redirect URLs_. Sin eso, el
-  enlace de confirmar la cuenta lleva a `localhost` y nadie se registra. Los
-  valores de `supabase/config.toml` son los de local y ahí se quedan.
-- La sesión queda en las cookies **del subdominio**. La página de Wix no las ve
-  ni las necesita; no hay que ampliar el dominio de la cookie a
-  `.jbrpsicometrias.com` para nada.
-- En la página de Wix, un botón que apunte al subdominio. Es toda la
-  integración que hay entre las dos.
-
-### Si algún día quieren el dominio entero
-
-Nada de esto se tira. Cambian dos cosas —`NEXT_PUBLIC_SITE_URL` y las URL de
-Supabase— y el resto es DNS: bajar el TTL de la raíz y de `www` un día antes,
-apuntarlos al VPS, **copiar los MX y el SPF tal cual** y emitir el certificado
-después. El subdominio puede seguir vivo apuntando al mismo sitio.
-
----
+- `NEXT_PUBLIC_SITE_URL`. **Se incrusta al construir**, así que cambiarla exige
+  reconstruir y volver a desplegar; no basta con editar el entorno.
+- En `/opt/supabase/psi/.env`: `SITE_URL`, `API_EXTERNAL_URL`,
+  `SUPABASE_PUBLIC_URL` y `ADDITIONAL_REDIRECT_URLS`. Sin esto los enlaces de
+  confirmar la cuenta siguen apuntando al host viejo.
+- En el `Caddyfile`, el nombre del bloque y el de `www`.
 
 ## 1 · La cuenta de Google
 
@@ -493,7 +466,7 @@ llamada a `createBrowserClient`. La única excepción es `/auth/v1/verify`, que
 tiene que ser pública porque el enlace de confirmar el correo se abre desde el
 buzón de la persona, en otro teléfono y otra red.
 
-Por eso `API_EXTERNAL_URL` es el subdominio público mientras
+Por eso `API_EXTERNAL_URL` es el dominio público mientras
 `NEXT_PUBLIC_SUPABASE_URL` es `http://127.0.0.1:8000`: los enlaces que salen por
 correo apuntan a internet, y el tráfico de la app no sale de la máquina.
 
@@ -571,7 +544,7 @@ documentación lo dice —«URL to the confirmation email template»—: GoTrue 
 **descarga por HTTP**. Montarlas dentro del contenedor y apuntar a
 `/etc/gotrue/plantillas/…` no falla de forma evidente: GoTrue resuelve ese valor
 contra `API_EXTERNAL_URL` y sale a buscar
-`https://portal.jbrpsicometrias.com/etc/gotrue/plantillas/confirmacion.html`.
+`https://jbrpsicometrias.com/etc/gotrue/plantillas/confirmacion.html`.
 Poner `file://` delante tampoco sirve; le come los dos puntos y queda
 `…comfile///etc/…`.
 
@@ -605,9 +578,6 @@ así que repetir la pasada no duplica correos y reintenta las que fallaron.
 
 ### Lo que falta para estar en línea
 
-1. **El registro DNS.** `portal` → la IP del VPS, en el panel de Wix. Es lo
-   único que separa a la máquina de servir en HTTPS: Caddy pide el certificado
-   solo en cuanto ese registro exista. Ver la §0.
 2. **`SMTP_PASS`.** La contraseña de aplicación de Google, en `/opt/psi/entorno`
    y en `/opt/supabase/psi/.env`. Los tres puertos SMTP salen desde este VPS
    —se verificó con un `EHLO` completo contra Gmail—, así que no hace falta
