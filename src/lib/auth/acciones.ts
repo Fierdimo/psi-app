@@ -285,7 +285,24 @@ export async function establecerNuevaContrasena(
     };
   }
 
-  redirect("/panel");
+  /*
+   * Al inicio QUE LE CORRESPONDA, no al del paciente.
+   *
+   * Estaba fijo en `/panel` de cuando quien recuperaba su contraseña era
+   * siempre un paciente. Un profesional acababa en un área que no es la suya
+   * —y que además está en retirada—, y una empresa igual. `inicioSegunRol`
+   * ya sabía a dónde va cada uno; aquí no se le preguntaba.
+   */
+  const { data: sesion } = await supabase.auth.getUser();
+  const { data: perfil } = sesion.user
+    ? await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", sesion.user.id)
+        .single()
+    : { data: null };
+
+  redirect(inicioSegunRol((perfil?.role ?? "paciente") as Rol));
 }
 
 /**
