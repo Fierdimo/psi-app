@@ -528,6 +528,13 @@ dos razones medidas: `next build` pica en **1,16 GB** de memoria —en 4 GB con
 Postgres al lado, ese pico cae encima de la base— y el paquete `standalone` pesa
 **60 MB** frente a los 569 MB de `node_modules`.
 
+El paquete `standalone` **no incluye `.next/static` ni `public`**, y la
+ausencia de `public` engaña: el paquete sí trae una carpeta `public/` con
+`informe` dentro —que el generador de PDF referencia desde el servidor—, así
+que parece completa. Faltaba todo lo que se ve: `marca`, `clientes`, `stock` y
+el retrato. El sitio respondía 200 y no tenía una sola imagen. Por eso el
+script, al terminar, pide **una imagen de verdad** además de la portada.
+
 El script comprueba tipos y lint antes de tocar producción, **aborta si el
 paquete lleva dentro la dirección de Supabase local** —las `NEXT_PUBLIC_*` se
 incrustan al construir, y ese error no se nota hasta que la app no encuentra la

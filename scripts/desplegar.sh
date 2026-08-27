@@ -37,8 +37,15 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON" \
 NEXT_PUBLIC_BRAND_NAME="JBR Psicometrías" \
   pnpm build
 
-# `standalone` no incluye los estáticos ni siempre `public`; hay que ponerlos.
+# `standalone` NO lleva ni los estáticos ni `public`, y esto no falla de forma
+# visible: la página se sirve entera y solo faltan las imágenes.
+#
+# Lo de `public` engaña especialmente. El paquete SÍ trae un `public/` — con
+# `informe` dentro, que el generador de PDF referencia desde el servidor—, así
+# que la carpeta existe y parece completa. Faltaban `marca`, `clientes`,
+# `stock` y el retrato: todo lo que se ve en pantalla.
 cp -r .next/static .next/standalone/.next/static
+cp -r public/. .next/standalone/public/
 
 if grep -rq "54321" .next/standalone/.next/server; then
   echo "ABORTADO: el paquete lleva dentro la dirección de Supabase local" >&2
@@ -69,11 +76,15 @@ ssh "$SERVIDOR" "
 echo "==> Comprobando"
 sleep 5
 CODIGO=$(ssh "$SERVIDOR" 'curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/')
-if [ "$CODIGO" = "200" ]; then
-  echo "    la app responde 200. Listo."
+# Una imagen de verdad, no solo la portada: la app puede responder 200 y estar
+# sirviendo un sitio sin una sola imagen, que es justo como se descubrio esto.
+IMAGEN=$(ssh "$SERVIDOR" 'curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/marca/jbr-marca.png')
+
+if [ "$CODIGO" = "200" ] && [ "$IMAGEN" = "200" ]; then
+  echo "    la app responde 200 y las imagenes se sirven. Listo."
   ssh "$SERVIDOR" "rm -rf $DESTINO.anterior"
 else
-  echo "    responde $CODIGO — REVIRTIENDO" >&2
+  echo "    app=$CODIGO imagen=$IMAGEN — REVIRTIENDO" >&2
   ssh "$SERVIDOR" "
     rm -rf $DESTINO && mv $DESTINO.anterior $DESTINO && systemctl restart psi-app
   "
