@@ -191,35 +191,7 @@ export default async function RevisarEvaluacionPage({
         </section>
       ) : null}
 
-      {/*
-        EL EDITOR, PLEGADO cuando ya hay informe.
-
-        Enseña los mismos apartados con los mismos textos, en campos editables:
-        junto al documento es la misma información dos veces y cuesta saber
-        cuál se está leyendo. Pero no se puede quitar — el consentimiento
-        promete que el profesional puede corregir el informe y que la empresa
-        verá la versión corregida—, así que se guarda detrás de un gesto.
-
-        Sin informe todavía va abierto: ahí es lo único que hay que hacer.
-      */}
-      {asignacion.status === "publicada" ? (
-        <details className="border-line rounded-lg border">
-          <summary className="text-text-strong cursor-pointer px-4 py-3 font-medium">
-            Corregir este informe
-          </summary>
-          <div className="border-line border-t p-4">
-            <RevisionInforme
-              asignacion={id}
-              status={asignacion.status}
-              parametros={parametros ?? []}
-              valores={valores ?? []}
-              notaGlobal={resultado?.nota_global ?? null}
-              publicado={resultado?.released_at ?? null}
-              consentimiento={(decision as string | null) ?? null}
-            />
-          </div>
-        </details>
-      ) : (
+      {asignacion.status !== "publicada" && (
         <RevisionInforme
           asignacion={id}
           status={asignacion.status}

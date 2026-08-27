@@ -26,7 +26,7 @@ export default async function IngresarPage({
         evaluación buscando dónde entrar: su enlace no lleva contraseña,
         así que se le dice aquí en vez de dejarle probar correos.
       */
-      descripcion="Entra a la cuenta de tu empresa para pedir evaluaciones y ver sus informes. Si te convocaron a una evaluación, no necesitas cuenta: usa el enlace que te llegó por correo."
+      descripcion=""
       pie={
         <>
           <p>

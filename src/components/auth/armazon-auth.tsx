@@ -64,7 +64,14 @@ export function ArmazonAuth({
       {/* Panel de marca */}
       <aside className="bg-brand-800 flex flex-col justify-between gap-10 px-6 py-8 lg:w-[45%] lg:px-12 lg:py-14">
         <Link href="/" className="w-fit rounded-md">
-          <Brand tone="dark" size="md" />
+          <Image
+            src="/marca/firma_digital-removebg-preview.png"
+            alt=""
+            aria-hidden="true"
+            width={910}
+            height={808}
+            className="opacity-90"
+          />
         </Link>
 
         <div className="hidden max-w-[38ch] flex-col gap-6 lg:flex">
@@ -85,14 +92,6 @@ export function ArmazonAuth({
             Solo desde `lg`, con el resto del panel: en móvil este bloque no se
             enseña y la firma suelta sería un adorno sin contexto.
           */}
-          <Image
-            src="/marca/firma_digital-removebg-preview.png"
-            alt=""
-            aria-hidden="true"
-            width={810}
-            height={308}
-            className="h-auto w-full max-w-[280px] opacity-90"
-          />
         </div>
 
         <p className="text-brand-200 hidden items-center gap-2.5 text-sm lg:flex">
