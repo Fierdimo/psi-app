@@ -42,6 +42,20 @@ const CABECERAS = [
 ];
 
 const nextConfig: NextConfig = {
+  /*
+   * El servidor se empaqueta con sus dependencias resueltas.
+   *
+   * Sin esto, desplegar significa llevar `node_modules` al servidor —569 MB— y
+   * construir allí, con un pico de 1,16 GB de memoria. En una máquina de 4 GB
+   * que además corre Postgres, ese pico cae justo encima de la base.
+   *
+   * Con `standalone`, la construcción ocurre fuera y al servidor viaja solo lo
+   * que hace falta para ejecutar: unas decenas de megas, sin compilador y sin
+   * dependencias de desarrollo. Importa el doble en este destino, donde el
+   * disco son 15 GB y no los 80 de la ficha.
+   */
+  output: "standalone",
+
   // Oculta la versión del framework: no ayuda a nadie salvo a quien busca
   // vulnerabilidades conocidas.
   poweredByHeader: false,

@@ -69,3 +69,8 @@ skills-lock.json
 
 # Estado efímero de `supabase start`.
 supabase/.temp
+
+# Credenciales del servidor. Nunca al repositorio: el archivo trae la
+# contraseña de root en claro, y un repositorio recuerda para siempre.
+VPS-access.txt
+*-access.txt

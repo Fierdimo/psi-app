@@ -24,7 +24,7 @@ había forma de ver cómo quedaba una invitación sin desplegarla.
 ## 0 · La dirección del sitio
 
 ```bash
-NEXT_PUBLIC_SITE_URL="https://jbrpsicometrias.com"
+NEXT_PUBLIC_SITE_URL="https://portal.jbrpsicometrias.com"
 ```
 
 Es lo primero porque de ahí salen **todos los enlaces que se envían fuera**:
@@ -34,6 +34,90 @@ su QR.
 Sin ella se deduce de los encabezados de la petición, que sirve en local pero
 no es de fiar detrás de un proxy: un enlace con el host interno funciona en la
 pantalla de quien lo genera y no funciona en el teléfono de quien lo recibe.
+
+### El dominio ya está ocupado, y no hace falta desocuparlo
+
+`jbrpsicometrias.com` está registrado **en Wix**, servido por su DNS, y con la
+página del cliente en la raíz. Esto es lo que había el 26 de agosto de 2026:
+
+| Registro    | Valor                                 | De quién es                 |
+| ----------- | ------------------------------------- | --------------------------- |
+| Registrador | Wix.com Ltd.                          | Wix es el dueño registral   |
+| NS          | `ns2.wixdns.net`, `ns3.wixdns.net`    | el DNS lo sirve Wix         |
+| A (raíz)    | `185.230.63.107 / .171 / .186`        | la página de Wix            |
+| `www`       | `cdn1.wixdns.net`                     | la página de Wix            |
+| **MX**      | `aspmx.l.google.com` y cuatro más     | **Google Workspace**        |
+| TXT         | `v=spf1 include:_spf.google.com ~all` | el SPF de ese mismo Google  |
+| TXT         | `google-site-verification=…`          | la verificación del dominio |
+
+Los MX son la parte que importa: **el correo del dominio ya está en Google
+Workspace**, que es exactamente la vía del paso 1. Y también es lo que se
+rompería al mover el dominio entero, sin que nada avise: un MX perdido no da
+error, solo deja de llegar el correo — el de la consulta y el de las
+invitaciones.
+
+Por eso la aplicación va en un **subdominio**. No es un apaño provisional
+mientras se decide: es el camino que no toca nada de lo que ya funciona.
+
+|                   | Mover el dominio entero                | Añadir un subdominio |
+| ----------------- | -------------------------------------- | -------------------- |
+| La página de Wix  | hay que desconectarla o perderla       | sigue igual          |
+| Correo de Google  | hay que recrear MX, SPF y verificación | no se toca           |
+| Corte de servicio | el que tarde en propagar               | ninguno              |
+| Vuelta atrás      | otra propagación                       | borrar un registro   |
+| Qué hay que hacer | varios registros y una madrugada       | **un registro**      |
+
+### El único registro que hay que añadir
+
+| Tipo | Host     | Valor         | TTL                                  |
+| ---- | -------- | ------------- | ------------------------------------ |
+| A    | `portal` | la IP del VPS | 3600 (300 el primer día, por probar) |
+
+En el panel de Wix: **Dominios → el dominio → Avanzado → Editar registros DNS
+→ A (Host) → Añadir**. Se puede hacer **con el sitio de Wix conectado**: Wix
+bloquea el registro de la raíz (`@`) mientras sirve la página, pero no los
+subdominios.
+
+`portal` es una propuesta; el nombre lo elige el cliente y es lo único que
+cambia —el host del registro y la variable de arriba—. `evaluaciones`, `citas`
+o `app` sirven igual.
+
+Tres avisos:
+
+- **AAAA solo si el VPS tiene IPv6 de verdad.** Si se añade y no responde, los
+  navegadores lo prefieren y la mitad de la gente ve un sitio caído mientras
+  desde el servidor todo parece bien.
+- **El certificado, solo para el subdominio.** Pedirle a Let's Encrypt la raíz
+  falla: la raíz está en Wix y la validación no llega. Y hay que emitirlo
+  **después** de que el registro resuelva.
+- **Comprobar que no se movió nada más**, en cuanto propague:
+
+  ```bash
+  dig +short A portal.jbrpsicometrias.com   # la IP del VPS
+  dig +short MX jbrpsicometrias.com         # los cinco de Google, intactos
+  ```
+
+### Lo que cambia en la aplicación
+
+Poco, y todo en configuración:
+
+- `NEXT_PUBLIC_SITE_URL` con el subdominio completo y `https`.
+- En Supabase → **Authentication → URL Configuration**: la _Site URL_ y
+  `https://portal.jbrpsicometrias.com/**` en las _Redirect URLs_. Sin eso, el
+  enlace de confirmar la cuenta lleva a `localhost` y nadie se registra. Los
+  valores de `supabase/config.toml` son los de local y ahí se quedan.
+- La sesión queda en las cookies **del subdominio**. La página de Wix no las ve
+  ni las necesita; no hay que ampliar el dominio de la cookie a
+  `.jbrpsicometrias.com` para nada.
+- En la página de Wix, un botón que apunte al subdominio. Es toda la
+  integración que hay entre las dos.
+
+### Si algún día quieren el dominio entero
+
+Nada de esto se tira. Cambian dos cosas —`NEXT_PUBLIC_SITE_URL` y las URL de
+Supabase— y el resto es DNS: bajar el TTL de la raíz y de `www` un día antes,
+apuntarlos al VPS, **copiar los MX y el SPF tal cual** y emitir el certificado
+después. El subdominio puede seguir vivo apuntando al mismo sitio.
 
 ---
 
@@ -50,6 +134,15 @@ Con Workspace, en el panel de administración se añade el dominio y se copian
 los registros DNS que indique —SPF, DKIM y, si lo ofrece, DMARC—. Sin eso el
 correo sale pero llega a spam, **y una invitación en spam es una persona que no
 se presenta a su evaluación**.
+
+**Media parte ya está hecha, y la otra media no.** El dominio tiene Workspace y
+su SPF (`v=spf1 include:_spf.google.com ~all`), pero el 26 de agosto de 2026 no
+publicaba **DKIM** —`google._domainkey` no devuelve nada— ni **DMARC**. Con SPF
+solo, el correo llega; sin DKIM la firma no viaja con el mensaje, y quien
+reenvíe una invitación rompe la única prueba de que salió de este dominio. Se
+resuelve en el panel de administración de Google —**Aplicaciones → Google
+Workspace → Gmail → Autenticar correo**—, que da la clave a copiar como TXT en
+el DNS de Wix. Es un registro más, del mismo tipo que el subdominio del paso 0.
 
 Con Gmail gratuito funciona igual de bien técnicamente, pero el remitente será
 la dirección personal. Para invitar a los empleados de una empresa cliente eso
@@ -313,6 +406,162 @@ En este orden, que es el de las dependencias:
    los enlaces que aparecen debajo siguen sirviendo para entregarlas a mano.
 4. **Recordatorio de víspera.** Lo dispara `/api/tareas/recordatorios` con el
    secreto `TAREAS_SECRETO`; hay que programarlo una vez al día.
+
+---
+
+## 7 · El servidor, tal como quedó
+
+Esto ya no es hipotético: la aplicación está montada. Aquí queda el inventario,
+las decisiones y —lo importante— lo que aún falta.
+
+### La máquina
+
+VPS de **DonWeb** (`dattaweb.com`), Ubuntu 22.04.5 LTS, KVM. `psi-vps` en
+`~/.ssh/config`, con la IP y el puerto.
+
+| Ficha comercial    | Lo que hay de verdad                                              |
+| ------------------ | ----------------------------------------------------------------- |
+| 4096 MB de RAM     | 3,8 GiB — correcto                                                |
+| 4000 GB de tráfico | correcto, y sobra                                                 |
+| —                  | 2 núcleos AMD EPYC                                                |
+| **80 GB de disco** | **15 GB.** Un solo `sda` de 15G, sin segundo volumen ni LVM libre |
+
+**Los 65 GB que faltan hay que reclamarlos.** No es un detalle: al levantar el
+stack el disco llegó al 100 % con 92 MB libres, y un disco lleno corrompe
+Postgres. Se recuperó espacio borrando imágenes que no usamos, pero el margen
+sigue siendo el que es.
+
+### Acceso
+
+Solo por clave. `PasswordAuthentication no`,
+`PermitRootLogin prohibit-password`, en `/etc/ssh/sshd_config.d/00-psi-endurecido.conf`
+—el prefijo `00` es deliberado: sshd aplica el primer valor que encuentra y los
+drop-ins se leen alfabéticamente, así que ese archivo gana sobre el `custom.conf`
+que traía `PermitRootLogin yes`—. Respaldo del original en `/root/`.
+
+**La contraseña de root sigue existiendo y no hay que borrarla:** ya no sirve
+por SSH, pero es la que abre la consola web de DonWeb, que es la única puerta si
+algún día sshd queda mal configurado.
+
+Cortafuegos `ufw`: entra 5849 (SSH), 80 y 443. Nada más. Eso tapó de paso el
+Postfix que venía escuchando en el 25 sobre la IP pública.
+
+### Lo que hay que saber sobre quién más entra
+
+`/root/.ssh/authorized_keys` tiene **52 claves**. Una es la del despliegue. Las
+otras 51 son de personal de DonWeb, agrupadas por equipo dentro del propio
+archivo —ITI, NOC, Clouds, Entregabilidad, Soporte L2, Soporte Cloud—, con
+nombre y apellido. Hay además un `80-step.conf` que confía en una CA de SSH, así
+que pueden emitirse certificados nuevos sin tocar ese archivo.
+
+No es una intrusión: es cómo provisiona el proveedor. Pero en esta máquina viven
+historias clínicas y evaluaciones de personas identificadas, y **root lee la base
+entera: RLS protege de los usuarios de la aplicación, no de quien es root**.
+
+Borrar esas claves no resuelve nada —DonWeb controla el hipervisor y puede montar
+el disco sin pasar por SSH—, y probablemente rompa su soporte. Lo que sí procede:
+pedirles por escrito su política de acceso, y cerrar con el cliente el **país de
+ejercicio** que [PLAN.md](PLAN.md) deja pendiente, porque de él depende qué exige
+la ley aplicable de un tercero que trata datos de salud.
+
+### La forma del despliegue
+
+```
+internet ──► Caddy :443
+              ├── /auth/v1/verify*  ──► 127.0.0.1:8000  (Supabase)
+              └── todo lo demás     ──► 127.0.0.1:3000  (Next.js)
+
+                          127.0.0.1:8000 ──► api-gw ──► auth · rest
+                          127.0.0.1:5432 ──► db  (solo por túnel SSH)
+```
+
+**Supabase no sale a internet.** Se pudo porque se verificó en el código que la
+aplicación habla con la base **siempre desde el servidor**: no hay una sola
+llamada a `createBrowserClient`. La única excepción es `/auth/v1/verify`, que
+tiene que ser pública porque el enlace de confirmar el correo se abre desde el
+buzón de la persona, en otro teléfono y otra red.
+
+Por eso `API_EXTERNAL_URL` es el subdominio público mientras
+`NEXT_PUBLIC_SUPABASE_URL` es `http://127.0.0.1:8000`: los enlaces que salen por
+correo apuntan a internet, y el tráfico de la app no sale de la máquina.
+
+### Qué corre, y qué se apagó
+
+Cuatro contenedores: `db`, `auth`, `rest`, `api-gw`. Consumo en reposo, medido:
+**358 MB** de RAM entre todos, sobre 3,8 GiB.
+
+Apagados en `docker-compose.override.yml`, con un perfil que los deja definidos
+pero sin arrancar:
+
+| Apagado                   | Por qué                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `storage`, `imgproxy`     | No hay una sola llamada a Supabase Storage en el código                                                                                                            |
+| `realtime`                | Tampoco a Realtime                                                                                                                                                 |
+| `functions`, `deno-cache` | No hay Edge Functions                                                                                                                                              |
+| `supavisor`               | Publicaba Postgres en `0.0.0.0`; la app habla por PostgREST                                                                                                        |
+| `studio`, `meta`          | 2,2 GB de imagen en un disco de 15. Y Studio invita a romper la regla 1 del contrato de portabilidad: el esquema vive en `supabase/migrations`, no en un panel web |
+
+No se edita `docker-compose.yml`, para que una actualización pueda reemplazarlo
+sin arrastrar nuestras decisiones. Ojo con `COMPOSE_FILE` en `.env`: si solo
+lista un archivo, **el override se ignora en silencio**.
+
+### Desplegar
+
+```bash
+./scripts/desplegar.sh
+```
+
+Construye en local y sube solo el resultado. No se construye en el servidor por
+dos razones medidas: `next build` pica en **1,16 GB** de memoria —en 4 GB con
+Postgres al lado, ese pico cae encima de la base— y el paquete `standalone` pesa
+**60 MB** frente a los 569 MB de `node_modules`.
+
+El script comprueba tipos y lint antes de tocar producción, **aborta si el
+paquete lleva dentro la dirección de Supabase local** —las `NEXT_PUBLIC_*` se
+incrustan al construir, y ese error no se nota hasta que la app no encuentra la
+base—, y si la versión nueva no responde 200, **revierte a la anterior sola**.
+
+Migraciones: por un túnel, sin exponer Postgres.
+
+```bash
+ssh -f -N -L 54322:127.0.0.1:5432 psi-vps
+npx supabase db push --db-url "postgresql://postgres:CLAVE@127.0.0.1:54322/postgres"
+```
+
+### Copias
+
+`psi-respaldo.timer`, a diario a las 03:30. Y **cada copia se restaura sola**
+sobre una base temporal antes de darse por buena: si la restauración da un solo
+error, el servicio falla en vez de dejar un archivo que parece una copia.
+
+Un detalle que costó encontrar y que importa: hay que volcar como
+**`supabase_admin`**, no como `postgres`. En Supabase el superusuario es el
+primero. Volcando como `postgres` la copia restaura con **174 errores** —los
+permisos de `supabase_auth_admin` que no puede recrear— y deja la autenticación
+rota justo el día que hay que recuperarla. Como `supabase_admin`: **cero
+errores**, 21 tablas, 49 políticas, 23 tablas del esquema `auth`.
+
+**Y aun así esto todavía no es una copia de seguridad.** El archivo queda en el
+mismo disco que la base, y el caso del que protege una copia es perder ese
+disco. Falta el destino externo, y cifrarla al salir. Es la pieza que queda.
+
+### Recordatorios
+
+`psi-recordatorios.timer`, cada hora. Cada hora y no una vez al día para que la
+tanda salga cerca de la hora que toca; el endpoint marca cada cita al enviarla,
+así que repetir la pasada no duplica correos y reintenta las que fallaron.
+
+### Lo que falta para estar en línea
+
+1. **El registro DNS.** `portal` → la IP del VPS, en el panel de Wix. Es lo
+   único que separa a la máquina de servir en HTTPS: Caddy pide el certificado
+   solo en cuanto ese registro exista. Ver la §0.
+2. **`SMTP_PASS`.** La contraseña de aplicación de Google, en `/opt/psi/entorno`
+   y en `/opt/supabase/psi/.env`. Los tres puertos SMTP salen desde este VPS
+   —se verificó con un `EHLO` completo contra Gmail—, así que no hace falta
+   relé: falta solo la credencial.
+3. **El destino externo de las copias.**
+4. **Los 65 GB de disco** que la ficha prometía.
 
 ---
 
