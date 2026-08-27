@@ -79,7 +79,7 @@ host = "env(SMTP_HOST)"
 port = 587
 user = "env(SMTP_USER)"
 pass = "env(SMTP_PASS)"
-admin_email = "no-responder@jbrpsicometrias.com"
+admin_email = "jbanquez@jbrpsicometrias.com"
 sender_name = "JBR Psicometrías"
 
 [auth.email.template.confirmation]

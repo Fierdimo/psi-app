@@ -9,6 +9,13 @@
   desde una dirección de ejemplo: el primer correo que recibe alguien que se
   registra decía «Confirm your email address» y venía de admin@email.com.
 
+  LE HABLA A UNA EMPRESA, no a una persona que viene a consulta. Desde el giro
+  a evaluaciones por encargo (migración 0058) el alta pública crea una empresa
+  con su organización y no hay ninguna otra: quien responde una evaluación no
+  tiene cuenta, le llega un enlace. Este correo prometía «avisarte de tus citas
+  y de tus evaluaciones» —dos cosas que quien lo recibe no tiene— y era el
+  primer mensaje que veía un cliente nuevo.
+
   Los estilos van en línea y con colores literales: un correo se abre fuera de
   la aplicación, donde no existen ni las variables CSS ni la hoja de estilos.
   Aun así son los mismos tokens del sistema.
@@ -18,7 +25,7 @@
   <div style="max-width:520px;margin:0 auto;background:#FFFFFF;border:1px solid #DDE3ED;border-radius:12px;padding:28px">
     <p style="margin:0 0 20px;color:#1C2C84;font-size:17px;font-weight:600">JBR Psicometrías</p>
     <h1 style="margin:0 0 12px;color:#16233A;font-size:21px;font-weight:600">Confirma tu correo</h1>
-    <p style="margin:0 0 20px;color:#33415C;font-size:15px;line-height:1.6">Creaste una cuenta en JBR Psicometrías. Confirma esta dirección para poder entrar: es la que usaremos para avisarte de tus citas y de tus evaluaciones.</p>
+    <p style="margin:0 0 20px;color:#33415C;font-size:15px;line-height:1.6">Creaste una cuenta de empresa en JBR Psicometrías. Confirma esta dirección para poder entrar: es donde te escribiremos cuando se confirme una sesión de evaluación y cuando los informes estén listos.</p>
     <p style="margin:0 0 20px">
       <a href="{{ .ConfirmationURL }}"
          style="display:inline-block;background:#2F49D4;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:8px">

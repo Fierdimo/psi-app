@@ -125,10 +125,22 @@ después. El subdominio puede seguir vivo apuntando al mismo sitio.
 
 El correo sale por Google. Dos formas, y no dan lo mismo:
 
-|                                  | Remitente                          | Límite diario | Reputación                                     |
-| -------------------------------- | ---------------------------------- | ------------- | ---------------------------------------------- |
-| **Workspace con dominio propio** | `no-responder@jbrpsicometrias.com` | ~2.000        | SPF y DKIM propios, alineados con el dominio   |
-| **Gmail gratuito**               | `psicologojbr@gmail.com`           | ~500          | La de Google; no puedes firmar por `gmail.com` |
+|                                  | Remitente                      | Límite diario | Reputación                                     |
+| -------------------------------- | ------------------------------ | ------------- | ---------------------------------------------- |
+| **Workspace con dominio propio** | `jbanquez@jbrpsicometrias.com` | ~2.000        | SPF y DKIM propios, alineados con el dominio   |
+| **Gmail gratuito**               | `psicologojbr@gmail.com`       | ~500          | La de Google; no puedes firmar por `gmail.com` |
+
+**El remitente es un buzón de persona, no un `no-responder`.** Es la única
+cuenta con licencia del dominio, y pagar una segunda solo para que ponga
+«no-responder» delante no compra nada. Tiene una consecuencia buena y una que
+conviene tener presente:
+
+- **Quien conteste una invitación llega a alguien.** Ninguna plantilla dice «no
+  respondas a este correo», así que no se promete nada que se incumpla.
+- **Los rebotes y las respuestas automáticas caen en el buzón de trabajo**, y si
+  una tanda se marcara como abuso, la reputación que se resiente es la de esa
+  dirección. Con decenas de invitaciones no es un problema; conviene recordarlo
+  si algún día son cientos.
 
 Con Workspace, en el panel de administración se añade el dominio y se copian
 los registros DNS que indique —SPF, DKIM y, si lo ofrece, DMARC—. Sin eso el
@@ -213,9 +225,9 @@ anterior. Un solo sitio donde mirar cuando algo no llega.
 ```bash
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
-SMTP_USER="no-responder@jbrpsicometrias.com"
+SMTP_USER="jbanquez@jbrpsicometrias.com"
 SMTP_PASS="xxxx xxxx xxxx xxxx"
-CORREO_REMITENTE="JBR Psicometrías <no-responder@jbrpsicometrias.com>"
+CORREO_REMITENTE="JBR Psicometrías <jbanquez@jbrpsicometrias.com>"
 ```
 
 En local ya vienen apuntando a Mailpit (`127.0.0.1:54325`), que no pide usuario
@@ -322,7 +334,7 @@ GOTRUE_SMTP_HOST=smtp.resend.com
 GOTRUE_SMTP_PORT=587
 GOTRUE_SMTP_USER=resend
 GOTRUE_SMTP_PASS=re_...
-GOTRUE_SMTP_ADMIN_EMAIL=no-responder@jbrpsicometrias.com
+GOTRUE_SMTP_ADMIN_EMAIL=jbanquez@jbrpsicometrias.com
 GOTRUE_SMTP_SENDER_NAME=JBR Psicometrías
 ```
 
@@ -544,6 +556,39 @@ errores**, 21 tablas, 49 políticas, 23 tablas del esquema `auth`.
 **Y aun así esto todavía no es una copia de seguridad.** El archivo queda en el
 mismo disco que la base, y el caso del que protege una copia es perder ese
 disco. Falta el destino externo, y cifrarla al salir. Es la pieza que queda.
+
+### Las plantillas de correo, y por qué no bastó montarlas
+
+`GOTRUE_MAILER_TEMPLATES_*` **no acepta rutas de archivo**. Su propia
+documentación lo dice —«URL to the confirmation email template»—: GoTrue las
+**descarga por HTTP**. Montarlas dentro del contenedor y apuntar a
+`/etc/gotrue/plantillas/…` no falla de forma evidente: GoTrue resuelve ese valor
+contra `API_EXTERNAL_URL` y sale a buscar
+`https://portal.jbrpsicometrias.com/etc/gotrue/plantillas/confirmacion.html`.
+Poner `file://` delante tampoco sirve; le come los dos puntos y queda
+`…comfile///etc/…`.
+
+El síntoma es engañoso: **el registro responde 200 y el correo llega**, pero con
+la plantilla por defecto de GoTrue, en inglés. Parece que las plantillas se
+ignoran, cuando lo que pasa es que no se pudieron descargar.
+
+Las sirve Caddy desde `/opt/psi/plantillas`, en un bloque que solo responde a
+`172.16.0.0/12` —las redes de Docker—, así que no quedan expuestas a internet.
+El contenedor de `auth` llega por `host.docker.internal`, mapeado con
+`extra_hosts: host-gateway`.
+
+Para cambiarlas: se editan en `supabase/templates/` y se publican con
+
+```bash
+./scripts/plantillas.sh
+```
+
+que las sube **y reinicia `auth`**. Ese reinicio no es adorno: GoTrue cachea
+cada plantilla diez minutos (`GOTRUE_MAILER_TEMPLATE_MAX_AGE`), así que sin él
+se edita, se prueba y se sigue viendo la versión vieja.
+
+Los asuntos van aparte, en `GOTRUE_MAILER_SUBJECTS_*` dentro de
+`docker-compose.override.yml` del servidor.
 
 ### Recordatorios
 
