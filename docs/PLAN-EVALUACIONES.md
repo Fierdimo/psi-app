@@ -326,8 +326,11 @@ hoy pinta un texto genérico y el apartado 1 exige decir quién encarga.
 
 **Tercer correo**
 
-- `informeParaLaPersona` en `plantillas.ts`: enlace a su pase, nunca el
-  informe. Asunto neutro, como los demás.
+- `evaluacionRecibida` en `plantillas.ts`: acuse de recibo, nunca el informe ni
+  el perfil en el cuerpo. Remite a la empresa para los siguientes pasos y deja
+  a la vista la dirección del responsable para ejercer el derecho de acceso.
+  Asunto neutro, como los demás. (Se llamó `informeParaLaPersona` y llegó a
+  llevar el PDF adjunto; ver SPEC §8.3.)
 - `cierre-automatico.ts` pasa a enviar **dos** correos. Con la misma regla que
   ya tiene: **nunca lanza**. Si falla el de la persona, el de la empresa tiene
   que salir igual, y al revés — dos `try` separados, no uno que envuelva los

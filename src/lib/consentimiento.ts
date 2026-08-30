@@ -24,6 +24,25 @@ import {
 export const CONSENTIMIENTO = {
   clave: "consentimiento_informado",
   /*
+   * 2026-08-30: el informe deja de enviarse por correo a la persona evaluada.
+   *
+   * DECISIÓN DEL CLIENTE. Los resultados los recibe únicamente la empresa que
+   * encargó la evaluación; a quien responde le llega un acuse de recibo que
+   * confirma que terminó y le dice con quién sigue el proceso. Ni el correo
+   * lleva el PDF ni la pantalla del final ofrece descargarlo: los dos caminos
+   * se cierran a la vez, porque cerrar uno solo no cambiaba nada.
+   *
+   * Se sube la versión, y este es el caso más claro de todos los que ha tenido
+   * este archivo: el apartado «Tu copia» prometía un PDF en el correo. Quien
+   * aceptó la redacción anterior lo hizo contando con esa copia, así que no
+   * basta con cambiar el texto — tiene que volver a pasar por la pantalla.
+   *
+   * LO QUE NO CAMBIA, y por eso el apartado sigue existiendo con otro nombre:
+   * el derecho de acceso. Que el informe no salga de oficio no lo suprime; se
+   * pide al responsable y se entrega. Dejar de enviarlo es legítimo, negarlo
+   * no lo sería, y el documento tiene que decir cuál de las dos cosas es — con
+   * la dirección delante, no como una fórmula.
+   *
    * 2026-08-24.3: el informe deja de mostrarse en pantalla al terminar.
    *
    * DECISIÓN DEL CLIENTE. El apartado «Tu copia» prometía que el informe
@@ -82,7 +101,7 @@ export const CONSENTIMIENTO = {
    * 2026-08-19: decía que aquí no se guardaba contenido clínico, y desde el
    * motor de evaluaciones se guardan respuestas e informes.
    */
-  version: "2026-08-24.3",
+  version: "2026-08-30",
 } as const;
 
 /**
@@ -135,16 +154,17 @@ export function seccionesDelConsentimiento(
     {
       titulo: "Quién recibe el informe",
       cuerpo: [
-        `${quien}, completo y en PDF por correo. Es la finalidad por la que lo encargó.`,
+        `Solo ${quien}, completo y en PDF por correo. Es la finalidad por la que lo encargó.`,
         "Se calcula y se le envía automáticamente en cuanto terminas de responder, sin que un profesional lo revise antes. Después puede revisarlo y corregirlo, y en ese caso la empresa ve la versión corregida en la plataforma.",
+        `A ti se te escribe para confirmarte que la prueba quedó completa, y ese correo no lleva los resultados dentro. A partir de ahí el proceso continúa con ${quien}: es a quien tienes que preguntar por los siguientes pasos.`,
       ],
     },
     {
-      titulo: "Tu copia: en tu correo",
+      titulo: "Tu copia: se pide, y se te entrega",
       cuerpo: [
-        "En cuanto envías tus respuestas, tu informe se te envía en PDF al mismo correo por el que recibiste el enlace, para que lo conserves. No se muestra en la pantalla: al terminar verás una confirmación de que salió, y desde ahí puedes descargarlo en ese momento si prefieres guardarlo tú.",
-        "Tu enlace de acceso queda cerrado en ese momento y no vuelve a abrirse. No es un descuido: ese enlace viaja por correo, se imprime en un código QR y se queda en el historial del navegador, y mientras siguiera abriendo tu informe cualquiera que lo tuviera podría leerlo.",
-        `Si pierdes el correo, puedes pedírselo a ${quien} o ejercer tu derecho de acceso escribiendo a ${RESPONSABLE.correo}.`,
+        "El informe no se muestra en pantalla ni se te envía por correo. Al terminar recibes la confirmación de que la prueba quedó completa, y nada más.",
+        `Eso no te deja fuera de tus propios datos: puedes pedir tu informe cuando quieras escribiendo a ${RESPONSABLE.correo}, y se te entrega. Es tu derecho de acceso y no se pierde con el tiempo ni depende de que lo hubieras guardado. También puedes pedírselo a ${quien}.`,
+        "Tu enlace de acceso queda cerrado al enviar las respuestas y no vuelve a abrirse. No es un descuido: ese enlace viaja por correo, se imprime en un código QR y se queda en el historial del navegador, y mientras siguiera abriendo tu evaluación cualquiera que lo tuviera podría entrar con tu nombre.",
       ],
     },
     {

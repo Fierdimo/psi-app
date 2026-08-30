@@ -4,15 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
 import { cerrarYAvisar } from "@/lib/evaluaciones/cierre-automatico";
-import { informeComoPdf } from "@/lib/evaluaciones/informe-pdf";
 import { crearClienteAdmin } from "@/lib/supabase/admin";
-import { consentimientoFirmado } from "@/lib/evaluaciones/consentimiento-firmado";
-import type {
-  ConsentimientoInforme,
-  EvaluadoInforme,
-  ParametroInforme,
-  ValorInforme,
-} from "@/components/evaluaciones/informe";
 
 /**
  * La evaluación de quien no tiene cuenta.
@@ -84,53 +76,34 @@ export async function responderConPase(
 }
 
 /**
- * El informe entero, con todo lo necesario para componer el PDF.
+ * LO QUE VE QUIEN ACABA DE TERMINAR, que ya no es su informe NI SU COPIA.
  *
- * Ya NO se dibuja en pantalla al terminar —eso lo explica `CierreDeLaPrueba`—,
- * pero sigue siendo la forma que entra en `informeComoPdf`, que es la misma
- * que ve la empresa. Dos versiones del informe acabarían diciendo cosas
- * distintas al primer cambio.
- */
-type InformeCompleto = {
-  consentimiento: ConsentimientoInforme | null;
-  valores: ValorInforme[];
-  parametros: ParametroInforme[];
-  textosFijos: Record<string, string>;
-  notaGlobal: string | null;
-  evaluado: EvaluadoInforme;
-  /** A dónde salió su copia. Nulo si la empresa no dejó correo de esta persona. */
-  correo: string | null;
-  /** El nombre de la prueba, para titular el archivo que se descarga. */
-  instrumento: string;
-};
-
-/**
- * LO QUE VE QUIEN ACABA DE TERMINAR, que ya no es su informe.
+ * DECISIÓN DEL CLIENTE, en dos pasos y conviene leerlos juntos porque el
+ * segundo deshace la coartada del primero.
  *
- * DECISIÓN DEL CLIENTE, y va contra lo que hacía esta pantalla hasta ahora.
- * Antes el perfil se dibujaba aquí entero, con el argumento de que era la
- * única ocasión de leerlo. Desde que el PDF sale por correo a la persona
- * además de a la empresa, esa ocasión dejó de ser única — y enseñarle un
- * perfil psicológico a alguien recién salido de media hora de prueba, sin
- * nadie que se lo explique, no es lo que hay que hacer con él.
+ * Primero dejó de dibujarse el perfil: enseñárselo a alguien recién salido de
+ * media hora de prueba, sin nadie que se lo explique, no es lo que hay que
+ * hacer con él. Entonces la pantalla ofrecía descargar el PDF y el correo lo
+ * llevaba adjunto, así que la persona seguía teniendo su copia.
  *
- * Así que la pantalla se convierte en una despedida: qué pasó, a dónde fue,
- * quién le va a escribir y que puede irse. El archivo sigue a mano por si
- * quiere guardarlo, pero VIAJA EN LA RESPUESTA de la acción, no detrás de una
- * dirección: una dirección que devolviera el informe sería exactamente la
- * credencial al portador que se acaba de apagar.
+ * AHORA NO. Los resultados los recibe únicamente la empresa que encargó la
+ * evaluación. No hay botón, y por eso TAMPOCO SE COMPONE EL PDF: dejarlo
+ * viajar en la respuesta sin botón que lo abriera sería entregar el informe
+ * igual, solo que a la pestaña de red del navegador en vez de a la persona.
+ *
+ * Lo que queda es una despedida: qué pasó, quién recibió los resultados, con
+ * quién sigue el proceso y que puede irse. Su derecho de acceso no se toca —se
+ * ejerce ante el responsable, y el correo de acuse lleva la dirección—.
  */
 export type CierreDeLaPrueba = {
   nombre: string;
+  /** Dónde recibió el acuse. Nulo si la empresa no dejó correo de esta persona. */
   correo: string | null;
   empresa: string | null;
-  /** El informe en base64. Nulo si la composición falló; entonces no hay botón. */
-  pdf: string | null;
-  archivo: string;
 };
 
 /**
- * Enviar, cerrar, COMPONER EL PDF y apagar el pase. En ese orden.
+ * Enviar, cerrar y apagar el pase. En ese orden.
  *
  * Enviar y cerrar son dos pasos y el segundo puede fallar sin arrastrar al
  * primero: si el motor revienta, la persona ya terminó y no puede hacer nada.
@@ -154,9 +127,8 @@ export type CierreDeLaPrueba = {
  * puede volver a responder, eso lo cierra el estado y no el testigo— y la
  * persona puede volver más tarde.
  *
- * El informe se lee POR IDENTIFICADOR, no por testigo. Es lo que permite
- * componer su copia sin que el enlace vuelva a viajar, y por tanto lo que
- * permite apagarlo en el mismo gesto.
+ * Este paso llegó a componer el PDF para que la persona pudiera descargarlo.
+ * Ya no: ver `CierreDeLaPrueba`.
  */
 export async function enviarConPase(pase: string): Promise<{
   ok: boolean;
@@ -174,48 +146,18 @@ export async function enviarConPase(pase: string): Promise<{
   await cerrarYAvisar(asignacion);
 
   const admin = crearClienteAdmin();
-  const informe = await leerInformeCompleto(asignacion);
+  const cierre = await leerCierre(asignacion);
 
   /*
-   * Sin informe, el pase NO se apaga.
+   * Sin informe publicado, el pase NO se apaga.
    *
    * Es la red descrita arriba. Que no haya valores significa que el cierre
    * automático no llegó a publicar —motor caído, resultado a medias— y en ese
    * caso quitarle el enlace sería castigar a quien no pudo hacer nada.
    */
-  if (!informe) return { ok: true };
+  if (!cierre) return { ok: true };
 
   await admin.rpc("cerrar_pase", { p_assignment: asignacion });
-
-  /*
-   * El PDF se compone OTRA VEZ, y se sabe.
-   *
-   * El cierre automático ya generó uno para adjuntarlo a los dos correos, pero
-   * no lo devuelve: es una función que no lanza nunca y se corta antes si la
-   * empresa no tiene correo de contacto. Devolver el archivo desde allí ataría
-   * la copia de esta persona a que la empresa tuviera buzón, que no tiene nada
-   * que ver.
-   *
-   * El precio es medio segundo de composición en una operación que ocurre una
-   * vez por evaluación terminada. Lo otro sería una dependencia entre dos
-   * caminos que fallan por motivos distintos.
-   */
-  let pdf: string | null = null;
-  try {
-    pdf = await informeComoPdf(informe);
-  } catch (fallo) {
-    /*
-     * Un fallo aquí NO tumba la pantalla final.
-     *
-     * La persona ya respondió y su copia ya salió por correo; quedarse sin el
-     * botón de descarga es un contratiempo, ver un error después de media hora
-     * de prueba es otra cosa.
-     */
-    console.error(
-      "[pase] la persona se quedó sin su descarga:",
-      fallo instanceof Error ? fallo.message : "fallo desconocido",
-    );
-  }
 
   /*
    * NO se revalida la ruta, y es lo que hace que todo esto funcione.
@@ -227,68 +169,54 @@ export async function enviarConPase(pase: string): Promise<{
    * Todo lo que la pantalla final necesita viaja en esta respuesta. La página
    * del servidor no tiene que enterarse de nada.
    */
-  return {
-    ok: true,
-    cierre: {
-      nombre: informe.evaluado.nombre,
-      correo: informe.correo,
-      empresa: informe.evaluado.empresa,
-      pdf,
-      archivo: `Informe ${informe.instrumento} - ${informe.evaluado.nombre}.pdf`,
-    },
-  };
+  return { ok: true, cierre };
 }
 
 /**
- * El informe publicado de una evaluación, con todo lo que hace falta para
- * dibujarlo.
+ * Lo poco que necesita la despedida, y la comprobación de que hay informe.
  *
  * Se lee con la clave de servicio porque quien acaba de responder no tiene
  * sesión: su credencial era el pase, y el pase se apaga en el mismo gesto. El
  * identificador ya está resuelto y comprobado antes de llegar aquí.
+ *
+ * DEVOLVER NULO SIGNIFICA «EL MOTOR NO PUBLICÓ», y es lo que decide si el pase
+ * se apaga. Por eso sigue mirando `result_values` y `released_at` aunque no
+ * use ni un valor: no es el informe lo que hace falta, es saber que existe.
+ *
+ * Esta función leía el informe ENTERO —valores, parámetros, textos fijos,
+ * consentimiento— para componer el PDF de la persona. Ese PDF ya no se compone
+ * (ver `CierreDeLaPrueba`), así que leerlo todo era media docena de consultas
+ * por evaluación terminada para tirar el resultado.
  */
-async function leerInformeCompleto(
+async function leerCierre(
   asignacion: string,
-): Promise<InformeCompleto | null> {
+): Promise<CierreDeLaPrueba | null> {
   const admin = crearClienteAdmin();
 
   const { data: cabecera } = await admin
     .from("assignments")
     .select(
-      "assessment_id, assigned_at, assessment:assessments(nombre), persona:organization_people(nombre, apellidos, documento, email), organizacion:organizations(nombre)",
+      "persona:organization_people(nombre, apellidos, email), organizacion:organizations(nombre)",
     )
     .eq("id", asignacion)
     .maybeSingle();
 
   if (!cabecera) return null;
 
-  const [
-    { data: valores },
-    { data: resultado },
-    { data: parametros },
-    { data: fijos },
-  ] = await Promise.all([
+  const [{ count: cuantosValores }, { data: resultado }] = await Promise.all([
     admin
       .from("result_values")
-      .select("parameter_key, valor, sugerido, nota")
+      .select("parameter_key", { count: "exact", head: true })
       .eq("assignment_id", asignacion),
     admin
       .from("results")
-      .select("nota_global, released_at")
+      .select("released_at")
       .eq("assignment_id", asignacion)
       .maybeSingle(),
-    admin
-      .from("assessment_parameters")
-      .select("clave, etiqueta, kind, seccion")
-      .eq("assessment_id", cabecera.assessment_id)
-      .order("posicion"),
-    admin.rpc("textos_fijos_del_instrumento", {
-      p_assessment: cabecera.assessment_id,
-    }),
   ]);
 
-  // Sin valores o sin publicar no hay informe que enseñar.
-  if (!valores || valores.length === 0 || !resultado?.released_at) return null;
+  // Sin valores o sin publicar no hay informe, y por tanto no hay cierre.
+  if (!cuantosValores || !resultado?.released_at) return null;
 
   const uno = <T>(v: unknown): T | null =>
     Array.isArray(v) ? ((v[0] as T) ?? null) : ((v as T) ?? null);
@@ -296,33 +224,15 @@ async function leerInformeCompleto(
   const persona = uno<{
     nombre: string;
     apellidos: string | null;
-    documento: string | null;
     email: string | null;
   }>(cabecera.persona);
   const empresa = uno<{ nombre: string }>(cabecera.organizacion);
-  const prueba = uno<{ nombre: string }>(cabecera.assessment);
 
-  const evaluado = {
+  return {
     nombre:
       [persona?.nombre, persona?.apellidos].filter(Boolean).join(" ") ||
       "Sin nombre",
-    documento: persona?.documento ?? null,
-    empresa: empresa?.nombre ?? null,
-    fechaISO: cabecera.assigned_at,
-  };
-
-  return {
-    consentimiento: await consentimientoFirmado(admin, asignacion, evaluado),
-    valores: valores as ValorInforme[],
-    parametros: (parametros ?? []) as ParametroInforme[],
-    textosFijos: Object.fromEntries(
-      ((fijos ?? []) as { parameter_key: string; cuerpo: string }[]).map(
-        (t) => [t.parameter_key, t.cuerpo],
-      ),
-    ),
-    notaGlobal: resultado?.nota_global ?? null,
-    evaluado,
     correo: persona?.email ?? null,
-    instrumento: prueba?.nombre ?? "evaluación",
+    empresa: empresa?.nombre ?? null,
   };
 }

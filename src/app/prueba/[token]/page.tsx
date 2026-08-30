@@ -122,16 +122,15 @@ export default async function PruebaConPasePage({
          *
          * Solo pasa cuando el cierre automático no llegó a publicar: en ese
          * caso el pase se deja vivo a propósito para que la persona pueda
-         * volver. Aquí TAMPOCO se enseñan resultados —esta plataforma entrega
-         * el perfil por correo, no en pantalla— así que lo único que puede
-         * hacer esta página es decirle por dónde le llega y a quién preguntar.
+         * volver. Aquí TAMPOCO se enseñan resultados —el perfil va a la
+         * empresa que encargó la evaluación, no a esta pantalla— así que lo
+         * único que puede hacer esta página es decirle a quién preguntar.
          */
         <Alert tone="success" title="Ya enviaste tus respuestas">
-          Tu informe se envía en PDF al correo por el que recibiste este enlace,
-          junto con la copia de{" "}
-          {evaluacion.empresa ?? "la empresa que encargó la evaluación"}. Si
-          pasado un rato no te ha llegado, avísales: ellos pueden consultarlo en
-          la plataforma.
+          Tus resultados van a{" "}
+          {evaluacion.empresa ?? "la empresa que encargó la evaluación"}, que
+          fue quien encargó la evaluación y con quien continúa tu proceso.
+          Pregúntales a ellos por los siguientes pasos.
         </Alert>
       ) : enCurso ? (
         <Ejecutor

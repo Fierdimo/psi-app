@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
@@ -221,21 +219,20 @@ test.describe.serial("Evaluación con pase", () => {
     /*
      * Y LA DESPEDIDA, que ya no es el informe.
      *
-     * Decisión del cliente: el perfil sale por correo a la persona y a la
-     * empresa, y esta pantalla solo dice qué pasó, quién le va a escribir y
-     * que puede irse. Se comprueban las cuatro cosas porque cada una responde
-     * a una pregunta distinta de quien acaba de terminar, y la última —«puedes
-     * cerrar»— es la que evita que se quede esperando algo que no va a salir.
+     * Decisión del cliente: el perfil sale por correo SOLO a la empresa —a la
+     * persona le llega el acuse de recibo, sin resultados— y esta pantalla
+     * dice qué pasó, con quién sigue el proceso y que puede irse. Se
+     * comprueban las cuatro cosas porque cada una responde a una pregunta
+     * distinta de quien acaba de terminar, y la última —«puedes cerrar»— es la
+     * que evita que se quede esperando algo que no va a salir.
      */
     await expect(page.getByText(/terminaste tu evaluación/i)).toBeVisible({
       timeout: 30000,
     });
     await expect(
-      page.getByText(/tus resultados salieron por correo/i),
+      page.getByText(/los resultados no viajan por ese correo/i),
     ).toBeVisible();
-    await expect(
-      page.getByText(/se pondrá en contacto contigo/i),
-    ).toBeVisible();
+    await expect(page.getByText(/continúa el proceso contigo/i)).toBeVisible();
     await expect(page.getByText(/ya puedes cerrar esta página/i)).toBeVisible();
 
     /*
@@ -248,28 +245,29 @@ test.describe.serial("Evaluación con pase", () => {
     await expect(page.getByText(/perfil neurolateral/i)).toHaveCount(0);
 
     /*
-     * El botón descarga UN PDF DE VERDAD.
+     * Y NO HAY POR DÓNDE LLEVARSE EL INFORME. Es el segundo punto del cambio.
      *
-     * El archivo no viene de una dirección —eso sería reabrir la credencial
-     * que el pase acaba de cerrar—: viaja en base64 dentro de la respuesta de
-     * la acción y el navegador lo rearma. Ese camino se corrompe en silencio
-     * si alguien deja que `Blob` codifique la cadena como texto, y un PDF roto
-     * abre en nada sin lanzar ningún error. Por eso se mira el archivo.
+     * Aquí hubo un botón de descarga y esta prueba comprobaba que bajaba un
+     * PDF de verdad. Se retiró con el adjunto del correo: los resultados los
+     * recibe solo la empresa que encargó la evaluación.
      */
-    const descarga = await Promise.all([
-      page.waitForEvent("download"),
-      page
-        .getByRole("button", { name: /descargar mi informe en pdf/i })
-        .click(),
-    ]).then(([d]) => d);
+    await expect(
+      page.getByRole("button", { name: /descargar mi informe en pdf/i }),
+    ).toHaveCount(0);
 
-    expect(descarga.suggestedFilename()).toMatch(/\.pdf$/);
-
-    const guardado = await descarga.path();
-    const bytes = await readFile(guardado);
-    expect(bytes.length).toBeGreaterThan(10_000);
-    // La firma de un PDF son sus cuatro primeros bytes.
-    expect(bytes.subarray(0, 4).toString()).toBe("%PDF");
+    /*
+     * Y EL PDF TAMPOCO VIAJA ESCONDIDO EN LA RESPUESTA.
+     *
+     * Quitar el botón y seguir componiendo el archivo en `enviarConPase` sería
+     * entregar el informe igual, solo que a la pestaña de red del navegador.
+     * No se puede mirar la respuesta de la acción desde aquí, así que se mira
+     * lo que sí es observable: nada en la página carga un base64 de ese
+     * tamaño. Un `pdf` de vuelta lo dejaría en el árbol de datos de React.
+     */
+    const rastro = await page.evaluate(() =>
+      document.documentElement.innerHTML.includes("JVBERi0"),
+    );
+    expect(rastro).toBe(false);
 
     // Y el cuestionario desaparece: no se revisan respuestas que ya no se
     // pueden cambiar.
@@ -301,26 +299,29 @@ test.describe.serial("Evaluación con pase", () => {
     expect(cerrada?.usado_at).not.toBeNull();
 
     /*
-     * EL PDF SALE POR CORREO A LOS DOS.
+     * EL PDF SALE POR CORREO A LA EMPRESA, Y SOLO A ELLA.
      *
-     * A la empresa, que es quien lo encargó, y a la persona, que así conserva
-     * su copia sin depender de haberla guardado en esta pantalla. Se comprueba
-     * el adjunto y no solo el asunto: un correo que anuncia un informe sin
-     * llevarlo es peor que ninguno.
+     * A la persona evaluada le llega un acuse de recibo SIN adjunto y sin
+     * resultados: la dirección la escribió la empresa al convocar y en un
+     * proceso de selección puede ser un buzón corporativo.
+     *
+     * Se miran las dos caras, y la segunda es la que de verdad protege el
+     * cambio: que exista el acuse, y que NO exista un segundo correo con el
+     * informe dentro. Comprobar solo lo primero pasaría igual si alguien
+     * reactivara el envío del PDF a la persona.
      */
     const correos = await expect
       .poll(
         async () => {
           const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
           const { messages } = await r.json();
-          return (messages ?? []).filter(
-            (m: { Subject: string; Attachments: number }) =>
-              /informe/i.test(m.Subject) && m.Attachments > 0,
+          return (messages ?? []).filter((m: { Subject: string }) =>
+            /recibimos tus respuestas/i.test(m.Subject),
           ).length;
         },
         { timeout: 30_000 },
       )
-      .toBeGreaterThanOrEqual(2)
+      .toBeGreaterThanOrEqual(1)
       .then(async () => {
         const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
         return (await r.json()).messages as {
@@ -334,6 +335,16 @@ test.describe.serial("Evaluación con pase", () => {
       (m) => /informe/i.test(m.Subject) && m.Attachments > 0,
     );
 
+    // Uno, el de la empresa. Dos significaría que la persona volvió a recibirlo.
+    expect(conInforme).toHaveLength(1);
+
+    const acuses = correos.filter((m) =>
+      /recibimos tus respuestas/i.test(m.Subject),
+    );
+
+    // Y el acuse va vacío: es la confirmación de que terminó, no su informe.
+    expect(acuses[0].Attachments).toBe(0);
+
     // Y es un PDF de verdad, no un adjunto vacío con nombre bonito.
     const detalle = await fetch(
       `${MAILPIT}/api/v1/message/${conInforme[0].ID}`,
@@ -343,6 +354,20 @@ test.describe.serial("Evaluación con pase", () => {
     expect(adjunto.ContentType).toBe("application/pdf");
     expect(adjunto.FileName).toMatch(/\.pdf$/);
     expect(adjunto.Size).toBeGreaterThan(10_000);
+
+    /*
+     * Y el acuse NO lleva los resultados en el cuerpo.
+     *
+     * Quitar el adjunto y dejar el perfil escrito en el texto sería el mismo
+     * fallo con otra forma, y es el error fácil de cometer al redactar la
+     * plantilla.
+     */
+    const cuerpoAcuse = await fetch(
+      `${MAILPIT}/api/v1/message/${acuses[0].ID}`,
+    ).then((r) => r.json());
+
+    expect(cuerpoAcuse.Text).toMatch(/continúa tu proceso/i);
+    expect(cuerpoAcuse.Text).not.toMatch(/perfil|dominancia|puntuación/i);
 
     // Volver a abrir el enlace no enseña nada, y lo dice con su motivo: no es
     // «venció», que llevaría a pedirle uno nuevo a la empresa.

@@ -598,12 +598,13 @@ Diez apartados. Los tres marcados son los que hoy no dice y hay que añadir.
 5. **Quién recibe el informe.** La empresa que lo encargó, completo, de forma
    automática al terminar y sin revisión previa de un profesional. Después
    puede corregirse.
-6. **▶ Que tu copia se te muestra UNA VEZ, al terminar, y que ahí se acaba.**
-   Con estas palabras: guárdalo o imprímelo en ese momento, porque tu enlace
-   queda cerrado y no hay forma de volver a abrirlo. Si lo pierdes, tendrás que
-   pedírselo a la empresa. Es la contrapartida de que ese enlace no sea una
-   llave permanente a tus resultados (§8.4), y decirlo después de que ocurra no
-   es informar.
+6. **▶ Que tu copia NO se te entrega sola, y cómo se pide.** Con estas
+   palabras: el informe no se muestra en pantalla y **el correo que recibes no
+   lo lleva dentro** (§8.3); se pide al responsable, con la dirección delante,
+   y se entrega. Es el derecho de acceso, y decirlo así importa: un documento
+   que solo dijera «lo recibe la empresa» describiría una puerta cerrada que no
+   es la que hay. Tu enlace queda cerrado al enviar y no vuelve a abrirse
+   (§8.4).
 7. **▶ Que la empresa queda obligada a custodiarlo.** Desde que lo recibe, es
    ella quien responde de ese informe: no puede difundirlo fuera de su proceso
    de selección o gestión, ni usarlo para otra finalidad, y debe protegerlo. Ver
@@ -677,18 +678,31 @@ desde el teléfono sin pulsar nada.
 además con el enlace a la plataforma, donde el documento está siempre al día si
 se corrige. Lleva la línea de recordatorio de custodia (§7.4).
 
-### 8.3 El informe → a la persona evaluada · **en PDF adjunto**
+### 8.3 El acuse → a la persona evaluada · **sin resultados**
 
-El mismo documento, al mismo tiempo, a la dirección donde le llegó la
-convocatoria.
+`evaluacionRecibida`: confirma que la prueba quedó completa, dice que los
+resultados los recibió la empresa que la encargó y remite a ella para los
+siguientes pasos. **No lleva adjunto ni perfil en el cuerpo.**
 
-Se envía **después** del de la empresa y en su propio `try`: que la persona se
-quede sin copia no puede impedir que llegue lo que la empresa pagó.
+Este apartado decía lo contrario —el mismo PDF, al mismo tiempo, a la dirección
+donde le llegó la convocatoria— y el motivo del cambio es esa dirección: **la
+escribió la empresa**, y en un proceso de selección puede ser un buzón
+corporativo que también lee quien decide. Mandar ahí un perfil psicométrico con
+nombre y cédula es publicarlo, no entregarlo.
 
-**Efecto de borde que sigue vigente:** esa dirección la escribió la empresa, y
-en un proceso de selección puede ser un buzón corporativo que también lee quien
-decide. No añade un destinatario que no tuviera ya acceso —a ese mismo buzón
-viajó su enlace— pero el formulario de §3.3 sugiere usar el correo personal.
+**No queda ningún otro camino abierto.** La pantalla del final llegó a ofrecer
+un botón de descarga y el pase llegó a componer el PDF para dárselo en la
+respuesta de la acción; las dos cosas se retiran con el adjunto. Dejar el PDF
+viajando en la respuesta sin botón que lo abriera sería entregar el informe
+igual, solo que a la pestaña de red del navegador.
+
+**Lo que sí se conserva es el derecho de acceso.** El acuse lleva la dirección
+del responsable y por ahí se pide el informe cuando se quiera. Dejar de
+enviarlo de oficio es legítimo; negarlo no lo sería, y el consentimiento tiene
+que decir cuál de las dos cosas es.
+
+Se envía **después** del de la empresa y en su propio `try`, y ya **no depende
+de que el PDF se haya compuesto**: no lo lleva.
 
 ### 8.4 El informe VIAJA en el correo · **decisión revisada**
 
@@ -697,8 +711,8 @@ cierto: un perfil psicológico con nombre y cédula cruza servidores de correo
 que no controlamos, y por eso viajaba solo el aviso con un enlace.
 
 **Se acepta a cambio de lo que se gana**, que es lo que el cliente pidió: la
-empresa archiva el documento donde archiva lo demás, y la persona evaluada
-conserva su copia sin depender de haberla guardado en la pantalla del final.
+empresa archiva el documento donde archiva lo demás. **Solo en su correo:** el
+de la persona evaluada llevó este adjunto un tiempo y ya no (§8.3).
 
 Lo que **no** cambia:
 
@@ -759,55 +773,57 @@ profesional, y la empresa dueña de esa evaluación. La consulta pasa por RLS,
 así que una evaluación ajena responde **404 y no 403**: distinguirlos
 convertiría una dirección adivinable en un detector de evaluaciones de otros.
 
-Quien respondió **no entra por aquí**: su copia le llegó por correo y su enlace
-se apagó al terminar. Abrir esta puerta a `anon` sería deshacer eso.
+Quien respondió **no entra por aquí**, y desde §8.3 con más motivo: no recibe
+el informe por ningún camino automático y su enlace se apagó al terminar. Su
+copia se pide al responsable, que la entrega tras comprobar quién la pide.
+Abrir esta puerta a `anon` sería convertir una dirección adivinable en el
+reparto de informes que se acaba de retirar.
 
-### 8.4.3 Al terminar NO se enseña el informe · **decisión revisada**
+### 8.4.3 Al terminar NO se entrega el informe · **decisión revisada dos veces**
 
-**DECISIÓN DEL CLIENTE**, y revierte lo que esta misma sección sostuvo. La
-pantalla del final dibujaba el perfil entero, con este argumento: el pase se
-apaga ahí, así que es la única ocasión que tiene la persona de leerlo.
+**DECISIÓN DEL CLIENTE**, en dos pasos, y hay que leerlos juntos porque el
+segundo retira la coartada del primero.
 
-Dejó de ser única en §8.3, cuando el PDF pasó a salir también hacia ella. Y lo
-que quedaba era peor que redundante: un perfil psicológico completo —patrón,
-cuadrante, descriptores— leído a solas, recién salido de media hora de prueba
-y sin nadie que lo interprete.
+**Primero dejó de dibujarse el perfil.** La pantalla del final lo pintaba
+entero con este argumento: el pase se apaga ahí, así que es la única ocasión de
+leerlo. Dejó de ser única cuando el PDF pasó a salir también hacia la persona,
+y lo que quedaba era peor que redundante: un perfil psicológico completo
+—patrón, cuadrante, descriptores— leído a solas, recién salido de media hora de
+prueba y sin nadie que lo interprete. Entonces la pantalla ofrecía un botón de
+descarga.
+
+**Ahora tampoco hay botón.** Los resultados los recibe únicamente la empresa
+que encargó la evaluación (§8.3), y eso obliga a cerrar los tres caminos a la
+vez: el adjunto del correo, el botón, y **la composición del PDF en
+`enviarConPase`**. El tercero es el que se olvida: dejar el archivo viajando en
+la respuesta de la acción sin botón que lo abriera sería entregar el informe
+igual, solo que a la pestaña de red del navegador. `leerInformeCompleto`
+desaparece con él —leía valores, parámetros, textos y consentimiento para
+componer un PDF que ya no se compone— y lo sustituye `leerCierre`, que lee el
+nombre, la empresa, el correo y **si hay informe publicado**. Esto último no es
+accesorio: es lo que decide si el pase se apaga.
 
 Lo que la pantalla dice ahora, **en este orden**, que es el orden en que se lo
 pregunta quien acaba de terminar:
 
 1. Se acabó y salió bien, con su nombre.
-2. Dónde están sus resultados: en su correo, no aquí.
-3. Que puede descargarlos ahora si quiere.
-4. Quién le va a escribir y para qué —«{empresa} se pondrá en contacto contigo
-   para continuar con los siguientes pasos»—.
+2. Quién recibió los resultados —la empresa que encargó la evaluación— y que
+   el correo que le llega a él no los lleva dentro.
+3. Con quién sigue el proceso, y por qué canal preguntar.
+4. A dónde escribir si quiere sus datos o su informe.
 5. Que puede cerrar la página cuando quiera.
 
-El punto 5 no es cortesía. Sin él, alguien que termina y no ve resultados se
-queda esperando a que aparezca algo.
+El punto 4 es el que evita que esto se lea como una puerta cerrada: no se le
+entregan de oficio, pero puede pedirlos. El 5 no es cortesía: sin él, alguien
+que termina y no ve resultados se queda esperando a que aparezca algo.
 
-**El botón descarga, ya no imprime.** Imprimir funcionaba porque el informe
-estaba dibujado debajo; sin informe en pantalla no hay nada que imprimir. Y el
-archivo **no cuelga de una dirección**: viaja en base64 dentro de la respuesta
-de la acción y el navegador lo rearma. Una dirección que devolviera el informe
-sería exactamente la credencial al portador que el pase acaba de cerrar.
-
-El PDF se compone **por segunda vez** en esa acción. El cierre automático ya
-generó uno para los correos, pero no lo devuelve: no lanza nunca y se corta
-antes si la empresa no tiene correo de contacto. Atar la copia de la persona a
-que la empresa tenga buzón sería unir dos caminos que fallan por motivos
-distintos, y el precio es medio segundo por evaluación terminada.
-
-**Si la composición falla, no hay botón.** Un botón que descarga un archivo
-roto es peor que ninguno: su copia ya va por correo, que es el camino bueno.
-
-**Y arrastró el consentimiento otra vez.** El apartado se titulaba «Tu copia:
-en pantalla y en tu correo» y prometía que el informe aparecía al enviar.
-Versión **`2026-08-24.3`**.
+**Y arrastró el consentimiento las dos veces.** El apartado se tituló «Tu
+copia: en pantalla y en tu correo», luego «en tu correo», y ahora **«Tu copia:
+se pide, y se te entrega»**. Versión **`2026-08-30`**.
 
 La misma regla vale para volver a abrir un enlace todavía vivo —el caso raro
-en que el motor no llegó a publicar—: tampoco enseña resultados, solo dice por
-dónde llega el PDF y a quién preguntar.
+en que el motor no llegó a publicar—: tampoco enseña resultados, solo dice
+quién los recibe y a quién preguntar.
 
 ### 8.4.2 Cómo se genera el PDF
 

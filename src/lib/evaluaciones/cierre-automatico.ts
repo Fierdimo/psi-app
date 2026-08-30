@@ -1,7 +1,7 @@
 import "server-only";
 
 import { enviarCorreo } from "@/lib/correo/enviar";
-import { informeListo, informeParaLaPersona } from "@/lib/correo/plantillas";
+import { evaluacionRecibida, informeListo } from "@/lib/correo/plantillas";
 /*
  * Desde `motores`, no desde `motor`.
  *
@@ -130,9 +130,10 @@ export async function cerrarYAvisar(asignacion: string): Promise<void> {
      * Antes solo salía el aviso con un enlace, con el argumento de que un
      * perfil psicológico con nombre y cédula no debería cruzar servidores de
      * correo ajenos. Sigue siendo cierto y ahora se acepta a cambio de lo que
-     * se gana: la empresa archiva el documento donde archiva lo demás, y la
-     * persona evaluada conserva su copia sin depender de haberla guardado en
-     * la pantalla del final.
+     * se gana: la empresa archiva el documento donde archiva lo demás.
+     *
+     * SOLO VA EN EL CORREO DE LA EMPRESA. El de la persona evaluada llevó este
+     * mismo adjunto durante un tiempo y ya no: ver más abajo por qué.
      *
      * Lo que NO cambia: el asunto sigue sin decir de qué va la prueba.
      */
@@ -166,33 +167,36 @@ export async function cerrarYAvisar(asignacion: string): Promise<void> {
     );
 
     /*
-     * Y a la persona evaluada, su copia.
+     * Y a la persona evaluada, el acuse de recibo. SIN RESULTADOS.
      *
-     * Va a la dirección donde le llegó la convocatoria —la escribió la
-     * empresa— y eso es un efecto de borde conocido: en un proceso de
-     * selección puede ser un buzón corporativo. No añade un destinatario que
-     * no tuviera ya acceso: a esa misma dirección viajó su enlace.
+     * Antes salía de aquí su copia del informe, con el mismo PDF adjunto. Ya
+     * no: los resultados los recibe únicamente la empresa que encargó la
+     * evaluación, y a la persona le llega la confirmación de que terminó y la
+     * indicación de con quién sigue el proceso.
      *
-     * Se envía DESPUÉS del de la empresa y en su propio `try`: que la persona
-     * se quede sin copia no puede impedir que la empresa reciba lo que pagó.
+     * El motivo es la dirección de destino. La escribió la empresa al
+     * convocar, y en un proceso de selección puede ser un buzón corporativo
+     * que también lee quien decide: mandar ahí un perfil psicométrico con
+     * nombre y cédula es publicarlo, no entregarlo.
+     *
+     * ESTO NO CIERRA SU ACCESO, y la diferencia importa: el correo lleva la
+     * dirección del responsable, por la que puede pedir sus datos cuando
+     * quiera. No enviarlos de oficio es legítimo; negarlos no lo sería.
+     *
+     * Ya no depende de que el PDF se haya compuesto —no lo lleva— así que
+     * sale aunque `informeAdjunto` haya fallado. Se envía DESPUÉS del de la
+     * empresa y en su propio `try`: que la persona se quede sin acuse no
+     * puede impedir que la empresa reciba lo que pagó.
      */
-    if (persona?.email && pdf) {
+    if (persona?.email) {
       try {
         await enviarCorreo(
           { correo: persona.email, nombre: persona.nombre },
-          {
-            ...informeParaLaPersona(
-              persona.nombre,
-              prueba.nombre,
-              empresa.nombre,
-            ),
-            // Con el mismo adjunto: es su copia, no un aviso de que existe.
-            adjuntos,
-          },
+          evaluacionRecibida(persona.nombre, empresa.nombre),
         );
       } catch (falloCorreo) {
         console.error(
-          "[cierre] la persona se quedó sin su copia:",
+          "[cierre] la persona se quedó sin acuse de recibo:",
           falloCorreo instanceof Error
             ? falloCorreo.message
             : "fallo desconocido",

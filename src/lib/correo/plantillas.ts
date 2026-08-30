@@ -508,46 +508,57 @@ export function usosResueltos(datos: {
 }
 
 /**
- * Su copia del informe, para quien respondió la prueba.
+ * El acuse de recibo, para quien acaba de responder la prueba.
  *
- * Va a la dirección donde le llegó la convocatoria. No añade un destinatario
- * que no tuviera ya acceso —a ese mismo buzón viajó su enlace— pero sí conviene
- * saber el borde: en un proceso de selección puede ser un correo corporativo
- * que también lee quien decide. Por eso el asunto no dice de qué va la prueba.
+ * NO LLEVA RESULTADOS, y ese es todo el sentido de esta plantilla. Antes salía
+ * de aquí el mismo PDF que iba a la empresa; ahora sale la confirmación de que
+ * la prueba está completa y la indicación de con quién sigue el proceso.
  *
- * El PDF va adjunto. Antes su copia solo existía en la pantalla del final y se
- * perdía al cerrar la pestaña; ahora la conserva sin depender de eso.
+ * El motivo es el destinatario, no el pudor: esta dirección la escribió la
+ * empresa al convocar, y en un proceso de selección puede ser un buzón
+ * corporativo que también lee quien decide. Un perfil psicométrico interpretado
+ * a solas, recién salido de la prueba y sin nadie que lo lea contigo, es
+ * además la peor manera de recibirlo.
+ *
+ * Lo que sí se conserva es la vía: el pie deja a la vista la dirección por la
+ * que cualquiera puede pedir sus datos. No enviarlos de oficio no es lo mismo
+ * que negarlos, y esa diferencia es justo la que hay que dejar escrita.
+ *
+ * Por eso el asunto tampoco dice de qué va la prueba, como en el resto.
  */
-export function informeParaLaPersona(
+export function evaluacionRecibida(
   nombre: string | null,
-  instrumento: string,
   empresa: string,
 ): Correo {
   const saludo = nombre ? `Hola ${nombre}: ` : "";
   const cuerpo =
-    `${saludo}adjuntamos tu informe de la evaluación que respondiste ` +
-    `(${instrumento}), encargada por ${empresa}. Es tuyo: guárdalo.`;
+    `${saludo}hemos recibido tus respuestas y tu evaluación quedó ` +
+    `completa. Gracias por el tiempo que le dedicaste; no tienes que hacer ` +
+    `nada más por esta vía.`;
+
+  const siguiente =
+    `Los resultados se remitieron a ${empresa}, que fue quien encargó la ` +
+    `evaluación y con quien continúa tu proceso. Para conocer los siguientes ` +
+    `pasos o los plazos, dirígete a ellos por el canal en el que te venían ` +
+    `atendiendo.`;
 
   return {
-    asunto: `Tu informe · ${empresa}`,
+    asunto: `Recibimos tus respuestas · ${empresa}`,
     texto: [
       cuerpo,
       "",
-      `${empresa} recibió una copia, porque es quien encargó la evaluación.`,
+      siguiente,
       "",
-      "Si tienes dudas sobre el documento o quieres ejercer tus derechos sobre",
-      `tus datos, escríbenos a ${RESPONSABLE.correo}.`,
+      "Si quieres consultar tus datos personales o ejercer tus derechos sobre",
+      `ellos, escríbenos a ${RESPONSABLE.correo}.`,
     ].join("\n"),
     html: envolver(
-      "Tu informe",
-      `${cuerpo}<br><br>
-       <span style="color:#64748B;font-size:13px">
-         ${empresa} recibió una copia, porque es quien encargó la evaluación.
-       </span>`,
+      "Evaluación completada",
+      `${cuerpo}<br><br>${siguiente}`,
       undefined,
       `<p style="margin:20px 0 0;color:#64748B;font-size:13px;line-height:1.5">
-         Si tienes dudas sobre el documento o quieres ejercer tus derechos sobre
-         tus datos, escríbenos a ${RESPONSABLE.correo}.
+         Si quieres consultar tus datos personales o ejercer tus derechos sobre
+         ellos, escríbenos a ${RESPONSABLE.correo}.
        </p>`,
     ),
   };
