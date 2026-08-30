@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   ClipboardCheck,
+  Compass,
   FileSearch,
   GraduationCap,
   LucideIcon,
@@ -10,6 +11,7 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  ShieldAlert,
   TrendingUp,
   UserSearch,
   Users,
@@ -100,14 +102,26 @@ const SECCIONES = [
  * evita que una fila de logos ajenos parezca un recorte de periódico.
  */
 const CLIENTES = [
-  { archivo: "/clientes/gesycobro.jpg", nombre: "Gesycobro S.A.S" },
+  {
+    archivo: "/clientes/gesycobro.jpg",
+    nombre: "Gesycobro S.A.S",
+    ancho: 1023,
+    alto: 327,
+  },
   {
     archivo: "/clientes/distribuciones-universal.png",
     nombre: "Distribuciones Universal",
+    ancho: 704,
+    alto: 241,
   },
-  { archivo: "/clientes/hotel-almirante.png", nombre: "Hotel Almirante" },
-  { archivo: "/clientes/meravi.png", nombre: "Meravi" },
-  { archivo: "/clientes/sv.jpeg", nombre: "SV" },
+  {
+    archivo: "/clientes/hotel-almirante.png",
+    nombre: "Hotel Almirante",
+    ancho: 2000,
+    alto: 600,
+  },
+  { archivo: "/clientes/meravi.png", nombre: "Meravi", ancho: 633, alto: 394 },
+  { archivo: "/clientes/sv.jpeg", nombre: "SV", ancho: 260, alto: 194 },
 ];
 
 /** Datos verificables, no cifras de escaparate. */
@@ -221,7 +235,33 @@ const EMPRESAS: readonly Servicio[] = [
   },
 ];
 
-const PRUEBAS_EMPRESA: readonly Servicio[] = [
+/*
+ * TODO el catálogo de instrumentos, en un solo sitio.
+ *
+ * Antes esta lista era solo de empresa y las pruebas que se aplican a una
+ * persona por su cuenta vivían sueltas en la franja de atención individual.
+ * Quien llega preguntando «¿aplicas tal prueba?» no distingue por quién la
+ * encarga: busca el instrumento. Separarlas por audiencia escondía la mitad
+ * del catálogo en la sección que esa persona no estaba leyendo.
+ *
+ * La batería de riesgo psicosocial faltaba desde que la landing se recortó de
+ * 18 pantallas a 7 (18 de agosto). No fue una decisión sobre ella: se
+ * consolidó la mitad dirigida a personas y se perdió por el camino, aunque
+ * SPEC.md §12 la siguió listando. La reclamó el cliente.
+ */
+const PRUEBAS: readonly Servicio[] = [
+  {
+    icono: ShieldAlert,
+    titulo: "Batería de riesgo psicosocial",
+    cuerpo:
+      "Los instrumentos oficiales para medir factores de riesgo psicosocial intralaboral y extralaboral, y estrés. Es la evaluación que la normativa laboral exige aplicar de forma periódica.",
+  },
+  {
+    icono: ClipboardCheck,
+    titulo: "Batería de pruebas de selección",
+    cuerpo:
+      "Personalidad —incluido el DISC—, habilidades cognitivas e idoneidad cultural de los candidatos frente al puesto.",
+  },
   {
     icono: TrendingUp,
     titulo: "Evaluación del desempeño",
@@ -235,10 +275,16 @@ const PRUEBAS_EMPRESA: readonly Servicio[] = [
       "Encuestas especializadas para identificar puntos de conflicto y fortalezas culturales del equipo.",
   },
   {
-    icono: ClipboardCheck,
-    titulo: "Batería de pruebas de selección",
+    icono: UserSearch,
+    titulo: "Pruebas de personalidad",
     cuerpo:
-      "Personalidad —incluido el DISC—, habilidades cognitivas e idoneidad cultural de los candidatos frente al puesto.",
+      "Perfiles de personalidad para autoconocimiento, desarrollo profesional o procesos de selección. También a título individual, sin que las encargue una empresa.",
+  },
+  {
+    icono: Compass,
+    titulo: "Orientación vocacional",
+    cuerpo:
+      "Intereses, aptitudes y rasgos de personalidad combinados para elegir estudios o replantear una carrera.",
   },
 ];
 
@@ -561,20 +607,33 @@ export default function LandingPage() {
               {/*
                 Decía «el informe lo firma él, no un algoritmo», y era la frase
                 más vendedora de la página. Dejó de ser cierta: el informe se
-                califica y se envía solo al terminar la prueba. Se cambia por lo
+                califica y se envía solo al terminar la prueba. Se cambió por lo
                 que sí lo es, que además vende otra cosa —rapidez— sin prometer
                 una firma que no ocurre.
+
+                Y se matiza otra vez al unificar el catálogo: la entrega
+                automática solo ocurre con las evaluaciones que encarga una
+                empresa, que son las que pasan por la plataforma. Prometerla
+                para todas volvería a hacer falsa la frase, por el mismo motivo
+                que la primera vez.
+
+                Se cae también «puede revisarlo y corregirlo después». Dejó de
+                ser cierto: la pantalla de revisión ya no se pinta con el
+                informe publicado. OJO — el CONSENTIMIENTO que firma la persona
+                evaluada sí lo sigue prometiendo (lib/consentimiento.ts). Aquí
+                se retira porque una landing puede decir menos; ahí no, porque
+                un documento firmado que promete algo que no ocurre no se
+                arregla callándolo.
               */}
               <p className="text-text-body text-lg">
                 Instrumentos validados, elegidos e interpretados por un
-                psicólogo. El informe te llega en cuanto la persona termina, y
-                él puede revisarlo y corregirlo después: si lo hace, ves la
-                versión corregida.
+                psicólogo. Los que encarga una empresa se responden aquí y el
+                informe llega por correo en cuanto la persona termina.
               </p>
             </div>
 
             <div className="mt-8 grid gap-3 md:grid-cols-3">
-              {PRUEBAS_EMPRESA.map(({ icono: Icono, titulo, cuerpo }) => (
+              {PRUEBAS.map(({ icono: Icono, titulo, cuerpo }) => (
                 <article
                   key={titulo}
                   className="border-line bg-panel flex flex-col gap-3 rounded-xl border p-5"
@@ -608,17 +667,17 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-[1120px] px-5 py-10 sm:px-6">
             <p className="text-text-muted text-sm">Han trabajado conmigo</p>
             <ul className="mt-5 grid grid-cols-2 items-center gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {CLIENTES.map(({ archivo, nombre }) => (
+              {CLIENTES.map(({ archivo, nombre, ancho, alto }) => (
                 <li
                   key={nombre}
-                  className="border-line bg-bg grid h-16 place-items-center overflow-hidden rounded-lg border p-3"
+                  className="border-line bg-bg grid h-24 place-items-center rounded-lg border p-3 sm:h-28"
                 >
                   <Image
                     src={archivo}
                     alt={nombre}
-                    width={120}
-                    height={40}
-                    className="h-auto max-h-full w-auto max-w-full object-contain opacity-80"
+                    width={ancho}
+                    height={alto}
+                    className="max-h-full w-auto max-w-full object-contain opacity-80"
                   />
                 </li>
               ))}
