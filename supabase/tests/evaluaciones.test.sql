@@ -15,7 +15,7 @@ begin;
 
 create extension if not exists pgtap;
 
-select plan(18);
+select plan(19);
 
 -- Las dos tablas de usos van PRIMERO, y por delante de `auth.users`.
 --
@@ -206,10 +206,39 @@ select is(
 
 select tests_como(:'jefe_globex');
 
+/*
+ * UNA EMPRESA SÍ VE EL CATÁLOGO, y aquí se afirmaba lo contrario.
+ *
+ * Esta comprobación decía «ni una empresa que no encargó nada con ese
+ * instrumento», y describía fielmente lo que hacía la base: la única política
+ * que tenía una empresa sobre `assessments` era la de 0023, que abre la fila
+ * del instrumento YA ENCARGADO.
+ *
+ * Lo que ninguna prueba miraba es que de ahí sale el desplegable de
+ * `/empresa/evaluaciones/nueva`. Con esa regla, para encargar una prueba había
+ * que haberla encargado antes, y una empresa nueva no podía encargar la
+ * primera. Se arregla en 0060 y este test cambia de bando con él.
+ *
+ * Globex no ha encargado nada —ni con este instrumento ni con ninguno— y es
+ * exactamente el caso que tiene que funcionar.
+ */
 select is(
-  (select count(*)::int from public.assessments),
+  (select count(*)::int from public.assessments where activo),
+  1,
+  'Una empresa ve el catálogo aunque todavía no haya encargado nada'
+);
+
+/*
+ * Y ESTA ES LA QUE PROTEGE LO DE 0018.
+ *
+ * Que el catálogo se abra no puede arrastrar el banco de ítems: es el
+ * producto. Ver que existe una prueba llamada «Prueba de laboratorio» no es
+ * poder estudiársela.
+ */
+select is(
+  (select count(*)::int from public.assessment_items),
   0,
-  'Ni una empresa que no encargó nada con ese instrumento'
+  'Pero no el banco de ítems: verla en el catálogo no es poder estudiarla'
 );
 
 select tests_como(:'evaluado');

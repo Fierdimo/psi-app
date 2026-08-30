@@ -1,0 +1,49 @@
+-- =============================================================================
+-- 0060 · La empresa ve el catálogo, no solo lo que ya encargó
+--
+-- CORRIGE UN CÍRCULO CERRADO, y es el segundo intento de arreglar el mismo
+-- exceso: 0023 ya vino a abrir lo que 0018 había cerrado de más.
+--
+-- 0018 cerró `assessments` a todo el mundo salvo al profesional, con un
+-- argumento correcto —el banco de ítems es el producto—. 0023 abrió la fila
+-- del instrumento que a uno le asignaron, y de paso le dio a la empresa esto:
+--
+--   create policy "empresa: ve el instrumento que encargo"
+--     ... exists (select 1 from assignments a
+--                 where a.assessment_id = assessments.id
+--                   and a.organization_id = mi_organizacion())
+--
+-- Para la ficha de una evaluación ya encargada está bien. Pero es la única
+-- política que tiene una empresa sobre esta tabla, y la pantalla de ENCARGAR
+-- (`/empresa/evaluaciones/nueva`) lee de aquí el desplegable de pruebas. El
+-- resultado es un círculo: para poder encargar una prueba hay que haberla
+-- encargado antes.
+--
+-- Una empresa recién dada de alta ve «No hay pruebas disponibles. El catálogo
+-- está vacío ahora mismo», que además no es verdad: el catálogo tiene lo que
+-- tiene, ella no puede verlo. No hay forma de encargar la primera evaluación
+-- desde el portal.
+--
+-- NO SE VIO ANTES PORQUE LA SEMILLA LO TAPA. `seed.sql` le da a la empresa de
+-- demo una asignación de DISC ya hecha, así que en local la pantalla funciona.
+-- Solo falla con una empresa real, que es la que no tiene ninguna.
+--
+-- -----------------------------------------------------------------------------
+-- ESTO NO REABRE LO QUE 0018 PROTEGÍA
+--
+-- Lo que se expone son las columnas de `assessments`: clave, nombre,
+-- descripción, motor. El banco de ítems vive en `assessment_items` y tiene su
+-- propia política, que sigue exigiendo una asignación en curso. Saber que
+-- existe una prueba llamada «Perfil DISC y dominancia cerebral» no es
+-- estudiársela.
+--
+-- Se limita a `activo` para que retirar un instrumento del catálogo lo saque
+-- también de este desplegable, que es lo que esa columna significa. La política
+-- de 0023 se conserva y sigue haciendo falta: da acceso a la fila de una prueba
+-- ya encargada AUNQUE se haya desactivado después, y sin ella la ficha de una
+-- evaluación antigua se quedaría sin nombre de instrumento.
+-- =============================================================================
+
+create policy "empresa: ve el catalogo activo"
+  on public.assessments for select to authenticated
+  using (activo and public.mi_organizacion() is not null);
