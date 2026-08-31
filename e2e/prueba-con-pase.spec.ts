@@ -113,6 +113,23 @@ test.describe.serial("Evaluación con pase", () => {
      */
     test.setTimeout(180000);
 
+    /*
+     * EL BUZÓN ES COMPARTIDO, y esta prueba cuenta correos.
+     *
+     * Mailpit acumula lo de toda la suite: cuando `usos` y `empresa` han
+     * corrido antes, quedan varios «Informe disponible» de otras empresas. Las
+     * aserciones de abajo afirman CUÁNTOS correos con informe salen, así que
+     * mirar el buzón entero las hace depender del orden de los archivos.
+     *
+     * Se marca el instante de arranque y solo se cuenta lo posterior. Vale
+     * `Date.now()` porque Mailpit sella cada mensaje con su `Created`.
+     *
+     * La versión anterior de esta prueba pedía «al menos dos» y por eso no le
+     * afectaba. Al pasar a «exactamente uno» —que es lo que de verdad protege
+     * el cambio— el aislamiento dejó de ser opcional.
+     */
+    const desde = Date.now();
+
     await page.goto(`/prueba/${pase}`, { waitUntil: "domcontentloaded" });
 
     // Sin login, sin registro: la primera pantalla ya es el consentimiento.
@@ -310,26 +327,32 @@ test.describe.serial("Evaluación con pase", () => {
      * informe dentro. Comprobar solo lo primero pasaría igual si alguien
      * reactivara el envío del PDF a la persona.
      */
+    type MensajeMailpit = {
+      ID: string;
+      Subject: string;
+      Attachments: number;
+      Created: string;
+    };
+
+    /** Lo que ha llegado al buzón DESDE que empezó esta prueba. */
+    const mios = async (): Promise<MensajeMailpit[]> => {
+      const r = await fetch(`${MAILPIT}/api/v1/messages?limit=50`);
+      const { messages } = await r.json();
+      return ((messages ?? []) as MensajeMailpit[]).filter(
+        (m) => new Date(m.Created).getTime() >= desde,
+      );
+    };
+
     const correos = await expect
       .poll(
-        async () => {
-          const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
-          const { messages } = await r.json();
-          return (messages ?? []).filter((m: { Subject: string }) =>
+        async () =>
+          (await mios()).filter((m) =>
             /recibimos tus respuestas/i.test(m.Subject),
-          ).length;
-        },
+          ).length,
         { timeout: 30_000 },
       )
       .toBeGreaterThanOrEqual(1)
-      .then(async () => {
-        const r = await fetch(`${MAILPIT}/api/v1/messages?limit=20`);
-        return (await r.json()).messages as {
-          ID: string;
-          Subject: string;
-          Attachments: number;
-        }[];
-      });
+      .then(mios);
 
     const conInforme = correos.filter(
       (m) => /informe/i.test(m.Subject) && m.Attachments > 0,

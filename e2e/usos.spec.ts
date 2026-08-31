@@ -289,3 +289,141 @@ test.describe.serial("Usos y evaluaciones encargadas", () => {
     ).toHaveCount(0);
   });
 });
+
+/*
+ * LA EMPRESA RECIÉN NACIDA, que es la que falló en producción.
+ *
+ * Va aparte de la serie de arriba y estrena su propia organización a
+ * propósito: el resto de la suite entra como `empresa@psi.test`, a quien la
+ * semilla le deja una asignación de DISC ya hecha, y esa asignación TAPABA el
+ * fallo.
+ *
+ * Con la política vieja, una empresa solo veía en `assessments` los
+ * instrumentos QUE YA HABÍA ENCARGADO. Para la empresa de la semilla eso
+ * bastaba y el desplegable se pintaba; para una empresa real, con cero
+ * asignaciones, el catálogo salía vacío y no había forma de encargar la
+ * primera evaluación. `usos.spec.ts` recorría este mismo camino y pasaba.
+ *
+ * Se crea por el disparador de 0058 —toda cuenta nueva nace como empresa con
+ * su organización—, que es exactamente lo que ocurre en `/registro`. No se
+ * escribe la organización a mano: eso probaría un estado que el producto no
+ * produce.
+ */
+test.describe("Una empresa sin historial encarga su primera evaluación", () => {
+  const marca = Date.now();
+  const cuenta = {
+    correo: `nueva-${marca}@empresa.test`,
+    contrasena: "psi-local-2026",
+  };
+  let organizacion = "";
+  let usuario = "";
+
+  test.beforeAll(async () => {
+    const db = admin();
+
+    const { data: creada, error } = await db.auth.admin.createUser({
+      email: cuenta.correo,
+      password: cuenta.contrasena,
+      email_confirm: true,
+      user_metadata: {
+        empresa_nombre: `Recién Constituida ${marca}`,
+        nombre: "Jefa",
+        apellidos: "Nueva",
+      },
+    });
+
+    if (error) throw new Error(`no se pudo crear la cuenta: ${error.message}`);
+
+    const { data: perfil } = await db
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", creada.user!.id)
+      .single();
+
+    usuario = creada.user!.id;
+    organizacion = perfil!.organization_id!;
+
+    /*
+     * Cero asignaciones y saldo para una. Es el estado exacto de producción:
+     * la empresa pagó sus usos y todavía no ha encargado nada.
+     */
+    const PROFESIONAL = "33333333-3333-3333-3333-333333333333";
+
+    const { data: orden, error: falloOrden } = await db
+      .from("ticket_orders")
+      .insert({
+        organization_id: organizacion,
+        cantidad: 1,
+        status: "autorizada",
+        solicitada_por: usuario,
+        // El CHECK lo exige: una orden resuelta sabe quién y cuándo.
+        resuelta_por: PROFESIONAL,
+        resuelta_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (falloOrden)
+      throw new Error(`no se pudo crear la orden: ${falloOrden.message}`);
+
+    const { error: falloLibro } = await db.from("ticket_ledger").insert({
+      organization_id: organizacion,
+      order_id: orden!.id,
+      kind: "carga",
+      cantidad: 1,
+      created_by: PROFESIONAL,
+    });
+
+    if (falloLibro)
+      throw new Error(`no se pudo cargar el saldo: ${falloLibro.message}`);
+  });
+
+  test("ve el catálogo, y no «no hay pruebas disponibles»", async ({
+    page,
+  }) => {
+    const db = admin();
+    const { count } = await db
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizacion);
+
+    // Si esto deja de ser cero, la prueba dejó de probar lo que dice probar.
+    expect(count).toBe(0);
+
+    await entrarComo(page, cuenta);
+
+    await page.goto("/empresa/evaluaciones");
+    await page.getByRole("link", { name: /encargar una evaluación/i }).click();
+
+    await expect(page.getByLabel("Nombre", { exact: true })).toBeVisible({
+      timeout: 20000,
+    });
+
+    // El estado vacío que veía producción.
+    await expect(page.getByText(/no hay pruebas disponibles/i)).toHaveCount(0);
+
+    /*
+     * Y la prueba, dentro del desplegable.
+     *
+     * Sobre el `<select>`, no sobre su `<option>`: Playwright considera ocultas
+     * las opciones —lo están, hasta que se despliega— y `toBeVisible()` sobre
+     * una no puede pasar nunca. El primer intento de esta prueba fallaba así,
+     * con el localizador resolviendo a la opción correcta y llamándola
+     * «hidden», que se lee como si el catálogo no estuviera.
+     */
+    const desplegable = page.getByLabel("Prueba", { exact: true });
+    await expect(desplegable).toContainText(
+      /perfil disc y dominancia cerebral/i,
+    );
+
+    /*
+     * «Alguna», no «exactamente una».
+     *
+     * Hoy el catálogo tiene un único instrumento y sería más estricto fijar el
+     * número, pero entonces cargar la batería de riesgo psicosocial rompería
+     * esta prueba sin que nada esté mal. Lo que aquí se defiende es que la
+     * empresa VEA el catálogo, no cuántas pruebas hay dentro.
+     */
+    expect(await desplegable.locator("option").count()).toBeGreaterThan(0);
+  });
+});
