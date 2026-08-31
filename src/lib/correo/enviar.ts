@@ -82,7 +82,31 @@ function obtenerTransporte() {
        */
       connectionTimeout: 5000,
       greetingTimeout: 5000,
-      socketTimeout: 10000,
+
+      /*
+       * EL DE SOCKET ES OTRA COSA, y tenerlo en 10 s costó los informes.
+       *
+       * Los dos de arriba son los que protegen del puerto bloqueado: si no hay
+       * conexión o no hay saludo en cinco segundos, no lo va a haber. Ese
+       * diagnóstico se hace antes de mandar un solo byte.
+       *
+       * El de socket mide INACTIVIDAD, y con un adjunto grande hay inactividad
+       * legítima: el servidor calla mientras digiere lo que le acabas de
+       * subir. Medido contra Gmail desde el VPS, con un informe de 2,2 MB
+       * —3 MB ya en base64—: 6,4 s de subida y 8,7 s de silencio antes del
+       * `250`. Dieciocho segundos en total.
+       *
+       * En 10 s eso se cortaba siempre. El síntoma era «Timeout» a secas, que
+       * apunta a la red y manda a mirar puertos y credenciales: la
+       * convocatoria, con su QR de unos kilobytes, salía sin problema, y solo
+       * fallaban los correos del informe.
+       *
+       * Sesenta segundos no reabre lo que los otros dos cierran —un puerto
+       * colgado sigue fallando en cinco— y aquí no hay nadie esperando: el
+       * informe se envía desde `cerrarYAvisar`, que es dispara y olvida y ya
+       * está envuelto en su propio `try`.
+       */
+      socketTimeout: 60000,
     });
 
     avisarSiGoogleVaAReescribirElRemitente(host, usuario);
