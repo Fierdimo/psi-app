@@ -126,7 +126,24 @@ test.describe.serial("Solicitar una cita", () => {
     ).toHaveCount(0);
   });
 
-  test("la anticipación mínima se aplica en el servidor", async ({ page }) => {
+  /*
+   * EN PAUSA: la agenda de pacientes no está en uso.
+   *
+   * Busca el texto «anticipación» en el aviso del servidor y ya no
+   * aparece: la pantalla cambió con el giro a evaluaciones por encargo.
+   *
+   * No se borra, y el código que prueba tampoco: esa parte se conserva a
+   * propósito por si vuelve, y una prueba es la mejor descripción que queda de
+   * cómo funcionaba cuando alguien la escribió sabiéndolo. Borrarla perdería lo
+   * mismo que borrar el código.
+   *
+   * Se pausa porque un rojo permanente enseña a ignorar el rojo, y así es como
+   * se cuela el fallo siguiente. Para reactivarla: quitar el `.skip` y
+   * comprobar que el aviso de anticipación mínima sigue diciendo eso.
+   */
+  test.skip("la anticipación mínima se aplica en el servidor", async ({
+    page,
+  }) => {
     await entrarComo(page, CUENTAS.paciente);
     await page.goto("/solicitar-cita");
 
@@ -190,7 +207,29 @@ test.describe("Zonas horarias", () => {
    * Crea su propia cita en vez de reutilizar la de la siembra: depender de lo
    * que dejen otras pruebas es lo que la hacía fallar de forma intermitente.
    */
-  test("la hora se guarda en la zona del perfil y se muestra en ella", async ({
+  /*
+   * EN PAUSA: la agenda de pacientes no está en uso.
+   *
+   * Espera el campo «Día» de `/solicitar-cita` y se queda esperándolo
+   * hasta agotar el tiempo.
+   *
+   * DE LAS CINCO PAUSADAS ES LA QUE MÁS DUELE, y su propio comentario
+   * explica por qué: comprueba que la hora se escribe en la zona del
+   * perfil, se guarda en UTC y vuelve a mostrarse en la del perfil. Ese
+   * fallo no se ve en pantalla; se ve cuando alguien llega a su sesión con
+   * una hora de diferencia. Si las citas vuelven, esta es la primera que
+   * hay que recuperar.
+   *
+   * No se borra, y el código que prueba tampoco: esa parte se conserva a
+   * propósito por si vuelve, y una prueba es la mejor descripción que queda de
+   * cómo funcionaba cuando alguien la escribió sabiéndolo. Borrarla perdería lo
+   * mismo que borrar el código.
+   *
+   * Se pausa porque un rojo permanente enseña a ignorar el rojo, y así es como
+   * se cuela el fallo siguiente. Para reactivarla: quitar el `.skip` y
+   * comprobar que `/solicitar-cita` sigue teniendo el campo «Día».
+   */
+  test.skip("la hora se guarda en la zona del perfil y se muestra en ella", async ({
     page,
   }) => {
     await entrarComo(page, CUENTAS.paciente);
